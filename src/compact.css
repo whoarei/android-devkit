@@ -1,0 +1,263 @@
+/* Windows Snap needs a small minimum width; the normal workspace stays 1280px. */
+.window-buttons button.native-hover {
+  background: #dce6d7;
+}
+.hint,
+.file-summary b,
+.sdk-overview b {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 959px) {
+  .app-shell {
+    min-width: 480px;
+  }
+  .sidebar {
+    width: 72px;
+    padding-inline: 11px;
+  }
+  .sidebar-heading,
+  .sdk-card,
+  .build-label {
+    display: none;
+  }
+  nav button {
+    font-size: 0;
+    gap: 0;
+    padding: 13px;
+    position: relative;
+  }
+  nav button span {
+    display: none;
+  }
+  nav button svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+  nav button b {
+    position: absolute;
+    right: 0;
+    top: 0;
+    font-size: 8px;
+  }
+  .sidebar-bottom {
+    padding-bottom: 10px;
+  }
+  .titlebar-brand {
+    width: 185px;
+    font-size: 11px;
+    padding-left: 16px;
+  }
+  .title-env {
+    display: none;
+  }
+  .main {
+    margin-left: 72px;
+    padding: 23px 20px 55px;
+  }
+  .page-top {
+    flex-wrap: wrap;
+    margin-top: 40px;
+    margin-bottom: 20px;
+  }
+  .page-top > div:first-child {
+    width: 100%;
+  }
+  .page-top h1 {
+    font-size: 22px;
+  }
+  .page-top p {
+    font-size: 11px;
+  }
+  .page-actions {
+    padding: 0;
+    width: 100%;
+  }
+  .page-actions .button {
+    flex: 1;
+  }
+  .device-layout.has-selection {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .detail-panel {
+    position: fixed;
+    right: 15px;
+    top: 95px;
+    bottom: 50px;
+    overflow: auto;
+    width: 280px;
+    z-index: 35;
+    box-shadow: 0 10px 50px #1d351b26;
+  }
+  .device-row {
+    gap: 10px;
+  }
+  .device-main strong {
+    font-size: 12px;
+  }
+  .device-main p {
+    font-size: 9px;
+  }
+  .device-row > .badge {
+    display: none;
+  }
+  .row-button {
+    width: 65px;
+    margin-left: 0;
+    font-size: 9px;
+    padding: 7px;
+  }
+  .device-icon {
+    width: 35px;
+    height: 42px;
+  }
+  .device-icon svg {
+    width: 21px;
+  }
+  .environment-note {
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .environment-note span {
+    line-height: 1.7;
+  }
+  .environment-note .text-button {
+    display: none;
+  }
+  .tabs {
+    gap: 19px;
+  }
+  .tabs button {
+    font-size: 11px;
+  }
+  .sdk-overview {
+    padding: 15px;
+    gap: 8px;
+  }
+  .sdk-overview b {
+    font-size: 11px;
+    overflow-wrap: anywhere;
+  }
+  .sdk-overview .button {
+    font-size: 10px;
+    flex: 1;
+    padding: 8px;
+  }
+  .search input {
+    width: 125px;
+    font-size: 10px;
+  }
+  .package-header,
+  .package-row {
+    padding: 12px 9px;
+    gap: 7px;
+    grid-template-columns: minmax(0, 1fr) 46px 55px 60px;
+  }
+  .package-row b {
+    font-size: 10px;
+  }
+  .package-row small {
+    font-size: 8px;
+  }
+  .package-row {
+    font-size: 9px;
+  }
+  .package-row select {
+    font-size: 9px;
+    padding: 4px;
+  }
+  .section-toolbar {
+    gap: 8px;
+  }
+  .change-bar {
+    flex-wrap: wrap;
+    padding: 12px;
+  }
+  .change-bar > div {
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .change-bar .button {
+    font-size: 10px;
+  }
+  .settings-panel section {
+    padding: 17px;
+  }
+  .input-action {
+    flex-wrap: wrap;
+  }
+  .input-action input {
+    flex-basis: 100%;
+    width: 100%;
+  }
+  .input-action .button {
+    font-size: 10px;
+  }
+  .log-toolbar {
+    flex-wrap: wrap;
+  }
+  .log-toolbar h3 span {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .log-panel {
+    padding: 12px;
+  }
+  .log-toolbar .button {
+    padding: 6px 8px;
+    font-size: 9px;
+  }
+  .status-end {
+    display: none;
+  }
+  .statusbar {
+    font-size: 9px;
+    padding-inline: 10px;
+  }
+  .statusbar > span:nth-child(2) {
+    max-width: 50%;
+  }
+  .statusbar button {
+    font-size: 9px;
+  }
+  .modal-backdrop {
+    padding: 15px;
+  }
+  .modal,
+  .modal.wide {
+    max-width: 100%;
+    padding: 21px;
+  }
+  .form-grid {
+    gap: 0 12px;
+  }
+  .form-grid input,
+  .form-grid select {
+    width: 100%;
+  }
+  .wizard-steps {
+    padding: 12px;
+    gap: 5px;
+  }
+  .wizard-steps > span {
+    font-size: 10px;
+    gap: 5px;
+  }
+  .modal-actions {
+    flex-wrap: wrap;
+  }
+  .modal-actions .button {
+    font-size: 10px;
+  }
+  .toast {
+    width: 80%;
+    font-size: 11px;
+  }
+  .task-card {
+    padding: 17px;
+  }
+  .task-actions {
+    flex-wrap: wrap;
+  }
+}

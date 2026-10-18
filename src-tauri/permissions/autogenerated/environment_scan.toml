@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-environment-scan"
+description = "Enables the environment_scan command without any pre-configured scope."
+commands.allow = ["environment_scan"]
+
+[[permission]]
+identifier = "deny-environment-scan"
+description = "Denies the environment_scan command without any pre-configured scope."
+commands.deny = ["environment_scan"]

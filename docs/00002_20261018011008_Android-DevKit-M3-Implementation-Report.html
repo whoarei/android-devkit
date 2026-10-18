@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Android DevKit · M3 实现与验证报告</title><style>
+:root{color-scheme:light;--ink:#203e32;--muted:#64776a;--line:#dbe4d7;--paper:#f6f8f2;--green:#28684b}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.8 "Segoe UI","Microsoft YaHei",sans-serif}main{max-width:1120px;margin:auto;padding:56px 34px 90px}a{color:#246343;text-underline-offset:3px}header{padding:38px;background:#e5eddf;border:1px solid var(--line);border-radius:18px}small,.muted{color:var(--muted)}h1{font-size:36px;line-height:1.35;margin:12px 0}h2{font-size:25px;margin:46px 0 16px}h3{font-size:18px;margin:20px 0 6px}p{margin:10px 0}.badge{display:inline-block;border:1px solid #b8cbb1;border-radius:30px;padding:3px 13px;font-size:13px;background:#f6faf3}.callout{padding:18px 22px;background:#fff8e8;border-left:4px solid #c39b43;margin:20px 0}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.card{background:#fff;border:1px solid var(--line);padding:20px 24px;border-radius:12px}table{border-collapse:collapse;width:100%;background:white;font-size:14px}th,td{border:1px solid var(--line);padding:12px 15px;text-align:left;vertical-align:top}th{background:#eaf0e3}code{font-family:Consolas,monospace;font-size:.9em;overflow-wrap:anywhere}pre{white-space:pre-wrap;background:#203e32;color:#edf3e8;border-radius:12px;padding:20px;font:14px/1.9 Consolas,monospace}figure{margin:24px 0}img{max-width:100%;border:1px solid var(--line);border-radius:10px}figcaption{font-size:13px;color:var(--muted);margin-top:6px}.compact-image{max-height:480px;width:auto}.table-wrap{overflow-x:auto}ul{padding-left:22px}li{margin:7px 0}footer{margin-top:50px;border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted)}@media(max-width:700px){main{padding:20px 16px}header{padding:24px}h1{font-size:28px}.grid{grid-template-columns:1fr}}@media print{body{background:white}main{padding:0}header{break-inside:avoid}h2{break-after:avoid}tr,.card{break-inside:avoid}a{color:inherit}pre{background:#eee;color:#222}}
+</style></head><body><main>
+<header><small>ANDROID DEVKIT / IMPLEMENTATION RECORD</small><h1>M3 实现与验证报告</h1><p>版本 0.3.0 · Tauri 2 + React / TypeScript + Rust · Windows 11 x64</p><p><span class="badge">M0—M3 功能已实现</span> <span class="badge">本机闭环验证通过</span> <span class="badge">默认 SDK：E:\Android\sdk</span></p><small>记录时间：2026-10-18 01:10:08 +08:00（北京时间）</small></header>
+<p>依据 <a href="00000_20261017232447_Android-DevKit-PRD.html">PRD v0.6</a> 与 <a href="00001_20261017234246_Android-DevKit-Technical-Design.html">Tauri 技术方案</a> 完成至 M3 的代码实现、Release 构建和本机验证。现有 SDK、用户既有 <code>Pindou_8in_Tablet</code> AVD 与共享系统镜像保留；破坏性测试仅使用独立创建的一次性 AVD。</p>
+<div class="callout"><strong>验收边界：</strong>当前没有实体手机参与成功无线配对验收。已验证真实 ADB 的失败路径、连接未就绪判断和配对码不持久化，不能据此声称真机成功链已通过。跨显示器混合 DPI、全新普通 Windows 用户、多物理设备及完整恢复故障矩阵仍需补充验证。本报告不代表 PRD 全部 P0 或 M4 发布验收完成。</div>
+
+<h2>1. 交付与运行</h2><div class="grid"><div class="card"><h3>本机可执行程序</h3><p><a href="../artifacts/windows/AndroidDevKit-0.3.0.exe">AndroidDevKit.exe</a> · Release · 14.96 MiB</p><p>双击运行，默认复用 <code>E:\Android\sdk</code>。需要 WebView2 Runtime。程序未签名，当前没有安装器。</p><p><a href="../artifacts/windows/build-info-0.3.0.json">构建元数据与 SHA256</a></p></div><div class="card"><h3>开发与验证入口</h3><p><a href="../README.md">README</a> 提供启动、构建、集成测试和已知限制。</p><p><a href="evidence/m3-acceptance.json">精简机器验证记录</a>保留通过状态、任务顺序与构建标识。原始任务数据库、截图和日志位于项目 <code>.qa</code> 目录。</p></div></div>
+<p class="muted"><code>SHA256 6368b1a27b9b944367826ab8e3998de473dfac2fef2d36a24784decec79e6186</code></p>
+
+<h2>2. 实现范围</h2><div class="table-wrap"><table><thead><tr><th>阶段</th><th>已实现能力</th><th>主要实现</th></tr></thead><tbody>
+<tr><td>M0</td><td>自绘标题栏、Windows Snap 原生最大化命中区、150% DPI；进程参数数组执行、stdout / stderr 同时排空；工具版本与空环境验证。</td><td><code>platform.rs / process.rs / resources</code></td></tr>
+<tr><td>M1</td><td>Rust DTO 生成 TS 类型、受限 IPC、SQLite 任务 / 审计、资源锁；SDK、AVD、USB / 无线会话发现；冻结目标的 APK 安装与应用启动，PNG 截图、基础 Logcat 环形缓冲。</td><td><code>domain.rs / contracts.rs / storage.rs / app.rs / apk.rs / observe.rs</code></td></tr>
+<tr><td>M2</td><td>最小用途引导、许可确认、私有 Java；官方稳定仓库目录、组件计划与逐项安装卸载；依赖最低版本及显式升级范围；代理、校验、暂存解压、占用拦截和实际清单复查。</td><td><code>bootstrap.rs / dependencies.rs / plans.rs / engine.rs</code></td></tr>
+<tr><td>M3</td><td>Pixel 2 手机 / Nexus 9 平板创建；显示名、内存与 GPU 配置编辑；启动就绪、打开窗口、冷启动、正常 / 强制停止、清数据、删除；无线配对、手动连接与断开。</td><td><code>android.rs / engine.rs / platform.rs / App.tsx</code></td></tr>
+</tbody></table></div>
+<figure><img src="assets/m3-devices.png" alt="Release 设备工作台，复用现有 SDK 与 AVD"><figcaption>Release 桌面实测：默认 SDK 为 E:\Android\sdk，原有 AVD 保留。</figcaption></figure>
+
+<h2>3. 已执行的验证</h2><div class="table-wrap"><table><thead><tr><th>验证项</th><th>结果及范围</th><th>证据</th></tr></thead><tbody>
+<tr><td>静态检查 / 常规测试</td><td>TypeScript、Vite 构建与 Clippy -D warnings 通过。Rust 17 项通过、4 项显式忽略；忽略项为类型生成和 3 类真实集成测试，下列集成测试另行执行。Rust / TS 契约无漂移。</td><td><code>pnpm check / pnpm test</code></td></tr>
+<tr><td>M2 空 SDK + 空 Java</td><td>64.41 秒；官方目录 → 固定 Command Tools → 校验 / 解压 → 私有 JRE21 → 官方许可 stdin → platform-tools / emulator 安装与清单复查。缺少许可同意时拒绝执行。仅在隔离目录下载，不改 E 盘 SDK。</td><td><code>.qa/runtime/m2-1792256647/acceptance.json</code></td></tr>
+<tr><td>M3 真实生命周期</td><td>127.69 秒，16 个任务全部成功。手机创建 / 编辑 / 启动 → 截图 → fixture APK 安装 / 启动 → 正常停止 → 冷启动 → 停止 → 清数据并停止 → 删除；平板创建 / 启动 / 打开窗口 / 强停 / 删除。共享系统镜像仍存在。</td><td><code>.qa/runtime/m3-1792256636/acceptance.json</code></td></tr>
+<tr><td>无线失败与秘密处理</td><td>真实 E 盘 adb 访问 localhost:9；配对返回 PAIR_FAILED，连接返回 CONNECT_NOT_READY；任务对象及序列化内容均无配对码。未测试外部手机成功配对。</td><td><code>pnpm verify:wireless</code></td></tr>
+<tr><td>桌面界面</td><td>现有 AVD、485 条组件目录可见；非法 AVD 名称 / IP 被拒绝；仓库刷新无警告；诊断、设置路径正常；无前端异常。</td><td><code>.qa/app/report.json</code></td></tr>
+<tr><td>紧凑与窗口</td><td>960 / 640 / 480 宽及窄屏向导无页面横向溢出；最大化 / 还原切换成功；150% DPI 命中 HTMAXBUTTON=9；原生贴靠浮层实际出现，截图人工复核通过。</td><td><code>.qa/app/compact-report.json / window-report.json</code></td></tr>
+</tbody></table></div>
+<div class="grid"><figure><img src="assets/m3-snap-layouts.png" alt="最大化按钮悬停显示 Windows 原生贴靠浮层"><figcaption>实际 Windows Snap 悬停浮层，不仅是合成命中测试。</figcaption></figure><figure><img class="compact-image" src="assets/m3-compact.png" alt="480 宽紧凑布局"><figcaption>480 宽紧凑导航与设备列表。</figcaption></figure></div>
+<details><summary>查看测试模拟器产生的 PNG 截图</summary><figure><img class="compact-image" src="assets/m3-emulator-capture.png" alt="真实 Android 模拟器截图"><figcaption>由冻结目标的 adb exec-out screencap 产生，PNG 解码检查通过。</figcaption></figure></details>
+
+<h2>4. 已验证工具组合</h2><div class="table-wrap"><table><thead><tr><th>环境</th><th>组合</th><th>验证深度</th></tr></thead><tbody>
+<tr><td>现有 E 盘 SDK</td><td>Command Tools 22.0；platform-tools 36.0.0 / ADB 协议 41；emulator 36.1.6；JBR 21.0.6；AOSP Android 29 x86_64。</td><td>手机 / 平板 AVD 生命周期、APK 安装启动、截图；WHPX 加速实际可用。</td></tr>
+<tr><td>隔离空 SDK</td><td>Command Tools 22.0；Temurin JRE 21.0.12.1+1-LTS；platform-tools 37.0.1；emulator 37.2.12。</td><td>下载、校验、解压、许可、安装和工具发现。未用该组合执行 AVD 启动。</td></tr>
+<tr><td>开发构建</td><td>Node 24.14.0；pnpm 11.25.0；Rust 1.95.0；Tauri Rust 2.12.4 / CLI 2.12.3；Vite 7.3.7。</td><td>精确依赖解析由两个 lockfile 保存，Rust toolchain 固定。</td></tr>
+</tbody></table></div><p>完整元数据见 <a href="../src-tauri/resources/toolchain.json">toolchain.json</a>；引导归档校验值与完整 Java 许可分别保存在 <code>bootstrap.json</code> 和 <code>java-license.txt</code>。</p>
+
+<h2>5. 关键边界与实施调整</h2><ul>
+<li><strong>设备目标：</strong>每次有目标的写操作绑定 epoch + transport ID + serial，并在执行步骤重新核对；断线或会话改变即停止，不改投其他设备。兼容性检查前通过 ADB host socket 只读探测服务，重启共享服务须单独明确确认。</li>
+<li><strong>SDK 变更：</strong>依赖最低版本进入计划；版本替换明确展示，不使用全局 update。已有镜像在创建 AVD 时保留当前版本；执行后版本与计划不同标记待检查。运行中模拟器及已知 AVD 引用阻止不安全组件替换 / 卸载。</li>
+<li><strong>AVD 数据：</strong>新建采用独立暂存与提交日志，不覆盖同名 AVD；编辑保留未知字段并检测外部冲突。删除 / 重置检查路径、注册配置、共享目录和重解析点。清数据包含独立 SD 卡与快照，完成后回到停止。</li>
+<li><strong>进程：</strong>强停绑定应用记录的 PID、创建时间和可执行路径，拒绝无法证明归属的外部进程；停止后复查占用。打开窗口也核对进程身份。</li>
+<li><strong>任务恢复：</strong>SQLite WAL 保存任务与审计；中断任务变为待检查，复查可证明的实际结果；不自动重放安装、卸载、配对或清数据。</li>
+<li><strong>方案调整：</strong>DTO 生成采用已验证的 ts-rs；最小窗口宽从建议 960 调为 480，配合紧凑布局以支持常见 Snap 分区；传统工具固定 Command Tools 22.0，新 Android CLI 迁移留待独立兼容验证。</li>
+</ul>
+
+<h2>6. 待补充验收与 M4</h2><p>开发实现已覆盖 M3；以下证据与发布工作没有被本机模拟器测试替代：</p><ul>
+<li>实体 Android 手机成功配对、连接、断开与重连；两台物理设备同时在线、USB 授权变化及切网情形。</li>
+<li>100%—200% DPI、跨显示器混合 DPI 与各贴靠布局完整矩阵；全新普通 Windows 用户机器上的零环境引导。</li>
+<li>M4：正式 Logcat PID / 应用过滤与长采集、隐私导出、关闭 / 托盘体验、完整恢复故障注入和性能基线。</li>
+<li>M4：签名安装器、依赖许可清单与发布更新；其他 API / Google Play 镜像组合需要追加兼容验证。</li>
+</ul>
+
+<h2>7. 复现命令</h2><pre>pnpm install --frozen-lockfile
+pnpm check
+pnpm test
+pnpm verify:m3
+pnpm verify:m2
+pnpm verify:wireless
+pnpm tauri build --no-bundle
+powershell -NoProfile -File scripts/package-portable.ps1</pre>
+<p>桌面运行：<code>pnpm tauri dev</code>。浏览器 <code>pnpm dev</code> 只用于界面预览。真实验收脚本会下载官方文件或创建自行管理的一次性 AVD，执行范围详见 <a href="../README.md">README</a>。</p>
+<footer>Android DevKit 0.3.0 · 记录创建后沿用本文件名更新 · 实测结论仅对应本报告列出的平台与工具组合。</footer>
+</main></body></html>

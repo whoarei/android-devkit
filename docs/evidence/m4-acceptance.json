@@ -1,0 +1,163 @@
+{
+  "recordedAtBeijing": "2026-10-18 06:38:45 +08:00",
+  "scope": "M4 core implementation and local internal acceptance; full P0/release acceptance remains open",
+  "build": {
+    "product": "Android DevKit",
+    "version": "0.4.0",
+    "profile": "release",
+    "platform": "windows-x86_64",
+    "createdBeijing": "2026-10-18 06:42:24 +08:00",
+    "sha256": "f59f171bed6d1335136d0d7e8b2cff4f609ae38269901301fc7c600ea74e103f",
+    "sizeBytes": 18020864,
+    "defaultSdk": "E:\\Android\\sdk",
+    "signed": false,
+    "installer": {
+      "file": "AndroidDevKit-0.4.0-setup.exe",
+      "sha256": "4e701d1395a400248b49da4f2e3c8b02cf8907d9ccf0e84d1ad7d42bb2a37d6d",
+      "signed": false
+    }
+  },
+  "standardChecks": {
+    "typescript": true,
+    "vite": true,
+    "clippyWarningsDenied": true,
+    "rustPassed": 25,
+    "rustIgnored": 6,
+    "generatedContractsCurrent": true
+  },
+  "realSdk": {
+    "source": ".qa/runtime/m4-1792275766/acceptance.json",
+    "durationSeconds": 165.22,
+    "taskCount": 18,
+    "allSucceeded": true,
+    "observability": {
+      "clearUsesSequenceCursor": true,
+      "manifest": {
+        "bytes": 468,
+        "createdAt": 1792275808,
+        "files": [
+          {
+            "bytes": 468,
+            "name": "segment-0001.log",
+            "sha256": "5f02141a9d121f6f0f4753abb1eee1fe970a8672584209ffdef2e830d7b25d9a"
+          }
+        ],
+        "filter": {
+          "after": 0,
+          "before": 0,
+          "keyword": "",
+          "level": "",
+          "package": "dev.androiddevkit.fixture",
+          "pids": [],
+          "tag": "DevKitFixture"
+        },
+        "gaps": 2,
+        "reason": "达到采集时限，已完成文件封口",
+        "state": "complete",
+        "target": {
+          "serial": "emulator-5554",
+          "serverEpoch": 1792275766,
+          "transportId": "27"
+        },
+        "taskId": "fc78fa6f-f683-4366-8202-7deda095ac83",
+        "version": 1
+      },
+      "newPids": [
+        3732
+      ],
+      "oldPids": [
+        3624
+      ],
+      "package": "dev.androiddevkit.fixture",
+      "rawExportRequiresExplicitChoice": true,
+      "redactedExportRows": 5,
+      "redactionVerified": true,
+      "unsavedExitBlocked": true,
+      "waitingForProcess": true
+    }
+  },
+  "ui": {
+    "diagnosticPreview": true,
+    "defaultRedaction": true,
+    "unsavedExitBlocked": true,
+    "closeDialogListsArtifacts": true,
+    "trayEnabledAndDisabled": true,
+    "singleInstanceRestored": true,
+    "artifactRegistryPersisted": true,
+    "errors": []
+  },
+  "live": {
+    "liveDevice": "emulator-5554",
+    "applicationFilter": true,
+    "pauseKeepsView": true,
+    "clearPreservesDeviceBuffer": true,
+    "recordingSurvivesPageChange": true,
+    "cancelSealsRecording": true,
+    "segmentExportRedacted": true,
+    "recordedBytes": 192,
+    "errors": [],
+    "staleSelectionCleared": true,
+    "testAvdDeleted": true
+  },
+  "performance": {
+    "scope": "release CPU parser + bounded ring buffer only; not end-to-end UI or disk throughput",
+    "lines": 150000,
+    "seconds": 0.1145264,
+    "linesPerSecond": 1309741.6840134677,
+    "bufferRows": 10000,
+    "bufferRawBytes": 500000,
+    "dropped": 140000
+  },
+  "installer": {
+    "installer": "AndroidDevKit-0.4.0-setup.exe",
+    "installerSha256": "4e701d1395a400248b49da4f2e3c8b02cf8907d9ccf0e84d1ad7d42bb2a37d6d",
+    "portableSha256": "f59f171bed6d1335136d0d7e8b2cff4f609ae38269901301fc7c600ea74e103f",
+    "installerPayloadSha256": "9b229ed0dd047bd356e5883b6885b5899a025dce882920a5ebed221f6de5958c",
+    "payloadMatchesAfterTauriBundleMarkerNormalization": true,
+    "differingBytes": 3,
+    "markerChange": "UNK → NSS",
+    "noticeFilesMatch": true,
+    "signed": false,
+    "cleanMachineInstallUninstallVerified": false
+  },
+  "licenses": {
+    "components": 341,
+    "missingLicenseTexts": []
+  },
+  "remaining": [
+    "Physical phone successful wireless/USB and multiple physical targets",
+    "Cross-monitor mixed DPI 100–200%",
+    "Clean standard-user Windows bootstrap/install/uninstall",
+    "Complete network, disk-full and process-kill fault matrix",
+    "Sustained end-to-end UI and disk throughput",
+    "Code signing and public distribution/update"
+  ],
+  "compact": {
+    "widths": [
+      {
+        "width": 960,
+        "overflow": false
+      },
+      {
+        "width": 640,
+        "overflow": false
+      },
+      {
+        "width": 480,
+        "overflow": false
+      }
+    ],
+    "wizardOverflow": false
+  },
+  "deliveryVerification": {
+    "executableChecksumVerified": true,
+    "reportLinksAndImagesVerified": true,
+    "reportNoHorizontalOverflowAt": [
+      1280,
+      480
+    ],
+    "runtimeSchemaVersion": 2,
+    "priorDatabaseBackupObserved": true
+  },
+  "updatedAtBeijing": "2026-10-18 06:43:56 +08:00"
+}

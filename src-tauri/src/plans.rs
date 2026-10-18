@@ -1,0 +1,471 @@
+use crate::{
+    android,
+    app::{
+        assert_avd_stopped, assert_package_unused, validate_app_package, validate_avd_values, App,
+    },
+    domain::*,
+};
+use std::{collections::BTreeMap, path::Path};
+
+pub fn fingerprint(app: &App, settings: &Settings) -> Result<String> {
+    let mut bytes = serde_json::to_vec(settings)?;
+    for relative in [
+        "cmdline-tools/latest/source.properties",
+        "platform-tools/source.properties",
+        "emulator/source.properties",
+    ] {
+        if let Ok(raw) = std::fs::read(Path::new(&settings.sdk_root).join(relative)) {
+            bytes.extend(raw);
+        }
+    }
+    bytes.extend(serde_json::to_vec(&*app.catalog.lock().unwrap())?);
+    Ok(digest(&bytes))
+}
+fn license(pkg: &SdkPackage, list: &mut Vec<License>) {
+    if !pkg.license.is_empty() && !list.iter().any(|l| l.id == pkg.license_id) {
+        list.push(License {
+            id: pkg.license_id.clone(),
+            text: pkg.license.clone(),
+            hash: digest(pkg.license.as_bytes()),
+        });
+    }
+}
+pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
+    let settings = app.store.settings();
+    let avds = android::avds(&settings);
+    let local = android::installed(&settings);
+    let catalog = app.catalog.lock().unwrap().clone();
+    let mut effects = Vec::new();
+    let mut warnings = Vec::new();
+    let mut licenses = Vec::new();
+    let title = match op.kind.as_str() {
+        "adb_start" => "启动设备服务",
+        "adb_restart" => {
+            warnings.push("将中断本机其他工具及设备连接，旧会话全部失效。".into());
+            "重启共享 ADB"
+        }
+        "sdk_install" | "sdk_remove" => {
+            let ids: Vec<String> = op.arg("packages")?.lines().map(String::from).collect();
+            if ids.iter().any(|id| !valid_package(id)) {
+                return Err(AppError::new("INVALID_PACKAGE", "无效组件 ID"));
+            }
+            let mut expanded = ids.clone();
+            let mut expected = BTreeMap::new();
+            if op.kind == "sdk_install" {
+                expanded = crate::dependencies::resolve(&ids, &local, &catalog)?;
+            }
+            for id in &expanded {
+                effects.push(format!(
+                    "{} {id}",
+                    if op.kind == "sdk_remove" {
+                        "卸载"
+                    } else {
+                        "安装 / 更新"
+                    }
+                ));
+                if op.kind == "sdk_remove" {
+                    assert_package_unused(id, &settings, &avds)?;
+                } else if let Some(p) = catalog.iter().find(|p| p.id == *id) {
+                    license(p, &mut licenses);
+                    expected.insert(id.clone(), p.version.clone());
+                    if let Some(old) = local.iter().find(|p| p.id == *id) {
+                        if old.version != p.version {
+                            warnings.push(format!(
+                                "{id} 将从 {} 替换为 {}，不保证可回滚",
+                                old.version, p.version
+                            ));
+                            assert_package_unused(id, &settings, &avds)?;
+                        }
+                    }
+                    if p.size > 0 {
+                        effects.push(format!(
+                            "版本 {} · 下载约 {:.1} MiB",
+                            p.version,
+                            p.size as f64 / 1048576.0
+                        ));
+                    }
+                } else if !local.iter().any(|p| p.id == *id) {
+                    return Err(AppError::new(
+                        "PACKAGE_UNKNOWN",
+                        format!("{id} 不在已验证目录中，请刷新仓库"),
+                    ));
+                }
+            }
+            op.args.insert("packages".into(), expanded.join("\n"));
+            op.args
+                .insert("expectedVersions".into(), serde_json::to_string(&expected)?);
+            if op.kind == "sdk_remove" {
+                warnings.push("无法检测全部外部项目依赖；已知 AVD 引用会阻止卸载。".into());
+            }
+            "应用 SDK 变更"
+        }
+        "bootstrap" => {
+            let purpose = op.optional("purpose").to_owned();
+            if !matches!(purpose.as_str(), "usb" | "emulator") {
+                return Err(AppError::new("INVALID_PURPOSE", "请选择真机或模拟器环境"));
+            }
+            effects.push(format!(
+                "准备 {purpose} 最小环境；SDK {}",
+                settings.sdk_root
+            ));
+            let mut expected = BTreeMap::new();
+            let mut missing = Vec::new();
+            for id in if purpose == "usb" {
+                vec!["platform-tools"]
+            } else {
+                vec!["platform-tools", "cmdline-tools;22.0", "emulator"]
+            } {
+                let pkg = catalog.iter().find(|p| p.id == id).ok_or_else(|| {
+                    AppError::new("LICENSE_UNAVAILABLE", "先刷新官方仓库，取得组件和许可")
+                })?;
+                license(pkg, &mut licenses);
+                expected.insert(id.to_string(), pkg.version.clone());
+                if !local.iter().any(|p| p.id == id) && id != "cmdline-tools;22.0" {
+                    missing.push(id);
+                }
+                effects.push(format!(
+                    "{id} · 缺失时下载 {:.1} MiB",
+                    pkg.size as f64 / 1048576.0
+                ));
+            }
+            if purpose != "usb" && !Path::new(&settings.java_path).is_file() {
+                let text = include_str!("../resources/java-license.txt");
+                licenses.push(License {
+                    id: "Temurin-JRE-21-GPLv2-Classpath".into(),
+                    text: text.into(),
+                    hash: digest(text.as_bytes()),
+                });
+                effects.push("按需准备应用私有 Temurin JRE 21，不修改系统 Java".into());
+            }
+            op.args.insert("packages".into(), missing.join("\n"));
+            op.args
+                .insert("expectedVersions".into(), serde_json::to_string(&expected)?);
+            "准备最小环境"
+        }
+        "avd_create" => {
+            let name = op.arg("name")?;
+            if !valid_name(name) {
+                return Err(AppError::new(
+                    "INVALID_NAME",
+                    "内部名称限 1～64 个英文字母、数字、下划线或连字符",
+                ));
+            }
+            if avds.iter().any(|a| a.name.eq_ignore_ascii_case(name)) {
+                return Err(AppError::new("AVD_EXISTS", "同名 AVD 已存在，不会覆盖"));
+            }
+            if !matches!(op.optional("profile"), "pixel_2" | "Nexus 9") {
+                return Err(AppError::new(
+                    "UNSUPPORTED_PROFILE",
+                    "仅支持已验证的手机 Pixel 2 与平板 Nexus 9 profile",
+                ));
+            }
+            validate_avd_values(&op)?;
+            for key in ["memory", "storage", "gpu"] {
+                op.arg(key)?;
+            }
+            if op.optional("displayName").contains(['\n', '\r'])
+                || op.optional("displayName").len() > 200
+            {
+                return Err(AppError::new(
+                    "INVALID_DISPLAY_NAME",
+                    "显示名称不能含换行且不得超过 200 字节",
+                ));
+            }
+            let image = op.arg("image")?.to_owned();
+            if !valid_package(&image)
+                || !image.starts_with("system-images;")
+                || !image.ends_with(";x86_64")
+            {
+                return Err(AppError::new(
+                    "INVALID_IMAGE",
+                    "Windows x64 请选择受支持的 x86_64 系统镜像",
+                ));
+            }
+            if image.contains("google_apis_playstore") && op.optional("profile") == "Nexus 9" {
+                return Err(AppError::new(
+                    "PROFILE_IMAGE_MISMATCH",
+                    "该平板 profile 不支持 Google Play 镜像，请选择 AOSP 或 Google APIs",
+                ));
+            }
+            effects.push(format!("新建 {}；镜像 {image}", name));
+            effects.push(format!(
+                "内存 {} MiB · 数据 {} GiB · {}",
+                op.optional("memory"),
+                op.optional("storage"),
+                op.optional("gpu")
+            ));
+            // An installed shared image stays at its current revision during AVD creation.
+            let installed_image = local.iter().any(|p| p.id == image);
+            let available: Vec<_> = catalog
+                .iter()
+                .filter(|p| !installed_image || p.id != image)
+                .cloned()
+                .collect();
+            let mut prerequisites =
+                crate::dependencies::resolve(std::slice::from_ref(&image), &local, &available)?;
+            prerequisites.retain(|id| !installed_image || *id != image);
+            let mut expected = BTreeMap::new();
+            for id in &prerequisites {
+                let p = catalog
+                    .iter()
+                    .find(|p| p.id == *id)
+                    .ok_or_else(|| AppError::new("IMAGE_UNKNOWN", "请刷新官方镜像及依赖目录"))?;
+                license(p, &mut licenses);
+                expected.insert(id.clone(), p.version.clone());
+                effects.push(format!(
+                    "先准备 {id} · {}，约 {:.1} MiB",
+                    p.version,
+                    p.size as f64 / 1048576.0
+                ));
+                if let Some(old) = local.iter().find(|p| p.id == *id) {
+                    if old.version != p.version {
+                        assert_package_unused(id, &settings, &avds)?;
+                        warnings.push(format!(
+                            "{id} 将从 {} 替换为 {}，不保证可回滚",
+                            old.version, p.version
+                        ));
+                    }
+                }
+            }
+            op.args
+                .insert("prerequisitePackages".into(), prerequisites.join("\n"));
+            op.args
+                .insert("expectedVersions".into(), serde_json::to_string(&expected)?);
+            "创建模拟器"
+        }
+        "avd_start" | "avd_cold" | "avd_stop" | "avd_force_stop" | "avd_wipe" | "avd_delete"
+        | "avd_edit" | "avd_focus" => {
+            let a = avds
+                .iter()
+                .find(|a| a.id == op.optional("avdId"))
+                .ok_or_else(|| AppError::new("AVD_NOT_FOUND", "AVD 已不存在"))?;
+            effects.push(format!("{} · {}", a.display_name, a.data_path));
+            op.args.insert("dataPath".into(), a.data_path.clone());
+            op.args
+                .insert("configurationHash".into(), a.fingerprint.clone());
+            op.args
+                .insert("registryHash".into(), digest_file(Path::new(&a.ini_path))?);
+            if matches!(op.kind.as_str(), "avd_delete" | "avd_wipe") {
+                android::safe_avd_path(a, &settings)?;
+                assert_avd_stopped(a)?;
+                warnings.push(
+                    if op.kind == "avd_wipe" {
+                        "清除应用、用户数据、快照和独立 SD 卡；配置和共享镜像保留。"
+                    } else {
+                        "永久删除配置与用户数据；共享镜像保留。"
+                    }
+                    .into(),
+                );
+            }
+            if op.kind == "avd_edit" {
+                validate_avd_values(&op)?;
+            }
+            match op.kind.as_str() {
+                "avd_start" => "启动模拟器",
+                "avd_cold" => "冷启动模拟器",
+                "avd_stop" => "停止模拟器",
+                "avd_force_stop" => "强制停止模拟器",
+                "avd_wipe" => "清除模拟器数据",
+                "avd_delete" => "删除模拟器",
+                "avd_edit" => "保存模拟器配置",
+                _ => "打开模拟器窗口",
+            }
+        }
+        "wireless_pair" => {
+            android::validate_endpoint(op.arg("address")?)?;
+            let code = op.arg("code")?;
+            if code.len() != 6 || !code.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(AppError::new("INVALID_PAIR_CODE", "配对码应为 6 位数字"));
+            }
+            effects.push(format!(
+                "配对 {}；配对成功后仍需验证连接",
+                op.arg("address")?
+            ));
+            "无线设备配对"
+        }
+        "wireless_connect" | "wireless_disconnect" => {
+            android::validate_endpoint(op.arg("address")?)?;
+            effects.push(op.arg("address")?.into());
+            if op.kind == "wireless_connect" {
+                "连接无线设备"
+            } else {
+                "断开无线连接"
+            }
+        }
+        "apk_install" | "app_reinstall" => {
+            let apk = app
+                .apks
+                .lock()
+                .unwrap()
+                .get(op.arg("apkId")?)
+                .cloned()
+                .ok_or_else(|| AppError::new("APK_NOT_FOUND", "请重新选择 APK"))?;
+            if op.target.is_none() {
+                return Err(AppError::new("TARGET_REQUIRED", "必须明确选择设备"));
+            }
+            effects.push(format!(
+                "{} · {:.1} MiB · {} {}",
+                apk.file_name,
+                apk.size as f64 / 1048576.0,
+                apk.package,
+                apk.version
+            ));
+            op.args.insert("package".into(), apk.package.clone());
+            op.args.insert("version".into(), apk.version.clone());
+            if op.kind == "app_reinstall" {
+                validate_app_package(&apk.package)?;
+                warnings.push("将卸载原应用及全部应用数据，再安装所选 APK。".into());
+            } else {
+                warnings.push("覆盖安装并保留数据；冲突时不会自动卸载或降级。".into());
+            }
+            "安装 APK"
+        }
+        "log_record" => {
+            if op.target.is_none() {
+                return Err(AppError::new("TARGET_REQUIRED", "请选择采集设备"));
+            }
+            let f: LogFilter = serde_json::from_str(op.arg("filter")?)?;
+            if !f.package.is_empty() {
+                validate_app_package(&f.package)?;
+            }
+            let quota = op.arg("quotaMiB")?.parse::<u64>().unwrap_or(0);
+            let seconds = op.arg("seconds")?.parse::<u64>().unwrap_or(0);
+            if !(8..=4096).contains(&quota) || !(1..=86400).contains(&seconds) {
+                return Err(AppError::new(
+                    "INVALID_RECORDING_LIMIT",
+                    "总配额限 8～4096 MiB，时限 1～86400 秒",
+                ));
+            }
+            if app
+                .store
+                .active_tasks()?
+                .iter()
+                .any(|t| t.operation.kind == "log_record" && t.operation.target == op.target)
+            {
+                return Err(AppError::new("RECORDING_ACTIVE", "该设备已有采集任务"));
+            }
+            effects.push(format!(
+                "流式采集，最多 {quota} MiB / {seconds} 秒，每段最多 100 MiB；关闭视图继续采集"
+            ));
+            effects.push(format!(
+                "过滤应用 {} · 级别 {} · tag {}",
+                f.package, f.level, f.tag
+            ));
+            warnings.push(
+                "原始日志仅存本地，可能含应用数据。导出时默认脱敏并预览；停止采集会封口文件。"
+                    .into(),
+            );
+            "开始文件采集"
+        }
+        "app_launch" | "capture" => {
+            if op.target.is_none() {
+                return Err(AppError::new("TARGET_REQUIRED", "必须明确选择设备"));
+            }
+            if op.kind == "app_launch" {
+                validate_app_package(op.arg("package")?)?;
+                "启动应用"
+            } else {
+                "截图"
+            }
+        }
+        _ => return Err(AppError::new("UNSUPPORTED_OPERATION", "未支持的操作")),
+    }
+    .to_owned();
+    if let Some(t) = &op.target {
+        effects.push(format!(
+            "目标 {} · transport {} · 会话 {}",
+            t.serial, t.transport_id, t.server_epoch
+        ));
+    }
+    let environment_fingerprint = fingerprint(app, &settings)?;
+    op.args.insert(
+        "environmentFingerprint".into(),
+        environment_fingerprint.clone(),
+    );
+    let mut audited_operation = op.clone();
+    audited_operation.args.remove("code");
+    let plan = Plan {
+        id: uuid::Uuid::new_v4().to_string(),
+        hash: digest(&serde_json::to_vec(&audited_operation)?),
+        operation: op,
+        title,
+        effects,
+        warnings,
+        licenses,
+        created_at: now(),
+        settings_hash: environment_fingerprint,
+        confirmation_token: uuid::Uuid::new_v4().to_string(),
+    };
+    app.plans
+        .lock()
+        .unwrap()
+        .insert(plan.id.clone(), plan.clone());
+    Ok(plan)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn consent_and_catalog_revision_are_enforced_before_side_effects() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = App::new(dir.path().join("state")).unwrap();
+        let settings = Settings {
+            sdk_root: dir.path().join("sdk").to_string_lossy().into(),
+            avd_roots: vec![dir.path().join("avd").to_string_lossy().into()],
+            ..Default::default()
+        };
+        app.store.save_settings(&settings).unwrap();
+        app.catalog.lock().unwrap().push(SdkPackage {
+            id: "platform-tools".into(),
+            version: "36.0.0".into(),
+            license_id: "fixture-license".into(),
+            license: "Fixture terms".into(),
+            ..Default::default()
+        });
+        let p = app
+            .prepare_plan(Operation {
+                kind: "sdk_install".into(),
+                args: BTreeMap::from([("packages".into(), "platform-tools".into())]),
+                target: None,
+            })
+            .unwrap();
+        assert_eq!(
+            app.submit(&p.id, &p.hash, "r", &p.confirmation_token, &[])
+                .unwrap_err()
+                .code,
+            "LICENSE_REQUIRED"
+        );
+        assert_eq!(
+            app.submit(&p.id, &p.hash, "r", "wrong", &[p.licenses[0].hash.clone()])
+                .unwrap_err()
+                .code,
+            "PLAN_CHANGED"
+        );
+        app.catalog.lock().unwrap()[0].version = "37.0.0".into();
+        assert_eq!(
+            app.submit(
+                &p.id,
+                &p.hash,
+                "r",
+                &p.confirmation_token,
+                &[p.licenses[0].hash.clone()]
+            )
+            .unwrap_err()
+            .code,
+            "PLAN_CHANGED"
+        );
+        assert!(app.store.tasks().unwrap().is_empty());
+        assert!(!Path::new(&settings.sdk_root).exists());
+    }
+    #[test]
+    fn stale_pid_lock_does_not_make_stopped_avd_permanently_busy() {
+        let dir = tempfile::tempdir().unwrap();
+        let lock = dir.path().join("hardware-qemu.ini.lock");
+        std::fs::create_dir(&lock).unwrap();
+        std::fs::write(lock.join("pid"), "4294967294").unwrap();
+        assert!(!crate::app::avd_locked(dir.path()));
+        std::fs::write(lock.join("pid"), std::process::id().to_string()).unwrap();
+        assert!(crate::app::avd_locked(dir.path()));
+    }
+}

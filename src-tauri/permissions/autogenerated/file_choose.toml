@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-file-choose"
+description = "Enables the file_choose command without any pre-configured scope."
+commands.allow = ["file_choose"]
+
+[[permission]]
+identifier = "deny-file-choose"
+description = "Denies the file_choose command without any pre-configured scope."
+commands.deny = ["file_choose"]

@@ -1,0 +1,231 @@
+{
+  "recordedAtBeijing": "2026-10-18 01:10:08 +08:00",
+  "build": {
+    "product": "Android DevKit",
+    "version": "0.3.0",
+    "profile": "release",
+    "platform": "windows-x86_64",
+    "createdBeijing": "2026-10-18 01:13:19 +08:00",
+    "sha256": "6368b1a27b9b944367826ab8e3998de473dfac2fef2d36a24784decec79e6186",
+    "sizeBytes": 15688192,
+    "defaultSdk": "E:\\Android\\sdk",
+    "signed": false
+  },
+  "standardChecks": {
+    "typescriptBuild": true,
+    "viteBuild": true,
+    "clippyWarningsDenied": true,
+    "rustTests": {
+      "passed": 17,
+      "ignored": 4
+    },
+    "rustTypescriptContractCurrent": true
+  },
+  "m2": {
+    "source": ".qa/runtime/m2-1792256647/acceptance.json",
+    "durationSeconds": 64.41,
+    "emptySdk": true,
+    "emptyJava": true,
+    "state": "succeeded",
+    "missingLicenseConsentRejected": true,
+    "actualVersions": {
+      "commandTools": "22.0",
+      "java": "Temurin JRE 21.0.12.1+1-LTS",
+      "platformTools": "37.0.1",
+      "emulator": "37.2.12",
+      "scope": "download, checksum, extract, license, install, and tool discovery; AVD boot uses existingSdk combination"
+    }
+  },
+  "m3": {
+    "source": ".qa/runtime/m3-1792256636/acceptance.json",
+    "durationSeconds": 127.69,
+    "tasks": [
+      {
+        "id": "25cb6729-5b53-4481-83fe-61e06577657a",
+        "operation": "avd_create",
+        "state": "succeeded",
+        "message": "模拟器已创建；可从设备列表启动",
+        "createdAt": 1792256636,
+        "updatedAt": 1792256637
+      },
+      {
+        "id": "b86e5848-3c95-457d-9e5f-1700f79b8274",
+        "operation": "avd_edit",
+        "state": "succeeded",
+        "message": "配置已保存，未知字段保留",
+        "createdAt": 1792256637,
+        "updatedAt": 1792256637
+      },
+      {
+        "id": "eb940202-e4d8-4265-ae32-7e411b78d0bc",
+        "operation": "avd_start",
+        "state": "succeeded",
+        "message": "模拟器系统已就绪",
+        "createdAt": 1792256637,
+        "updatedAt": 1792256656
+      },
+      {
+        "id": "0bdb0199-063e-4a19-8e14-906234688a14",
+        "operation": "capture",
+        "state": "succeeded",
+        "message": "截图已生成，可预览、保存或复制",
+        "createdAt": 1792256657,
+        "updatedAt": 1792256659
+      },
+      {
+        "id": "a023a41e-dccd-4e01-80e9-7075c710aff8",
+        "operation": "apk_install",
+        "state": "succeeded",
+        "message": "已安装 dev.androiddevkit.fixture；运行情况需另行观察",
+        "createdAt": 1792256659,
+        "updatedAt": 1792256660
+      },
+      {
+        "id": "ea034b20-d639-4af0-a31d-3c692e648e2b",
+        "operation": "app_launch",
+        "state": "succeeded",
+        "message": "系统已接受应用启动请求",
+        "createdAt": 1792256660,
+        "updatedAt": 1792256661
+      },
+      {
+        "id": "a8bd4b15-8d75-4942-88c2-0a88c4ba9595",
+        "operation": "avd_stop",
+        "state": "succeeded",
+        "message": "模拟器已停止",
+        "createdAt": 1792256661,
+        "updatedAt": 1792256665
+      },
+      {
+        "id": "43672bd4-5b01-4e02-8010-f84755b13e2d",
+        "operation": "avd_cold",
+        "state": "succeeded",
+        "message": "模拟器系统已就绪",
+        "createdAt": 1792256665,
+        "updatedAt": 1792256693
+      },
+      {
+        "id": "65424e2b-85b9-45d0-a11d-e7d2ee051128",
+        "operation": "avd_stop",
+        "state": "succeeded",
+        "message": "模拟器已停止",
+        "createdAt": 1792256693,
+        "updatedAt": 1792256715
+      },
+      {
+        "id": "be2a016a-4b6a-40fa-8c49-1aa1c840177e",
+        "operation": "avd_wipe",
+        "state": "succeeded",
+        "message": "用户数据、快照和独立 SD 卡已重置，设备已停止",
+        "createdAt": 1792256715,
+        "updatedAt": 1792256738
+      },
+      {
+        "id": "6afbfff3-3405-4b32-a73e-e02843aa9037",
+        "operation": "avd_delete",
+        "state": "succeeded",
+        "message": "AVD 已删除，共享镜像保留",
+        "createdAt": 1792256738,
+        "updatedAt": 1792256739
+      },
+      {
+        "id": "f80f0137-3155-4c19-8641-4569210e4b46",
+        "operation": "avd_create",
+        "state": "succeeded",
+        "message": "模拟器已创建；可从设备列表启动",
+        "createdAt": 1792256740,
+        "updatedAt": 1792256741
+      },
+      {
+        "id": "5a1720c7-65ae-4e51-868e-085856354507",
+        "operation": "avd_start",
+        "state": "succeeded",
+        "message": "模拟器系统已就绪",
+        "createdAt": 1792256741,
+        "updatedAt": 1792256761
+      },
+      {
+        "id": "5603850b-350f-4570-ba2c-e6fe4a2a0149",
+        "operation": "avd_focus",
+        "state": "succeeded",
+        "message": "已请求打开模拟器窗口",
+        "createdAt": 1792256761,
+        "updatedAt": 1792256761
+      },
+      {
+        "id": "8b2f0a95-58de-42e9-9b01-f960c92fe97e",
+        "operation": "avd_force_stop",
+        "state": "succeeded",
+        "message": "已强制停止确认归属的进程，并复查文件占用已释放",
+        "createdAt": 1792256761,
+        "updatedAt": 1792256762
+      },
+      {
+        "id": "5b0fcf82-c2f3-4950-9709-eca97b25798e",
+        "operation": "avd_delete",
+        "state": "succeeded",
+        "message": "AVD 已删除，共享镜像保留",
+        "createdAt": 1792256762,
+        "updatedAt": 1792256763
+      }
+    ],
+    "sharedImagePreserved": true,
+    "testAvdsDeleted": true
+  },
+  "wireless": {
+    "scope": "real E:\\Android\\sdk adb, localhost:9 only",
+    "pairFailure": true,
+    "connectionNotReady": true,
+    "pairingCodeAbsentFromPersistedTasks": true,
+    "physicalPhoneSuccessVerified": false
+  },
+  "ui": {
+    "sdk": "E:\\Android\\sdk",
+    "avds": [
+      "Pindou_8in_Tablet"
+    ],
+    "packages": 485,
+    "devices": 0,
+    "catalogWarnings": [],
+    "invalidAvdRejected": true,
+    "invalidWirelessRejected": true,
+    "overflow": false,
+    "errors": []
+  },
+  "compact": {
+    "widths": [
+      {
+        "width": 960,
+        "overflow": false
+      },
+      {
+        "width": 640,
+        "overflow": false
+      },
+      {
+        "width": 480,
+        "overflow": false
+      }
+    ],
+    "wizardOverflow": false
+  },
+  "window": {
+    "maximizeHitTest": 9,
+    "dpiScale": 1.5,
+    "hwnd": 3608618,
+    "pointerRestored": true,
+    "snapFlyoutVisuallyInspected": true
+  },
+  "hardwareGaps": [
+    "Physical-phone successful wireless pairing and reconnect",
+    "Two physical devices and USB authorization changes",
+    "Cross-monitor mixed DPI 100–200%",
+    "Brand-new standard Windows user and full recovery fault matrix"
+  ],
+  "deliveryVerification": {
+    "allLocalLinksExist": true,
+    "allImagesLoaded": true,
+    "reportOverflowAt1280And480": false,
+    "releaseExecutableChecksumVerified": true
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "platform": "windows-x86_64",
+  "validatedOn": "2026-10-18",
+  "development": { "node": "24.14.0", "pnpm": "11.25.0", "rust": "1.95.0" },
+  "existingSdk": {
+    "root": "E:\\Android\\sdk",
+    "commandTools": "22.0",
+    "platformTools": "36.0.0",
+    "adbProtocol": 41,
+    "emulator": "36.1.6",
+    "java": "JetBrains JBR 21.0.6",
+    "systemImage": "system-images;android-29;default;x86_64",
+    "profiles": ["pixel_2", "Nexus 9"],
+    "acceleration": "WHPX"
+  },
+  "emptySdkBootstrap": {
+    "commandTools": "22.0",
+    "java": "Temurin JRE 21.0.12.1+1-LTS",
+    "platformTools": "37.0.1",
+    "emulator": "37.2.12",
+    "scope": "download, checksum, extract, license, install, and tool discovery; AVD boot uses existingSdk combination"
+  },
+  "limits": [
+    "Other image/API/Google Play combinations require additional compatibility verification",
+    "Android CLI is not used by this implementation",
+    "Physical phone pairing success and multi-monitor DPI matrix remain unverified"
+  ]
+}

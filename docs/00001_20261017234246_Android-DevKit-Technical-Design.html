@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="基于 Android DevKit PRD v0.6 的 Tauri 2 技术方案，覆盖 Rust 架构、SDK 与 AVD 管理、ADB 共存、设备验证、任务恢复、Windows 窗口及验收计划。">
+  <title>Android DevKit 技术方案 · Tauri 2</title>
+  <style>
+    :root{--bg:#f4f6f3;--paper:#fff;--ink:#1a2923;--muted:#63736a;--line:#dce5dd;--soft:#f1f5f0;--accent:#17634c;--accent-soft:#e4efe8;--amber:#805819;--amber-soft:#faf5e8;--sidebar:252px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:28px}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.85 "Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;-webkit-font-smoothing:antialiased}a{color:var(--accent);text-underline-offset:3px}button{font:inherit;cursor:pointer}a:focus-visible,button:focus-visible{outline:3px solid #71aa91;outline-offset:4px}::selection{background:#cee6d7}
+    .sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar);background:#eef3ed;border-right:1px solid var(--line);padding:27px 20px 22px;overflow:auto;z-index:30}.brand{font-size:19px;font-weight:750;letter-spacing:-.4px}.brand small{display:block;font-size:10px;letter-spacing:1.5px;font-weight:400;color:var(--muted);margin-top:5px}.nav-label{font-size:10px;letter-spacing:2px;color:var(--muted);margin:25px 10px 9px}.toc a{display:flex;gap:10px;padding:7px 10px;margin:2px 0;border-radius:5px;font-size:12px;line-height:1.5;text-decoration:none;color:#53665a}.toc a span{min-width:18px;font-size:10px;color:#87988a;font-variant-numeric:tabular-nums}.toc a:hover{background:#e1eae0}.toc a.active{background:#dae9de;color:#154e3a;font-weight:650}.sidebar-foot{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding:15px 10px 0;margin-top:22px;line-height:1.8}
+    main{margin-left:var(--sidebar);padding:0 44px 65px}.document{max-width:1160px;min-height:100vh;padding:44px 58px 50px;background:var(--paper);margin:auto}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:11px;color:var(--muted);padding-bottom:39px}.toolbar-actions{display:flex;gap:13px;align-items:center}.toolbar button{border:1px solid var(--line);background:white;padding:5px 10px;border-radius:4px;font-size:11px;color:var(--ink)}.menu-toggle{display:none}.kicker{color:var(--accent);font-size:11px;letter-spacing:2px;font-weight:650}.hero h1{font-size:39px;line-height:1.3;color:#000;letter-spacing:-1px;margin:11px 0 18px}.hero h1 span{display:block;font-size:27px;letter-spacing:0;font-weight:550;margin-top:9px}.lead{font-size:17px;line-height:1.9;max-width:830px;margin:0 0 22px}.metadata{display:flex;flex-wrap:wrap;gap:8px 24px;font-size:12px;color:var(--muted);margin-bottom:25px}.decision{padding:21px 23px;background:var(--accent-soft);border-left:3px solid var(--accent);margin:20px 0}.decision strong{color:#134b37}.decision p{margin:0}.stack{display:flex;flex-wrap:wrap;gap:7px;margin:16px 0 23px}.stack span{border:1px solid #d4e2d8;padding:4px 9px;font-size:11px;border-radius:4px;color:#365d46;background:#f8fbf6}
+    section{padding-top:43px;scroll-margin-top:25px}h2{font-size:26px;line-height:1.4;color:#000;margin:0 0 21px;font-weight:700;letter-spacing:-.3px}h2 .n{display:block;color:var(--accent);font-size:12px;letter-spacing:1.5px;margin-bottom:7px;font-weight:600}h3{font-size:18px;line-height:1.5;margin:26px 0 11px;color:#000;font-weight:650}h4{font-size:15px;margin:21px 0 8px;color:#000}p{margin:11px 0}strong{font-weight:650}ul,ol{margin:12px 0 17px;padding-left:23px}li{margin:6px 0;padding-left:3px}.note,.small,figcaption{font-size:12px;color:var(--muted);line-height:1.85}.note{margin:10px 0 16px}.callout{padding:15px 19px;border:1px solid var(--line);border-radius:5px;background:#f9fbf8;margin:17px 0}.callout p{margin:0}.callout.warn{background:var(--amber-soft);border-color:#ebdfc0}.callout.warn strong{color:var(--amber)}.req{font-size:11px;color:var(--muted);font-weight:500;margin-left:7px;white-space:nowrap}.badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:10px;color:#315f45;background:#e6eee7;white-space:nowrap}.badge.warn{background:#f3ecdb;color:var(--amber)}
+    .table-wrap{max-width:100%;overflow:auto;margin:15px 0 23px}table{width:100%;border-collapse:collapse;font-size:12px;line-height:1.85}caption{text-align:left;color:var(--muted);font-size:11px;margin-bottom:8px}th,td{border:1px solid #d9dfd9;text-align:left;vertical-align:top;padding:10px 12px;overflow-wrap:anywhere}th{background:#eaf2ec;font-weight:650;color:#193d28}tr:nth-child(even) td{background:#fafcf9}td:first-child{font-weight:550}code{font:12px/1.7 Consolas,"Microsoft YaHei",monospace;padding:2px 5px;background:#eff3ee;border-radius:3px;overflow-wrap:anywhere}pre{font:12px/1.85 Consolas,"Microsoft YaHei",monospace;background:#f4f7f2;border:1px solid var(--line);border-radius:5px;padding:17px 19px;overflow:auto;margin:17px 0 21px;tab-size:2}pre code{background:none;border-radius:0;padding:0;font:inherit;overflow-wrap:normal}
+    figure{margin:22px 0 25px}figcaption{margin-top:10px}.architecture{border:1px solid #cddbd0;padding:19px;border-radius:7px;background:#fafcf9}.layer{display:grid;grid-template-columns:120px 1fr;gap:13px;align-items:center}.layer-label{font-size:12px;font-weight:650;color:#3f6650}.modules{display:grid;gap:9px;grid-template-columns:repeat(3,minmax(0,1fr))}.module{padding:13px 12px;border:1px solid #d6e2d8;background:#fff;border-radius:4px;font-size:12px;text-align:center}.module b{font-size:12px;display:block;color:#174d35}.module small{display:block;font-size:10px;color:var(--muted);margin-top:4px;line-height:1.7}.layer.core .module{background:#edf5ed;border-color:#bbd3bf}.connector{text-align:center;font-size:10px;color:#698575;padding:9px 0 9px 132px}.flow{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap;margin:20px 0}.flow-step{flex:1;min-width:115px;padding:13px 12px;border:1px solid var(--line);border-radius:4px;background:#f8fbf6}.flow-step b{display:block;font-size:12px;color:#20543a}.flow-step small{display:block;font-size:10px;line-height:1.8;color:var(--muted);margin-top:5px}.flow-arrow{align-self:center;color:#91a394;font-size:16px}.principles{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin:19px 0}.principles>div{border-top:2px solid #bdd2c2;padding:12px 0}.principles b{font-size:13px;color:#174d35}.principles p{font-size:12px;color:var(--muted);margin:6px 0 0}.state-path{padding:14px 17px;border:1px solid #d5e1d7;background:#f7faf5;border-radius:4px;color:#245638;font:12px/2 Consolas,"Microsoft YaHei",monospace;overflow-wrap:anywhere;margin:16px 0}.source-list{padding-left:23px}.source-list li{font-size:12px;line-height:1.9;margin:12px 0}.source-list a{overflow-wrap:anywhere}.footer{margin-top:43px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}.section-link{font-size:11px;white-space:nowrap}
+    @media(min-width:1700px){main{padding-left:70px;padding-right:70px}.document{padding-left:72px;padding-right:72px}}
+    @media(max-width:1250px){:root{--sidebar:230px}main{padding:0 22px 40px}.document{padding:35px 33px 42px}.layer{grid-template-columns:98px 1fr}.connector{padding-left:111px}}
+    @media(max-width:960px){.sidebar{transform:translateX(-100%);width:252px;box-shadow:8px 0 24px #1b342117;transition:transform .18s}.sidebar.open{transform:translateX(0)}main{margin:0;padding:0}.document{padding:28px 30px 40px}.menu-toggle{display:inline-block}.toolbar{padding-bottom:30px}.hero h1{font-size:34px}.hero h1 span{font-size:25px}}
+    @media(max-width:600px){body{font-size:14px}.document{padding:22px 19px 35px}.toolbar{font-size:10px;gap:9px}.toolbar-actions{gap:10px}.edition{display:none}.hero h1{font-size:30px}.hero h1 span{font-size:22px}.lead{font-size:15px}.metadata{font-size:11px;gap:6px 16px}.decision{padding:16px 17px}.stack{gap:6px}.stack span{font-size:10px}.principles{grid-template-columns:1fr;gap:0}h2{font-size:23px}h3{font-size:17px}.table-wrap table{min-width:650px}pre{font-size:10px;padding:13px}.architecture{padding:12px}.layer{grid-template-columns:1fr;gap:7px}.layer-label{font-size:11px}.modules{gap:6px}.module{padding:9px 6px;font-size:10px}.module b{font-size:10px;overflow-wrap:anywhere}.module small{font-size:9px}.connector{padding-left:0;font-size:9px}.flow-arrow{display:none}.flow-step{flex-basis:42%}.source-list li{font-size:11px}section{padding-top:34px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.sidebar{transition:none}}
+    @media print{@page{size:A4;margin:16mm 14mm}*{box-shadow:none!important}html{scroll-behavior:auto}body{background:#fff;color:#000;font:9.5pt/1.65 "Microsoft YaHei","Segoe UI",sans-serif}.sidebar,.toolbar{display:none!important}main{margin:0;padding:0}.document{padding:0;max-width:none;min-height:0}.hero h1{font-size:27pt}.hero h1 span{font-size:19pt}.lead{font-size:11pt}.metadata{font-size:8pt}.decision{padding:12px 14px}.stack span{font-size:8pt}section{padding-top:22px}h2{font-size:17pt;break-after:avoid;break-inside:avoid}h2 .n{font-size:8pt}h3{font-size:11.5pt;break-after:avoid;break-inside:avoid}h4{font-size:10pt;break-after:avoid;break-inside:avoid}p{orphans:3;widows:3}th,td{font-size:8pt;padding:7px 8px}thead{display:table-header-group}tr{break-inside:avoid}.table-wrap{overflow:visible}table{min-width:0!important}pre{font-size:7.5pt;white-space:pre-wrap;overflow-wrap:anywhere;overflow:visible;break-inside:avoid;padding:10px 12px}code{font-size:8pt}figure,.callout,.decision,.flow,.principles,.state-path{break-inside:avoid}.architecture{padding:12px}.module{padding:9px 8px}.module b{font-size:9pt}.module small,.layer-label{font-size:8pt}.note,.small,figcaption,.source-list li{font-size:8pt}a{color:#000;text-decoration:none}.footer{font-size:8pt;break-inside:avoid;break-before:avoid}#references{break-before:page;padding-top:0}}
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar" aria-label="技术方案目录">
+    <div class="brand">Android DevKit<small>TECHNICAL DESIGN / TAURI 2</small></div>
+    <div class="nav-label">方案目录</div>
+    <nav class="toc" aria-label="章节导航">
+      <a href="#decisions"><span>01</span>技术结论与选型</a>
+      <a href="#scope"><span>02</span>范围与需求映射</a>
+      <a href="#architecture"><span>03</span>总体架构与工程组织</a>
+      <a href="#models"><span>04</span>领域模型与本地存储</a>
+      <a href="#tools"><span>05</span>工具适配与进程执行</a>
+      <a href="#bootstrap"><span>06</span>环境发现与首次安装</a>
+      <a href="#sdk"><span>07</span>SDK 组件管理</a>
+      <a href="#avd"><span>08</span>AVD 管理与启动</a>
+      <a href="#devices"><span>09</span>ADB 共存与设备会话</a>
+      <a href="#apk"><span>10</span>APK 安装与应用启动</a>
+      <a href="#observe"><span>11</span>日志、截图与诊断导出</a>
+      <a href="#tasks"><span>12</span>任务调度与异常恢复</a>
+      <a href="#ipc"><span>13</span>IPC 契约与前端状态</a>
+      <a href="#window"><span>14</span>Windows 窗口与退出</a>
+      <a href="#security"><span>15</span>权限与安全边界</a>
+      <a href="#delivery"><span>16</span>性能、构建与分发</a>
+      <a href="#verification"><span>17</span>测试策略与验收映射</a>
+      <a href="#roadmap"><span>18</span>实施阶段与风险</a>
+      <a href="#references"><span>19</span>依据与官方参考</a>
+    </nav>
+    <div class="sidebar-foot">技术评审稿 v0.1<br>基线 PRD v0.6<br>首发 Windows 11 x64</div>
+  </aside>
+  <main>
+    <article class="document">
+      <div class="toolbar">
+        <button type="button" class="menu-toggle" id="menuToggle" aria-controls="sidebar" aria-expanded="false">目录</button>
+        <span class="edition">技术方案 · 可用于研发拆解与评审</span>
+        <div class="toolbar-actions"><a href="00000_20261017232447_Android-DevKit-PRD.html">查看 PRD</a><button type="button" id="printButton">打印或另存为 PDF</button></div>
+      </div>
+      <header class="hero">
+        <div class="kicker">Local Android development toolkit</div>
+        <h1>Android DevKit<span>技术方案 · Tauri 2</span></h1>
+        <p class="lead">以 Tauri 承载桌面交互，以 Rust 统一管理 Android 工具、设备会话与长任务，让环境准备、模拟器启动和 APK 验证形成可恢复、可追溯的本地工作流。</p>
+        <div class="metadata"><span>版本 v0.1 · 技术评审稿</span><span>创建 2026-10-17 23:42:46（北京时间）</span><span>依据 PRD v0.6</span><span>目标 Windows 11 x64</span></div>
+        <div class="decision"><p><strong>推荐采用 Tauri 2 + React + TypeScript + Rust。</strong> 前端负责展示与交互；Rust 负责领域规则、任务执行、文件写入和 Android 工具调用。首版采用单主窗口、官方模拟器独立窗口和本地 SQLite，不引入常驻服务、Node.js sidecar 或完整 IDE。</p></div>
+        <div class="stack" aria-label="推荐技术栈"><span>Tauri 2</span><span>React / TypeScript / Vite</span><span>Rust / Tokio</span><span>SQLite</span><span>官方 Android 工具</span><span>WebView2</span></div>
+        <p class="note">本文是设计与实施建议，不表示相关功能已经实现或工具版本已经完成实测。官方资料核对日期为 2026-10-17；精确依赖版本和 Android 工具组合在 M0 验证后冻结。</p>
+      </header>
+
+      <section id="decisions">
+        <h2><span class="n">01 / DECISIONS</span>技术结论与选型</h2>
+        <p>Tauri 适合本产品：主要界面是列表、详情、向导和任务状态，而关键能力都来自本地进程与文件系统。将 Android 操作封装到 Rust，可让桌面界面和后续 CLI / MCP 共享目标绑定、资源锁和审计规则。Windows 使用 WebView2，最终安装体积与内存需在原型上测量，不能仅由框架宣传数字推断。<a class="section-link" href="#ref-tauri-installer">[R4]</a></p>
+        <div class="table-wrap"><table><caption>技术决策记录</caption><thead><tr><th style="width:18%">决策</th><th style="width:37%">采用方案与原因</th><th>代价与约束</th></tr></thead><tbody>
+          <tr><td>ADR-01 桌面框架</td><td>Tauri 2 稳定版本线；HTML/CSS 实现密集工作台，Rust 处理系统能力</td><td>需维护 Rust 与 Windows 原生代码；自绘标题栏与系统贴靠必须做实机验证</td></tr>
+          <tr><td>ADR-02 前端</td><td>React + TypeScript + Vite；TanStack Query 管快照缓存，Zustand 管选择、面板和未提交表单；日志使用虚拟列表</td><td>服务状态以 Rust 为准；不得用组件是否挂载决定长任务寿命。UI 使用一套统一组件与图标，不叠加多套组件库</td></tr>
+          <tr><td>ADR-03 后端</td><td>Rust 单进程模块化；Tokio 承载异步 I/O、调度和进程监控；阻塞文件操作进入专用线程</td><td>领域层不依赖 Tauri 窗口对象；避免首版拆微服务或自建 HTTP 服务</td></tr>
+          <tr><td>ADR-04 Android 集成</td><td>优先使用官方工具完成写操作；通过可替换 Adapter 隔离版本差异</td><td>CLI 输出并非稳定 API，需按工具版本维护解析样本、能力探测和支持范围</td></tr>
+          <tr><td>ADR-05 数据</td><td>Rust 通过 rusqlite 管 SQLite；设置与任务统一迁移，文件保存在专用目录</td><td>不向 WebView 开放任意 SQL。SQLite 保存应用意图和历史，SDK / AVD / 设备实际状态每次复查</td></tr>
+          <tr><td>ADR-06 网络与下载</td><td>reqwest 只处理应用自有引导下载与网络诊断；组件安装交给官方 SDK 工具</td><td>不在首版重写 SDK 包管理器；组件下载的暂停和续传取决于所选工具，不承诺全局可暂停</td></tr>
+          <tr><td>ADR-07 平台</td><td>Windows 11 x64 优先；PlatformAdapter 隔离窗口、路径、进程和剪贴板</td><td>macOS、Linux、Windows ARM64 后续分别验证；首版不管理 WSL 内的 SDK、ADB 或 AVD</td></tr>
+        </tbody></table></div>
+        <div class="callout warn"><p><strong>Android 工具链正在迁移。</strong> 官方已将 <code>sdkmanager</code> / <code>avdmanager</code> 标记为弃用，推荐 Android CLI；但 Android CLI 当前已知问题列有 Windows 的 <code>android emulator</code> 命令不可用。因此首版以“经 M0 验证的传统工具组合”为 Windows 写操作基线，保留新 CLI 适配接口。弃用状态不等于立即不可用，也不能据此假定旧工具能长期兼容所有新包。<a href="https://developer.android.com/tools/sdkmanager">sdkmanager</a>、<a href="https://developer.android.com/tools/avdmanager">avdmanager</a>、<a href="https://developer.android.com/tools/agents/android-cli#known-issues">Android CLI 已知问题</a>。</p></div>
+        <p>不要求用户先安装 Node.js、Rust 或完整 Android Studio。Java 仅在选定 SDK 管理或 AVD 创建工具确实依赖时补齐；已有 ADB 和模拟器能够完成的操作，不因缺少 Java 被统一阻断。</p>
+      </section>
+
+      <section id="scope">
+        <h2><span class="n">02 / SCOPE</span>范围与需求映射</h2>
+        <p>以 <a href="00000_20261017232447_Android-DevKit-PRD.html">PRD v0.6</a> 的 P0 为完整交付范围，保持一个当前 SDK、一个主窗口、面向真机与模拟器的统一设备工作台。代码编辑、Gradle 构建、完整调试器、投屏和分包安装不进入首版。</p>
+        <div class="table-wrap"><table><thead><tr><th style="width:21%">PRD 能力</th><th style="width:36%">技术模块</th><th>首版完成边界</th></tr></thead><tbody>
+          <tr><td>WIN-01 / AC-13</td><td>WindowService + WindowsAdapter</td><td>自绘标题栏、窗口状态同步、系统菜单与贴靠、混合 DPI、统一关闭及可选托盘</td></tr>
+          <tr><td>ONB-01</td><td>EnvironmentService + BootstrapService</td><td>有限扫描、复用或新建、用途驱动依赖、许可、SDK / AVD / 缓存路径与空间预检</td></tr>
+          <tr><td>SDK-01～03</td><td>SdkService + SdkToolAdapter</td><td>本地与远端清单、搜索、变更计划、显式安装卸载、代理、依赖拦截及逐项重试</td></tr>
+          <tr><td>AVD-01～04</td><td>AvdService + EmulatorSupervisor</td><td>读取既有 AVD、创建手机 / 平板、启动停止、冷启动、受限编辑、清数据与删除</td></tr>
+          <tr><td>DEV-01～03</td><td>AdbCoordinator + DeviceRegistry</td><td>USB、配对码无线连接、事实状态、可靠身份、当前与默认目标、共享 ADB 诊断</td></tr>
+          <tr><td>DEV-04</td><td>ApkService + InstallTask</td><td>单 APK 校验、明确目标、覆盖安装、安装错误解释、可识别时启动应用</td></tr>
+          <tr><td>DEV-05</td><td>LogService + CaptureService + DiagnosticsService</td><td>基础 Logcat、10,000 行缓冲、长采集、截图预览 / 保存 / 复制、脱敏摘要与日志导出</td></tr>
+          <tr><td>通用规则 / AC-10</td><td>TaskEngine + ResourceLockManager + Reconciler</td><td>跨页任务、资源互斥、阶段取消、异常退出后复查实际状态、可审计的高影响操作</td></tr>
+        </tbody></table></div>
+        <p class="note">P1 仅预留领域接口：多 SDK 配置切换、二维码配对、投屏、录屏、文件传输、快照管理、CLI / MCP。P0 不开放这些入口，也不为了预留能力增加后台端口或外部控制服务。</p>
+      </section>
+
+      <section id="architecture">
+        <h2><span class="n">03 / ARCHITECTURE</span>总体架构与工程组织</h2>
+        <figure>
+          <div class="architecture" role="img" aria-label="四层架构：WebView 展示层通过受限 IPC 调用 Rust 应用与领域层；领域层通过适配器操作 Android 官方工具、操作系统及本地存储。">
+            <div class="layer"><div class="layer-label">WebView2<br>展示层</div><div class="modules"><div class="module"><b>设备工作台</b><small>目标 / 安装 / 日志 / 截图</small></div><div class="module"><b>SDK 与 AVD 向导</b><small>组件计划 / 配置表单</small></div><div class="module"><b>任务、诊断、设置</b><small>只持有状态投影</small></div></div></div>
+            <div class="connector">↓ 类型化 Command　↑ 快照 / Event / Channel</div>
+            <div class="layer core"><div class="layer-label">Rust<br>应用与领域层</div><div class="modules"><div class="module"><b>Environment / SDK / AVD</b><small>能力、依赖与写入规则</small></div><div class="module"><b>Device / APK / Observe</b><small>会话身份与操作目标</small></div><div class="module"><b>TaskEngine / Reconciler</b><small>状态机 / 锁 / 恢复 / 审计</small></div></div></div>
+            <div class="connector">↓ 领域接口 / 受控进程规格</div>
+            <div class="layer"><div class="layer-label">基础设施<br>适配层</div><div class="modules"><div class="module"><b>AndroidToolAdapter</b><small>SDK / AVD / ADB / Emulator</small></div><div class="module"><b>PlatformAdapter</b><small>Win32 / 进程 / 文件 / 剪贴板</small></div><div class="module"><b>Repository / Downloader</b><small>SQLite / 缓存 / 引导下载</small></div></div></div>
+            <div class="connector">↓ 固定程序与参数 / 本地系统调用</div>
+            <div class="layer"><div class="layer-label">外部资源</div><div class="modules"><div class="module"><b>官方 Android 工具</b><small>SDK / AVD / ADB Server</small></div><div class="module"><b>Windows 主机</b><small>WebView2 / WHPX / USB</small></div><div class="module"><b>本地数据与官方源</b><small>配置 / 任务 / 镜像 / 许可</small></div></div></div>
+          </div>
+          <figcaption>图 1　所有写操作进入领域服务和任务引擎。前端不能直接执行命令、删除目录、写数据库或选择任意下载地址。</figcaption>
+        </figure>
+        <h3>模块职责与依赖方向</h3>
+        <p><strong>commands</strong> 只做 IPC 鉴权、参数解码与 DTO 转换；<strong>application</strong> 编排用例；<strong>domain</strong> 定义目标、状态、计划、锁和错误；<strong>infrastructure</strong> 实现工具、存储和平台接口。长任务由 TaskEngine 持有，不依赖 React 组件、页面路由或一次 invoke 的连接。</p>
+        <p>Android 进程仍由系统独立运行。主程序负责协调，不把外部 ADB Server、模拟器与自身生命周期强绑定。首版不启用开机后台服务；托盘运行仍是同一个应用进程。</p>
+        <pre><code>android-devkit/
+  src/
+    app/                  # 路由、布局、自绘标题栏
+    features/             # devices / sdk / avd / tasks / diagnostics / settings
+    components/           # 表格、表单、任务阶段、确认面板
+    bindings/             # 生成的 TypeScript DTO 与调用封装
+  src-tauri/
+    src/
+      commands/           # 窄 IPC 边界
+      application/        # 用例编排
+      domain/             # 模型、状态机、任务规格、端口接口
+      infrastructure/     # android / process / storage / network
+      platform/windows/   # 窗口命中测试、进程身份、文件与剪贴板
+    capabilities/         # 仅 main 所需权限
+    permissions/          # 自定义 command 权限定义
+    migrations/           # SQLite 迁移
+    resources/            # 工具兼容清单、许可与引导清单
+  tests/                  # 解析样本、故障注入、真实设备验收
+  docs/                   # 按正式文档命名规则保存</code></pre>
+        <p class="note">工程建立时先保持一个 Rust crate 内的模块边界。只有 P1 CLI / MCP 实际落地时，再将不依赖 Tauri 的领域与基础设施提取为共享 crate。</p>
+      </section>
+
+      <section id="models">
+        <h2><span class="n">04 / DOMAIN &amp; STORAGE</span>领域模型与本地存储</h2>
+        <div class="table-wrap"><table><thead><tr><th style="width:18%">对象</th><th style="width:44%">关键字段</th><th>不可破坏的约束</th></tr></thead><tbody>
+          <tr><td>Environment</td><td>id、sdkRoot、avdRoots、toolsetId、source、capabilities、observedAt</td><td>P0 只有一个当前 SDK；SDK 与 AVD 根独立；路径来源和缺失能力可见</td></tr>
+          <tr><td>Toolset</td><td>程序规范路径、版本、文件指纹、Adapter 类型、Java 要求、支持操作</td><td>任务开始时冻结工具组合；不在任务中跟随 PATH 或 latest 目录变化切换工具</td></tr>
+          <tr><td>SdkPackage / Plan</td><td>packageId、revision、channel、installed / available、dependencies、licenseIds、sourceRevision</td><td>内部使用统一包 ID；修订号单独存储；计划确认后若来源、版本或依赖变化，重新确认</td></tr>
+          <tr><td>AvdDefinition</td><td>id、internalName、displayName、iniPath、dataPath、imageRef、configFingerprint</td><td>身份不以显示名判断；保留未知配置；系统镜像共享且与 AVD 生命周期分离</td></tr>
+          <tr><td>Device / Session</td><td>logicalDeviceId（可空）、sessionId、transportId、serial、serverEpoch、connectionType、avdId（可空）</td><td>会话与设备分离；序列号、IP 或型号相同不足以跨会话自动合并</td></tr>
+          <tr><td>TargetRef</td><td>environmentId、serverEpoch、sessionId、transportId、serialSnapshot、identityEvidence</td><td>已开始任务的目标不可随列表选择变化；断线重连不自动更换 transport</td></tr>
+          <tr><td>Task / TaskStep</td><td>id、kind、requestId、target、planHash、state、phase、attempt、cancelPolicy、outcome、error</td><td>执行意图先入库；设备结果可能未知，不能把超时或进程结束等同于取消成功</td></tr>
+          <tr><td>Artifact / Audit</td><td>artifactId、type、path、size、checksum、taskId；操作人、确认摘要、工具版本、结果</td><td>文件是否存在及可读取需要复查；配对码、代理口令、ADB 私钥不进入审计</td></tr>
+        </tbody></table></div>
+        <h3>存储布局</h3>
+        <pre><code>%LOCALAPPDATA%\AndroidDevKit\
+  state\devkit.db          # 设置、工具清单、计划、任务步骤、审计、迁移版本
+  logs\                   # 诊断日志，轮转并限制总量
+  cache\downloads\        # 引导包 .part、校验记录
+  cache\catalog\          # 远端目录缓存与来源时间
+  runtime\                # 按需准备的应用私有工具 / Java 运行时
+  artifacts\              # 未另存的截图、日志、导出暂存
+
+SDK 根目录                # 用户选择或默认 %LOCALAPPDATA%\Android\Sdk
+AVD 注册与数据目录        # 既有路径优先；新建可选择独立根
+用户选择的导出目录        # 通过保存对话框授权本次写入</code></pre>
+        <p>SQLite 使用 WAL、短事务、单写入队列；写入由专用线程处理。数据库记录用户意图与上次观测，不充当 SDK 或设备的最终事实来源。迁移前备份数据库；迁移失败保留原库并报告原因。卸载程序默认保留用户 SDK、AVD 和导出文件。</p>
+        <h3>路径、外部修改与默认目标</h3>
+        <p>路径比较使用 Windows 规范路径与文件身份辅助判断，处理大小写、空格、中文、长路径及重解析点。文件监视仅用于使缓存失效，进入写操作前必须重新读取指纹。配置编辑采用“读取指纹 → 修改允许字段 → 保存前比对 → 同目录临时文件替换”；冲突保留输入，提供重新载入或另存。</p>
+        <p>默认目标仅保存可靠的逻辑设备身份或 AVD 身份。无线地址和一次 transportId 不作为长期默认设备。只读环境可继续列设备、启动支持的已有 AVD；安装 SDK 与修改配置分别报告目录权限错误，不要求整个应用以管理员身份运行。</p>
+      </section>
+
+      <section id="tools">
+        <h2><span class="n">05 / TOOL ADAPTERS</span>工具适配与进程执行</h2>
+        <h3>把上游变化限制在适配层</h3>
+        <div class="table-wrap"><table><thead><tr><th style="width:22%">接口</th><th style="width:37%">P0 实现</th><th>兼容策略</th></tr></thead><tbody>
+          <tr><td>SdkToolAdapter</td><td>经验证版本的 sdkmanager；读取 package.xml / source.properties 辅助识别本地包</td><td>保留 Android CLI 的 list / install / remove 实现位置；不根据“程序存在”自动切换写入引擎</td></tr>
+          <tr><td>AvdToolAdapter</td><td>经验证版本的 avdmanager 负责创建与支持的删除操作；保守读取与局部更新 INI</td><td>新 CLI 的 Windows AVD 能力通过实测后再启用；不解析任意自定义批处理</td></tr>
+          <tr><td>EmulatorAdapter</td><td>选定 SDK 中的 emulator.exe；独立窗口、能力检测、启动参数与 console 命令</td><td>图形模式、镜像类型、参数和配置字段按版本白名单限制</td></tr>
+          <tr><td>AdbAdapter</td><td>官方 adb.exe 执行设备操作；最小 Rust Host 协议用于无副作用的服务观测</td><td>不重写 USB、TLS 配对和 APK 安装协议；新旧 Server 能力分别检测</td></tr>
+          <tr><td>ApkMetadataAdapter</td><td>轻量 Rust ZIP + 二进制 Manifest 读取；已有可用官方分析工具作补充</td><td>解析失败可降级为未知；不为安装一个 APK 强制下载 Build Tools 或 Java</td></tr>
+        </tbody></table></div>
+        <p>传统工具接受 <code>platforms;android-N</code> 一类 ID；新 CLI 推荐斜杠形式并兼容分号。内部保留标准化结构，只在 Adapter 输出不同语法。两种工具的清单输出都先按已验证文本格式处理，不假设存在通用 <code>--json</code> 参数。<a href="https://developer.android.com/tools/agents/android-cli/commands/sdk">Android CLI 包路径</a>、<a href="https://developer.android.com/tools/agents/android-cli/commands/sdk_list">清单输出</a>。</p>
+        <h3>统一 ProcessRunner</h3>
+        <pre><code>CommandSpec {
+  tool_id, executable_path, args: Vec&lt;OsString&gt;,
+  cwd, env_overrides, stdin_policy,
+  output_mode: Text | Binary | File,
+  timeout_policy, cancellation_policy,
+  lifetime: ManagedTask | SharedExternal | PersistentEmulator
+}
+
+ExecutionResult {
+  exit_code, timed_out, stdout_tail, stderr_tail,
+  output_artifact, process_identity, result_certainty
+}</code></pre>
+        <ul>
+          <li><strong>不拼 shell 命令。</strong> 所有程序使用绝对路径和参数数组。普通后台命令不弹控制台窗口；模拟器保留自身 GUI。子进程只接收必要环境，清除会覆盖目标的 <code>ANDROID_SERIAL</code> 等变量，并显式设置 SDK、AVD 和 Java 路径。</li>
+          <li><strong>Windows .bat 单独处理。</strong> sdkmanager / avdmanager 在 Windows 常为启动脚本。首版根据已验证的官方工具版本，使用 manifest 中固定的 Java 主类、classpath 和 JVM 参数直接启动 java.exe；不把用户路径拼进 <code>cmd /c</code>。未知启动脚本标记不支持写操作，可选择应用私有已验证工具，不覆盖原 SDK 工具。</li>
+          <li><strong>同时排空 stdout / stderr。</strong> 使用有界队列与尾部日志，适配换行、回车进度、ANSI 控制符及编码；不可因 WebView 消费慢阻塞子进程。文本解析失败保留诊断尾部并返回“结果待检查”。截图始终走二进制管道。</li>
+          <li><strong>进程身份可验证。</strong> 记录 PID、创建时间、可执行文件路径和所属任务；强停前重新核对，防止 PID 复用。不按进程名批量终止 adb / emulator / java。</li>
+          <li><strong>生命周期分级。</strong> 普通任务使用受控进程树；只在该阶段允许取消时结束树。共享 ADB 不加入退出即杀的 Job Object。模拟器使用不随主程序关闭终止的策略，日志直接写文件，不依赖退出后会关闭的 stdout 管道。</li>
+        </ul>
+        <p class="note">工具兼容清单至少记录：版本与哈希、Java major、可用操作、已知输出格式、配置字段、代理能力、取消语义与样本集。不能把任意“最新版”视为兼容。</p>
+      </section>
+
+      <section id="bootstrap">
+        <h2><span class="n">06 / BOOTSTRAP</span>环境发现与首次安装</h2>
+        <h3>有限扫描与能力判断 <span class="req">ONB-01 / AC-01 / AC-12</span></h3>
+        <p>扫描应用已选目录、<code>ANDROID_HOME</code> / <code>ANDROID_SDK_ROOT</code>、标准 SDK 目录、PATH 中程序的实际路径及用户指定位置。以文件标识去重，不遍历磁盘，不读取任意外部项目。多个候选展示来源、版本、目录权限与能力，用户明确选择。</p>
+        <p>AVD 根依照已配置位置与官方环境变量规则发现，并补查标准目录；AVD 的 <code>.ini</code> 可指向其他数据目录。环境变量冲突只提示，应用的子进程采用显式值。<code>ANDROID_SDK_ROOT</code> 已弃用，若保留则与 <code>ANDROID_HOME</code> 一致。<a href="https://developer.android.com/tools/variables">Android 环境变量规则</a>。</p>
+        <div class="table-wrap"><table><thead><tr><th style="width:21%">使用目的</th><th style="width:42%">最小计划</th><th>不相关依赖不阻塞</th></tr></thead><tbody>
+          <tr><td>只连接真机</td><td>可用 platform-tools / ADB；缺失时通过官方独立发行包引导安装</td><td>不要求 SDK Platform、系统镜像、Build Tools、JDK 或 Android Studio</td></tr>
+          <tr><td>启动已有 AVD</td><td>可用 ADB、emulator、该 AVD 引用的可用镜像和数据目录；硬件加速预检</td><td>不要求重新创建 AVD，也不因缺少 avdmanager 或 Java 拦截已可执行的启动</td></tr>
+          <tr><td>新建模拟器</td><td>前述工具 + 创建工具、选定镜像、所需 Java 运行时及手机 / 平板 profile</td><td>镜像下载作为创建任务的依赖步骤，不重复下载已有共享镜像</td></tr>
+          <tr><td>准备外部构建</td><td>在前述基础上由用户选择 SDK Platform、Build Tools，并给出外部 JDK / Gradle 条件</td><td>不接管构建，不把“环境准备成功”等同于外部项目一定能构建</td></tr>
+        </tbody></table></div>
+        <h3>从零环境走通的引导链</h3>
+        <div class="flow"><div class="flow-step"><b>确认用途与目录</b><small>SDK / AVD / 缓存所在卷</small></div><span class="flow-arrow">→</span><div class="flow-step"><b>展示计划与许可</b><small>工具、运行时、大小及来源</small></div><span class="flow-arrow">→</span><div class="flow-step"><b>准备引导工具</b><small>官方包、校验、暂存、复查</small></div><span class="flow-arrow">→</span><div class="flow-step"><b>安装所需组件</b><small>官方工具安装、读取实际清单</small></div></div>
+        <ol>
+          <li>应用内附带版本化 BootstrapManifest：官方 HTTPS 地址、发行版本、校验值、目录结构、许可来源及运行时要求。无需依赖本机已经存在 sdkmanager，避免引导循环。不要执行网上下载的安装脚本。</li>
+          <li>仅真机场景可直接准备官方 Platform Tools 独立包；需要 SDK 管理时准备已验证的 Command-Line Tools。它们的引导解压由本应用完成，后续正常 SDK 包写入交还官方工具。本地清单读取同时支持 <code>source.properties</code>，不伪造上游 <code>package.xml</code>。</li>
+          <li>查找用户选定 Java、兼容环境变量及已知 Studio 的 JBR；只读探测 <code>java -version</code>。缺失时允许选择本机运行时，或经用户确认按需下载应用私有运行时。具体 Java major 由工具兼容清单决定，M0 必须冻结发行源、版本、许可与校验值。</li>
+          <li>读取许可文本并让用户明确接受，记录许可标识、文本摘要与时间。官方工具再次发出新许可提示时，暂停等待对应用户决定后才向 stdin 回答；不能全程自动输入 yes，不能手写许可哈希文件冒充接受。</li>
+          <li>引导包先落 <code>.part</code>，校验后安全解压到同卷暂存目录；校验路径穿越、绝对路径、重解析点、文件数与解压大小。完成结构与版本检查后提交。已存在同名有效目录不覆盖；失败只清理本次暂存对象。</li>
+        </ol>
+        <p>空间按 SDK、AVD、缓存分别计算，考虑压缩包、解压临时副本和可增长磁盘；未知值标估算。安装前、下载中及提交前重新检查剩余空间。目录写权限通过临时文件创建 / 删除验证，失败不静默提权。</p>
+        <p class="note">SDK 的引导步骤与 app 安装是两件事。用户完成工具安装后应能在普通权限下使用；涉及 Windows 功能、驱动或重启时，仅给出检测事实与用户操作入口。</p>
+      </section>
+
+      <section id="sdk">
+        <h2><span class="n">07 / SDK MANAGEMENT</span>SDK 组件管理</h2>
+        <h3>清单与变更计划 <span class="req">SDK-01～03</span></h3>
+        <p>本地清单优先读取实际安装记录，结合受支持工具查询；远端清单保存来源、获取时间、频道和原始输出样本。断网可展示上次远端目录，但标记过期，已安装清单与启动已有设备仍可用。推荐规则基于目标架构、用户选择和已装版本，不固定某个 Android API。</p>
+        <p>RepositoryCatalog 按兼容清单配置的官方仓库源读取版本化元数据，补齐 CLI 列表通常不能完整提供的下载体积、归档校验值、依赖、许可文本与镜像标签。它只为浏览和预检提供信息，普通组件仍由官方工具安装；按命名空间维护解析器，禁用外部实体，约束 XML 大小，并交叉核对包 ID 与版本。元数据缺失时显示未知 / 估算；不能猜出一个精确下载量或默认为已接受许可。</p>
+        <p>用户勾选后只生成不可执行的草稿。确认时计算依赖、许可、空间、已知引用与单例组件替换关系；生成带 <code>planHash</code> 和环境指纹的 Plan。执行前获取 SDK 锁、重新检查实际清单；版本、许可、源或风险变化时返回重新确认。</p>
+        <pre><code># 下列是传统 Adapter 的语法示意，实际执行使用参数数组
+sdkmanager --sdk_root=&lt;SDK&gt; --list --channel=0
+sdkmanager --sdk_root=&lt;SDK&gt; --install &lt;packageId&gt;
+sdkmanager --sdk_root=&lt;SDK&gt; --uninstall &lt;packageId&gt;
+
+# 新 CLI 的接口形态；P0 不据此自动切换引擎
+android --sdk=&lt;SDK&gt; sdk list
+android --sdk=&lt;SDK&gt; sdk install &lt;packageId&gt;</code></pre>
+        <p class="note">安装、卸载和代理参数以对应 Adapter 支持的官方语法为准。传统 sdkmanager 支持指定 SDK 根、频道、HTTP / SOCKS 代理；新 CLI 参数不能直接套用。<a href="https://developer.android.com/tools/sdkmanager">传统工具参数</a>、<a href="https://developer.android.com/tools/agents/android-cli/commands/sdk">新 CLI 接口</a>。</p>
+        <h3>逐项执行与事实复查</h3>
+        <ul>
+          <li>计划按依赖顺序逐项执行，每项保存状态。组件成功要求退出结果与本地包记录一致；已完成项保留。失败后重试原未完成项，重新检查是否已被外部工具完成，避免重复写入。</li>
+          <li>平台、Build Tools、系统镜像按包 ID 可并存；platform-tools、emulator 等同路径组件展示替换影响。既有模拟器在运行时阻止替换正在使用的 emulator / 镜像；共享 ADB 在运行时不直接覆盖其程序文件。</li>
+          <li>卸载镜像前从已知 AVD 读取镜像引用；仍引用则阻止。当前任务与运行实例持有读租约时禁止卸载。外部项目依赖无法完全得知，确认中展示这一事实；不能把“未发现引用”写成绝对安全。</li>
+          <li>使用 SDK 根的应用内互斥锁和实例锁；官方工具锁、文件占用与外部配置变动是额外证据。不能宣称应用锁能约束 Android Studio，发现并发写入时停止提交并刷新清单。</li>
+          <li>多项变更不是全局原子事务；混合增删计划展示具体执行顺序与每项影响。以“部分完成”表达真实结果，不自动卸载已安装组件来模拟回滚。</li>
+        </ul>
+        <h3>代理、进度与取消</h3>
+        <p>引导下载和官方 SDK 工具分别接入同一份网络设置，但按各自能力映射。P0 保证直连与经验证的手动无认证 HTTP / SOCKS 代理；需要身份认证或 PAC 时展示工具能力限制和本地代理入口。凭据如有保存需求由 Windows 凭据存储保护，不写命令行或任务日志。SDK 代理不会自动修改 Android 客体网络代理。</p>
+        <p>网络测试访问当前实际目录源与包下载源，区分 DNS、TLS、代理认证和校验错误。TLS 校验失败不降级 HTTP 或关闭证书校验。目录解析失败时不靠猜测启动安装。</p>
+        <p>进度按 Adapter 能可靠观察到的阶段展示；未知字节数显示不定进度和最近输出。传统 SDK 安装的内部下载不提供本应用可保证的暂停 / 续传，因此 P0 默认不显示暂停按钮。取消请求可标为“当前组件完成后取消”；只有适配器证明当前阶段安全可终止时才立即结束。应用自有引导下载可在服务端支持 Range 且 ETag / Last-Modified 一致时续传，否则重下当前文件。</p>
+      </section>
+
+      <section id="avd">
+        <h2><span class="n">08 / VIRTUAL DEVICES</span>AVD 管理与启动</h2>
+        <h3>发现与配置编辑 <span class="req">AVD-01 / AVD-04</span></h3>
+        <p>建立 AVD 定义清单，读取注册 INI 与真实数据路径、系统镜像、硬件 profile 和允许字段；缺配置或镜像的条目保留并说明原因。运行会话通过 <code>adb emu avd name</code> 等可靠证据关联回定义，结合已记录启动实例判断。同名、型号或端口相似都不足以自动关联。</p>
+        <p>显示名与内部名分离。新建内部名采用受限 ASCII 字符和唯一性检查；既有内部名保持不变，P0 的改名只改受支持的显示名。内存、存储与图形字段按版本和镜像限制验证；运行中禁止修改，未知键与原始格式保留。外部更改冲突按第 04 节处理。</p>
+        <h3>创建采用可恢复的分步提交 <span class="req">AVD-02</span></h3>
+        <ol>
+          <li>选择手机 / 平板和受支持硬件 profile；选择 Android API、AOSP / Google APIs / Google Play 与主机匹配的 ABI。Play 镜像还需满足硬件 profile 能力，不混同为普通 Google APIs。</li>
+          <li>生成依赖计划并完成许可、镜像准备与加速检查；对同一名称和路径获取创建锁。任务意图入库后，在目标卷的专用暂存区执行官方创建工具，使用隔离的 AVD 注册目录，避免半成品进入用户列表。</li>
+          <li>验证配置引用与数据目录，提交数据目录，再写入正确的 <code>path</code> / <code>path.rel</code> 注册信息；注册入口最后发布。不覆盖已有同名 AVD。跨文件操作由提交日志追踪，不能宣称整体原子。</li>
+          <li>提交前取消只清理有本任务标记的暂存对象；已完成共享镜像保留。提交中异常重开后按提交日志复查并完成或撤销本次发布，不重新生成第二台设备。自动启动仅来自用户已勾选的选项。</li>
+        </ol>
+        <h3>启动、就绪与进程归属 <span class="req">AVD-03</span></h3>
+        <div class="state-path">stopped → launching → waiting_adb → waiting_boot → ready<br>启动超过 180 秒 → 显示超时提醒；进程与设备事实继续独立更新</div>
+        <p>启动前检查镜像、写权限、占用、主机资源与 <code>emulator -accel-check</code>。Windows 优先指导 WHPX；官方已公告 AEHD 于 2026-12-31 结束维护，不把旧驱动作为新环境默认安装项。图形模式默认 auto，软件回退使用当前版本支持值。<a href="https://developer.android.com/studio/run/emulator-acceleration">硬件加速与驱动生命周期</a>。</p>
+        <p>启动参数使用 <code>emulator -avd &lt;name&gt;</code>；冷启动额外添加 <code>-no-snapshot-load</code>，绝不以清数据代替冷启动。进入 ADB 的 <code>device</code> 状态后，检查目标 AVD 关联、<code>sys.boot_completed=1</code> 与包管理服务响应；探针按系统能力降级并保留原因。启动超时不自动杀进程或认定启动失败，提供继续等待、日志与显式停止。<a href="https://developer.android.com/studio/run/emulator-commandline">模拟器参数</a>。</p>
+        <p>同一 AVD 持有运行租约，阻止重复启动及修改；外部工具启动的实例同样通过官方锁、会话和进程证据识别。正常停止先向明确关联的模拟器发送退出请求，等待实例消失；超时后单独确认强停，按 PID、创建时间及程序路径重新核验目标。无法证明归属时只提供手动处理说明。</p>
+        <p>“打开窗口”通过已验证进程链定位顶层 HWND，尝试恢复和聚焦；受 Windows 前台切换限制时闪烁任务栏并提示。外部以嵌入或无窗口方式启动的实例可能没有独立窗口，此时说明事实，不另起重复实例。</p>
+        <h3>清除数据与删除的真实边界</h3>
+        <p><strong>清除数据：</strong>先停止并检查占用，经明确确认后使用经验证的 <code>-wipe-data</code> 流程。该选项通常伴随启动，且不会清除独立 <code>sdcard.img</code>；产品既然承诺重置该 AVD 用户数据，就必须单独列明并清理归属已确认的用户 SD 卡与快照状态，保留硬件配置和共享镜像。M0 验证受支持文件集合与官方流程，任务最终回到停止；取消或清理不完整只能标为部分完成 / 待检查，不能宣称完整出厂重置。<a href="https://developer.android.com/studio/run/emulator-commandline">wipe-data 与 SD 卡边界</a>。</p>
+        <p><strong>删除 AVD：</strong>确认注册文件、数据目录、可回收占用和已知关联，优先用受支持官方删除接口。SDK 根、镜像根、其他 AVD、任意外部路径都不能被联动递归删除；符号链接 / junction、共享数据路径或无法证明范围时阻止操作。完成后复查注册和数据，重新统计释放空间。强停、清数据与删除互不隐含。</p>
+      </section>
+
+      <section id="devices">
+        <h2><span class="n">09 / ADB &amp; SESSIONS</span>ADB 共存与设备会话</h2>
+        <h3>共享 ADB 的协调策略 <span class="req">AC-11</span></h3>
+        <p>默认使用 Windows 主机本地 <code>127.0.0.1:5037</code> 的共享 ADB Server，复用普通用户的授权体系。P0 不默认起第二套端口服务，也不代理 WSL。工具路径、客户端版本、Server 能力与来源在诊断页可见。</p>
+        <div class="callout"><p><strong>不能只约束“不调用 kill-server”。</strong> 某些 ADB 客户端在发现不兼容 Server 时会自行结束并替换服务。因此发现阶段先用最小 Host 协议只读查询 <code>host:version</code>，支持时读取 <code>host:server-status</code>；再选兼容客户端。未知或冲突时先阻止会触发替换的命令，由用户选择兼容工具或确认重启影响。<a href="https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/dev/services.md">AOSP Host 服务协议</a>。</p></div>
+        <p>无 Server 且用户需要设备功能时，才通过选定客户端启动本地服务；此后原始 Host 连接订阅设备变更，受支持时读取详细设备列表，失败退为有界轮询。实现仅覆盖帧长度、OKAY / FAIL、版本与列表等有限协议，并约束超时、最大帧及解析长度；设备写操作仍使用官方 adb。</p>
+        <p>Server 连接丢失或重启即更新 <code>serverEpoch</code> 并使旧会话失效。每次写操作前检查兼容性和当前会话；监控发现外部替换时停止分派。外部进程可能在检查后立即替换服务，无法获得全机原子锁；此类竞态按目标丢失或结果未知处理，不自动反复重启来争夺服务。</p>
+        <h3>设备状态与身份 <span class="req">DEV-01～03</span></h3>
+        <div class="table-wrap"><table><thead><tr><th style="width:22%">观测事实</th><th style="width:34%">应用状态</th><th>行为</th></tr></thead><tbody>
+          <tr><td>ADB unauthorized</td><td>未授权</td><td>显示手机端确认指引；不执行安装。授权变化触发刷新，无需拔插</td></tr>
+          <tr><td>ADB offline / transport 消失</td><td>离线 / 有界重连中</td><td>只读恢复可退避重试；已发起写操作不改投其他会话</td></tr>
+          <tr><td>ADB device + 通信探针通过</td><td>真机可用</td><td>读取型号、系统与 ABI；recovery / sideload / bootloader 独立标记为不支持普通应用验证</td></tr>
+          <tr><td>模拟器 device + 系统探针通过</td><td>模拟器可用</td><td>与原 AVD 行合并。归属未知时保留“待识别会话”，不猜测关联</td></tr>
+          <tr><td>USB 与无线同时存在</td><td>两个会话，可有共同逻辑设备</td><td>仅在可验证身份一致时合并外观；操作仍明确绑定活动连接</td></tr>
+        </tbody></table></div>
+        <p>设备任务优先使用冻结的 <code>-t &lt;transportId&gt;</code>，同时验证 Server epoch 与会话身份；受限旧工具仅能使用 <code>-s &lt;serial&gt;</code> 时必须通过相应兼容测试。禁止使用未指定目标的 install、默认 <code>-d</code> / <code>-e</code>，或依赖全局 ANDROID_SERIAL。transportId 可跨 Server 重启复用，不能单独充当永久身份。<a href="https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/user/adb.1.md">ADB 目标参数</a>。</p>
+        <h3>无线配对状态机</h3>
+        <div class="state-path">输入配对地址 / 端口 / 码 → pairing → paired_unconnected → connecting → 验证 transport → ready</div>
+        <p>配对码通过 stdin 提交给 <code>adb pair</code>，只在内存中短时保留，不作为进程参数或日志内容。配对端口与连接端口分开；通过受支持 mDNS 能力发现连接地址，失败则允许手动输入。配对 60 秒为初始超时，错误码区分配对过期、拒绝与网络失败；不无限重试。</p>
+        <p>只有设备出现在目标 Server 且通信通过，才显示“连接成功”。无线断开调用明确端点的 disconnect；手机侧取消配对提供系统设置指引，不能伪装成主机可以可靠执行的 adb unpair。旧式 tcpip 无配对模式不进入 P0。<a href="https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi">官方无线配对流程</a>。</p>
+        <p>USB 驱动问题按“未发现设备”与“已发现未授权”分别诊断，给出 OEM / Windows 官方入口。应用不自动下载来源未知的驱动，不默认申请管理员权限。</p>
+      </section>
+
+      <section id="apk">
+        <h2><span class="n">10 / APK WORKFLOW</span>APK 安装与应用启动</h2>
+        <h3>输入、预检与目标冻结 <span class="req">DEV-04 / AC-06 / AC-07</span></h3>
+        <ol>
+          <li>文件对话框与 Tauri 文件拖放事件均进入同一入口；拖到设备行时传候选设备，空白区使用已选目标或弹出选择器。后端验证普通文件、可读性、单 APK、ZIP 结构与大小，拒绝 AAB、APKS / XAPK 或多文件安装。</li>
+          <li>将输入流复制到本次任务的只读暂存文件并计算哈希，防止用户确认后外部重新构建覆盖原 APK。读取二进制 Manifest 的包名、版本、minSdk、启动信息及 <code>lib/&lt;abi&gt;</code>；仅解读受支持结构，不执行 APK。解析失败字段标未知，必要时使用已存在的 apkanalyzer 补充。<a href="https://developer.android.com/tools/apkanalyzer">官方 APK 分析工具</a>。</li>
+          <li>确认面板展示目标名、序列号末段、连接方式、APK 文件名 / 大小与可读取元数据。预检已知 minSdk 与设备 API、native ABI 兼容性；无 lib 目录不判 ABI 不兼容，无法确定的拆包需求交给安装错误解释。</li>
+          <li>用户确认后创建不可变 TargetRef，取得设备写锁，执行 <code>adb -t &lt;id&gt; install -r &lt;staged.apk&gt;</code>。不默认添加降级、清数据、自动授权或绕过限制参数；每次覆盖安装都保留用户确认。</li>
+        </ol>
+        <p>对“就绪后安装”使用专门等待任务：绑定明确 avdId 或可靠逻辑设备身份，默认 180 秒后提示，继续等待需用户选择且可取消。等待结束时仅解析该目标的新会话、复查身份并冻结 TargetRef；没有可靠身份的普通断线设备要求重新选择，不猜测绑定。</p>
+        <h3>结果与错误分类</h3>
+        <div class="table-wrap"><table><thead><tr><th style="width:28%">结果或错误</th><th style="width:32%">应用判定</th><th>恢复动作</th></tr></thead><tbody>
+          <tr><td>明确安装成功</td><td>记录安装成功；有包名时复查安装包版本</td><td>展示“已安装”，另提供启动入口；不宣称运行验证通过</td></tr>
+          <tr><td>UPDATE_INCOMPATIBLE / 签名冲突</td><td>保留已有应用与数据</td><td>建议更换同签名 APK；用户主动选择卸载重装时再说明数据丢失并确认包名和目标</td></tr>
+          <tr><td>VERSION_DOWNGRADE</td><td>不自动添加降级开关</td><td>建议使用新版本或主动卸载重装，分别保留风险提示</td></tr>
+          <tr><td>OLDER_SDK / NO_MATCHING_ABIS / MISSING_SPLIT</td><td>系统、架构或产物不匹配</td><td>更换设备或提供完整单 APK，分包安装不在 P0</td></tr>
+          <tr><td>INSUFFICIENT_STORAGE</td><td>设备存储不足</td><td>由用户处理设备空间，再重试本任务</td></tr>
+          <tr><td>超时、断线、取消时已进入设备提交</td><td>结果未知 / 待检查</td><td>同一设备恢复后按包与版本复查，再由用户重试；不能静默重装或切换设备</td></tr>
+        </tbody></table></div>
+        <p>启动前通过目标设备的 Package Manager 解析可启动组件，结合已知包名校验；支持时调用 <code>am start -W -n &lt;component&gt;</code>。命令参数来自验证过的组件标识，禁止拼接用户 shell 文本。无法唯一解析、受工作资料隔离或没有 launcher Activity 时，保持安装成功并解释启动能力限制。启动请求成功也仅表示启动动作被系统接受。</p>
+      </section>
+
+      <section id="observe">
+        <h2><span class="n">11 / OBSERVABILITY</span>日志、截图与诊断导出</h2>
+        <h3>Logcat 流与应用过滤 <span class="req">DEV-05</span></h3>
+        <p>每个查看会话使用明确设备 TargetRef，运行受支持的 <code>adb logcat -v threadtime</code>，解析时间、PID / TID、级别、tag 与正文。设备不同版本的选项通过能力检测确认，不能假设所有设备支持同一组过滤参数。<a href="https://developer.android.com/tools/logcat">Logcat 官方说明</a>。</p>
+        <ul>
+          <li>后端使用 10,000 行且总量不超过 8 MiB 的环形缓冲；超长单行截断并标记。前端虚拟列表按批量刷新，避免逐行 invoke / Event。达到任一上限滚动淘汰，显示丢弃计数。</li>
+          <li>应用过滤跟踪包对应进程集合而非永久绑定一个 PID；初始按 2 秒周期及进程变化信号刷新，处理主进程与受支持子进程。PID 缺失显示“等待应用进程”，不伪装无日志；无法归属的隔离进程明确显示过滤覆盖范围。</li>
+          <li>暂停只停止视图跟随，后台缓冲仍有界更新，恢复时提示缺口；“清空视图”建立视图游标，不执行 <code>logcat -c</code> 清除设备全局缓冲。应用重启或设备重连时标记新的采集段。</li>
+          <li>长采集作为独立任务直接流式写文件，按初始每段 100 MiB 轮转，启动前确认总配额或时限。磁盘不足停止并保留已完成段；对设备断线、权限限制或队列溢出写入缺口标记。视图关闭只结束自己的订阅，不终止明确启动的文件采集。</li>
+        </ul>
+        <h3>截图与剪贴板</h3>
+        <p>执行 <code>adb -t &lt;id&gt; exec-out screencap -p</code>，二进制 stdout 直接写入暂存 PNG，验证退出结果、PNG 签名及图像解码后返回 artifactId。预览通过受限本地资源读取，文件路径不直接授予 WebView 任意读取权。<a href="https://developer.android.com/tools/adb#screencap">官方截图方式</a>。</p>
+        <p>用户保存时写临时文件再提交到对话框授权位置；用户确认覆盖已有文件。复制由后端解码为平台图像后写剪贴板，失败不报成功。受保护画面出现黑屏时说明系统限制，不尝试绕过。未保存截图进入退出检查，不能随窗口关闭静默删除。</p>
+        <h3>环境摘要与导出隐私</h3>
+        <p>摘要包括 OS、环境能力、工具来源与版本、设备系统、任务阶段、错误码与建议动作。默认替换用户目录、设备标识、IP、配对数据和可识别敏感字段；同次导出使用一致占位符以便关联。日志与截图可能含应用数据，规则脱敏无法保证覆盖自由文本和图像，因此导出前提供实际内容预览与选择范围。复制设备标识是独立、由用户主动执行的动作。</p>
+        <p>导出分为“当前视图”“所选采集段”“环境诊断”，展示时间范围、行数与截断情况；诊断导出不自动打包原始 APK、ADB 私钥、完整主目录或所有历史日志。默认保存在本地，不上传外部服务。</p>
+      </section>
+
+      <section id="tasks">
+        <h2><span class="n">12 / TASK ENGINE</span>任务调度与异常恢复</h2>
+        <h3>状态与取消语义</h3>
+        <div class="state-path">draft → awaiting_confirmation → queued → running<br>running → succeeded | partially_succeeded | failed | cancelled<br>异常中断 → needs_reconcile → 实际复查 → 已确认结果或 needs_review</div>
+        <p>设备状态、任务状态和任务阶段分别建模。running.phase 可为 preparing、downloading、verifying、installing、waiting_device、checking_boot 等，记录已知百分比或未知进度、最后更新时间和是否可取消。<code>needs_reconcile</code> / <code>needs_review</code> 在界面显示“结果待检查”，不是成功状态。</p>
+        <p>取消策略由步骤声明为 immediate、after_step 或 not_cancellable。点击“取消”只写入请求；只有执行器确认没有继续产生副作用才转为 cancelled。写入提交中显示“此阶段完成后取消”；若当前最后一步已成功完成，则报告完成并说明取消请求到达较晚，不伪造取消成功。</p>
+        <h3>资源锁与并发</h3>
+        <div class="table-wrap"><table><thead><tr><th style="width:28%">资源</th><th style="width:32%">初始并发策略</th><th>冲突处理</th></tr></thead><tbody>
+          <tr><td>SDK 根与包</td><td>同 SDK 组件变更串行；使用中组件持有读租约</td><td>安装 / 卸载 / 工具替换不能与依赖该组件的启动或创建冲突</td></tr>
+          <tr><td>AVD 定义 / 数据目录</td><td>创建、编辑、清数据、删除互斥；运行期持租约</td><td>启动中不重复启动；共享或未知占用阻止修改</td></tr>
+          <tr><td>设备会话</td><td>同目标安装、卸载等写操作串行；不同设备最多 2 个写任务并行</td><td>日志通常可与安装并行；停止模拟器要求处理同实例的在途操作</td></tr>
+          <tr><td>共享 ADB Server</td><td>正常操作共享租约；重启需要独占</td><td>等本应用任务收尾并确认外部影响，重启后所有旧 TargetRef 失效</td></tr>
+          <tr><td>引导网络与文件导出</td><td>自有下载初始最多 2 个；目标输出路径单写者</td><td>按卷空间和总配额限制；排队显示所等待资源</td></tr>
+        </tbody></table></div>
+        <p>锁按全局固定顺序一次性申请，等待依赖前释放不再需要的锁，避免跨 SDK、AVD 和设备形成死锁。实例锁防止同应用多开争用；它不代表可以锁住外部开发工具，实际写入仍需占用检查。</p>
+        <h3>恢复靠复查，避免盲目重放</h3>
+        <p>执行前事务写入意图、步骤、目标与工具指纹；外部操作后记录结果。外部副作用与 SQLite 不能组成跨系统原子事务，因此只能实现“幂等请求 + 执行后核实”，不承诺外部命令严格 exactly-once。</p>
+        <div class="table-wrap"><table><thead><tr><th style="width:23%">未完成任务</th><th style="width:43%">重开后的复查</th><th>继续条件</th></tr></thead><tbody>
+          <tr><td>SDK 安装 / 卸载</td><td>读取实际包记录、目录完整性和残留进程；更新每项结果</td><td>只有已验证完整项可记成功；未知状态人工重试，不把目录存在视为完整</td></tr>
+          <tr><td>创建 / 编辑 / 删除 AVD</td><td>按注册信息、数据路径、指纹与提交日志判断已执行步骤</td><td>只修复本任务有标记的暂存或提交对象；不重复创建，不删除来源不明目录</td></tr>
+          <tr><td>模拟器启动 / 停止</td><td>查 AVD 对应会话、进程及系统就绪情况</td><td>重建监控；应用曾退出不等于模拟器已停止</td></tr>
+          <tr><td>APK 安装</td><td>可靠识别同一设备后查询包和版本；缺少证据仍保留未知</td><td>不自动重新发送安装。任务与新的选择、无线地址无关</td></tr>
+          <tr><td>下载 / 截图 / 日志导出</td><td>检查 .part、校验和、文件可解码性及完成标记</td><td>满足续传条件才能续传；保留已完成日志段，不将半文件当完成产物</td></tr>
+        </tbody></table></div>
+        <p>普通只读命令初始超时 10 秒；无线配对 60 秒；APK 安装 120 秒无输出后提示检查，总时限可由用户延长；模拟器启动 180 秒提醒。下载按连接与无数据超时处理，不给大镜像设置一个不现实的固定总时限。所有阈值经 M0 / M1 实测调整并带阶段说明。</p>
+      </section>
+
+      <section id="ipc">
+        <h2><span class="n">13 / IPC CONTRACT</span>IPC 契约与前端状态</h2>
+        <h3>查询、计划、提交分离</h3>
+        <div class="table-wrap"><table><thead><tr><th style="width:28%">Command 组</th><th style="width:37%">典型接口</th><th>返回与规则</th></tr></thead><tbody>
+          <tr><td>环境与快照</td><td>environment_scan、environment_select、workspace_snapshot</td><td>候选 / 能力 / 带 revision 的快照；选择不会隐式安装</td></tr>
+          <tr><td>计划与任务</td><td>sdk_plan_create、avd_plan_create、apk_prepare、task_submit、task_cancel、task_list</td><td>PlanSummary 或 TaskId；提交校验 requestId、planHash、目标和确认令牌</td></tr>
+          <tr><td>设备与连接</td><td>device_snapshot、wireless_pair、wireless_connect、device_disconnect</td><td>连接任务与会话事实分开；pair 结果不能直接产生 ready</td></tr>
+          <tr><td>观察与产物</td><td>log_subscribe、log_unsubscribe、capture_create、artifact_save、diagnostics_prepare</td><td>Channel / artifactId / 导出预览；不接受任意文件读写指令</td></tr>
+          <tr><td>窗口与退出</td><td>window_snapshot、window_action、app_request_close、app_resolve_close</td><td>固定动作枚举；关闭策略在 Rust 校验，前端不能直接强制退出</td></tr>
+        </tbody></table></div>
+        <pre><code>type TaskSubmit = {
+  requestId: string;          // 重复点击返回同一任务，不重复副作用
+  planId: string;
+  planHash: string;
+  target?: TargetRef;
+  confirmationToken?: string; // 绑定动作、目标、影响摘要与短时有效期
+};
+
+type AppError = {
+  code: string;              // DEVICE_UNAUTHORIZED / SDK_IN_USE / ...
+  message: string;
+  retriable: boolean;
+  recoveryActions: string[];
+  taskId?: string;
+  diagnosticRef?: string;    // 原始诊断按需查看，不直接堆到主界面
+};</code></pre>
+        <p>Rust DTO 作为协议定义，通过代码生成产出 TypeScript 类型并加入 CI 差异检查；候选方案为 specta / tauri-specta，经 M0 验证兼容后锁定。运行时仍需 Rust 校验路径、枚举、范围与目标，TypeScript 类型不能替代权限校验。</p>
+        <h3>快照、低频事件与高频流</h3>
+        <p>设备状态与任务变化用定向到 main 的低频 Event，携带 eventSeq 和对象 revision。Logcat 与密集进度使用 Tauri Channel，按初始 100 毫秒或 200 行批次发送，且有批大小上限。Tauri 官方区分了事件与有序流式 Channel；流入口仍需通过受限 command 建立授权。<a href="https://v2.tauri.app/develop/calling-frontend/">Tauri Rust → 前端通信</a>。</p>
+        <p>初始化先订阅并缓冲事件，再获取带 seq 的快照，丢弃快照以前的重复项后应用增量。发现序号缺口、前端刷新或恢复窗口后重新取快照。Channel 是实时通知，不是持久日志；查看历史通过分页接口。慢消费者只丢可丢弃的视图数据，并显示缺口，不丢任务终态。</p>
+        <p>TanStack Query 缓存领域快照并处理失效；Zustand 只保存当前选择、页签、筛选和表单草稿。设备 ready、安装成功或任务完成不能由前端乐观推断；按钮点击只先显示“已提交 / 排队”。列表选择变化不修改已提交任务的 TargetRef。</p>
+      </section>
+
+      <section id="window">
+        <h2><span class="n">14 / WINDOWS SHELL</span>Windows 窗口与退出</h2>
+        <h3>自绘标题栏实现 <span class="req">WIN-01 / AC-13</span></h3>
+        <p>窗口采用 Tauri 2 的 <code>app.windows</code> 配置，关闭原生装饰并保留可缩放、最大化与任务栏行为。默认尺寸建议 1280 × 800 逻辑像素，最小 960 × 640；标题栏 40、按钮 46 × 40 逻辑像素。窗口样式保持非透明，先减少复杂合成与命中测试风险。<a href="https://v2.tauri.app/learn/window-customization/">Tauri 窗口定制</a>。</p>
+        <ul>
+          <li>只有标题栏空白区可拖动；交互控件排除拖动。双击通过统一窗口动作切换最大化，避免 DOM 与原生处理重复触发。按钮使用可访问名称和键盘焦点。</li>
+          <li>最大化图标来自真实窗口状态：启动、resize、focus、恢复与 DPI / 显示器变化后重新查询，不能用点击次数维护布尔值。恢复位置按当前显示器工作区修正，避免断开显示器后窗口出屏。</li>
+          <li>WindowsAdapter 使用原生 HWND 消息与命中测试保留边缘缩放、系统菜单、Alt+Space、Win+方向键、最大化拖动还原与工作区边界。</li>
+        </ul>
+        <div class="callout warn"><p><strong>最大化按钮的悬停贴靠是前置验证项。</strong> 自绘 HTML 按钮不保证自动出现 Windows 11 Snap Layout。微软要求自绘标题栏正确响应非客户区命中测试，例如最大化区域返回 <code>HTMAXBUTTON</code>。需验证 WebView2 子窗口、原生区域与点击消息转发的共同作用，不能只加一段 CSS 或父窗口 WndProc 就认定完成。<a href="https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-snap-layout-menu">微软 Snap Layout 指引</a>。</p></div>
+        <p>M0 对比 Tauri 锁定版本的现有能力与小型 Rust 原生标题栏桥接：为控制区维护真实物理像素矩形，在 DPI、缩放和布局变化时更新；必要时以原生命中区域承接非客户区消息，同时让 DOM 展示与可访问性状态一致。若依赖的框架无法覆盖，完成该桥接后再通过 WIN-01，不能把只有 Win+Z 可用视为悬停贴靠已验收。</p>
+        <h3>关闭、托盘与退出状态机</h3>
+        <p>所有关闭入口，包括自绘按钮、Alt+F4、任务栏关闭，均由 Rust 的 CloseRequested 进入统一策略；前端只有请求入口。未启用托盘且无在途任务 / 未保存产物时退出；有任务时阻止立即退出，显示任务与阶段，提供“返回”“完成任务后退出”“取消任务并退出”。后两项均等待必要收尾，不能截断组件写入。</p>
+        <p>“完成后退出”进入 draining：停止接收新写任务，现有有限任务完成后退出；无限日志采集需用户先选择停止并完成文件封口，不可无限等待。取消退出按步骤取消能力执行；未保存截图与导出结果提供保存或明确放弃。</p>
+        <p>托盘默认关闭，用户显式启用后关闭窗口改为隐藏，首次解释行为。托盘保留任务数、失败提示、恢复窗口与退出入口；菜单“退出”仍走统一流程。应用退出默认保留模拟器和共享 ADB，释放观察连接；只有用户主动选择停止实例才发送停止请求。</p>
+        <p>系统注销 / 关机可能不给完整对话与等待时间，不能依赖最后一刻弹窗保证安全。任务意图和日志持续落盘，正常退出时收尾，强制结束后由恢复流程报告真实结果。单实例插件唤起现有窗口，避免重复管理同一 SDK 和 AVD。</p>
+      </section>
+
+      <section id="security">
+        <h2><span class="n">15 / SECURITY</span>权限与安全边界</h2>
+        <p>发布版本只加载随包静态前端，禁止远程页面导航和远程内容获得 IPC；帮助链接交给系统浏览器，按固定协议和来源校验。CSP 从 <code>default-src 'self'</code> 起按 Tauri 本地资源实际协议配置，不启用任意脚本、远程 CDN 或通配连接。日志、包名、设备名和工具输出始终按文本渲染。</p>
+        <div class="table-wrap"><table><thead><tr><th style="width:24%">边界</th><th>实现要求</th></tr></thead><tbody>
+          <tr><td>Capabilities</td><td>权限只绑定 main，显式列出所需窗口查询 / 最小化 / 最大化 / 拖动与对话框能力；不直接授予任意 shell、任意文件系统、SQL、进程退出或动态窗口创建权限</td></tr>
+          <tr><td>自定义 Rust commands</td><td>通过 AppManifest::commands 与自定义 permissions 纳入 ACL，并核验调用窗口。Tauri 默认注册的应用命令不会仅凭写了 capability 文件自动全部受限；后端仍须校验每个动作和范围。<a href="https://v2.tauri.app/security/capabilities/">Tauri capability 与自定义命令规则</a></td></tr>
+          <tr><td>用户选中文件与导出</td><td>对话框 / 拖放建立短期文件句柄或 artifact 引用；路径 canonicalize 后检查用途。保存与覆盖由本次授权限定，不暴露 read_any / write_any 接口</td></tr>
+          <tr><td>设备与高影响动作</td><td>确认摘要由 Rust 生成；短时一次性令牌绑定对象、计划哈希及影响范围。清 AVD 数据、删 AVD、卸载重装、SDK 卸载、重启共享 ADB 与强停分别确认</td></tr>
+          <tr><td>删除与解压</td><td>检查解析后的真实路径、根目录边界、重解析点和对象归属；执行前复查文件身份，避免字符串前缀误判与路径变化。拒绝对磁盘根、SDK 共享根和来源不明目录递归删除</td></tr>
+          <tr><td>凭据与隐私</td><td>配对码只在内存；不读取、复制或导出 ADB 私钥。日志默认脱敏且限额保留；用户主动选原始日志时展示内容预览</td></tr>
+          <tr><td>应用更新与工具下载</td><td>下载经 HTTPS 和固定发行校验；更新包签名独立校验。Android 工具升级需用户显式触发，不能随应用升级静默改写用户 SDK</td></tr>
+        </tbody></table></div>
+        <p>Rust 本身拥有本地系统能力，Tauri ACL 不能约束有缺陷的 Rust 代码。因此安全检查放在领域服务与基础设施写入入口，不能只靠隐藏按钮或关闭前端插件。Android CLI 若后续启用，默认使用官方的 <code>--no-metrics</code> 选项，并不更改用户全局配置。<a href="https://developer.android.com/tools/agents/android-cli#data-collected">Android CLI 数据收集设置</a>。</p>
+      </section>
+
+      <section id="delivery">
+        <h2><span class="n">16 / DELIVERY</span>性能、构建与分发</h2>
+        <h3>建议性能目标</h3>
+        <div class="table-wrap"><table><caption>以下为研发目标，尚非实测结论；基准建议 Windows 11、4 核 CPU、16 GiB 内存、SSD，排除模拟器与外部工具进程</caption><thead><tr><th style="width:27%">指标</th><th style="width:27%">首版目标</th><th>测量方法与边界</th></tr></thead><tbody>
+          <tr><td>启动可交互</td><td>冷启动 P95 ≤ 3 秒</td><td>先显示缓存和扫描状态；外部下载、设备系统启动不计入界面可交互时间</td></tr>
+          <tr><td>普通操作反馈</td><td>本地 UI 反馈 ≤ 100 毫秒</td><td>表示已提交 / 排队，不表示真实操作已完成</td></tr>
+          <tr><td>设备变化呈现</td><td>收到 Server 变化后 P95 ≤ 1 秒</td><td>记录实际事件时间；不承诺 USB 驱动或无线发现本身的系统延迟</td></tr>
+          <tr><td>空闲资源</td><td>应用进程树 CPU 平均 ≤ 1%；工作集预算 ≤ 250 MiB</td><td>包含本应用 WebView2 子进程，排除 ADB、Java、模拟器；以 10 分钟稳定观测为准</td></tr>
+          <tr><td>日志持续输入</td><td>目标 5,000 行 / 秒；视图保持可交互</td><td>10,000 行 / 8 MiB 缓冲、虚拟化与批量通道；超限必须可见地截断或降采样</td></tr>
+          <tr><td>组件查询与目录体积</td><td>缓存分页 / 按需统计</td><td>不在 UI 线程遍历大目录；磁盘占用区分逻辑大小与实际可回收占用</td></tr>
+        </tbody></table></div>
+        <h3>开发与 CI</h3>
+        <p>开发机准备受 Tauri 支持的 Node.js LTS、Rust stable、MSVC Build Tools、Windows SDK 与 WebView2；用户安装包不依赖这些开发工具。M0 选定精确版本后提交 pnpm-lock.yaml、Cargo.lock、rust-toolchain.toml 与工具兼容 manifest，CI 使用 locked / frozen 安装。</p>
+        <p>CI 顺序为前端类型与构建、Rust fmt / clippy / 单元及契约测试、Windows 集成与打包。设备测试在有真实 USB / 虚拟化能力的 Windows runner 上单独执行，不能因云 runner 缺少加速就把硬件场景记为通过。发布产物生成版本号、哈希、SBOM 和第三方许可清单。</p>
+        <h3>安装包与升级</h3>
+        <p>首发建议 NSIS x64 用户级安装包。默认使用系统 Evergreen WebView2；安装器检测缺失并明确下载安装需求。离线 WebView2 安装包可提供单独变体，体积应独立标注；不把运行时、Java 和 SDK 下载体积都隐藏在“应用很小”的描述里。<a href="https://v2.tauri.app/distribute/windows-installer/">Tauri Windows 分发选项</a>。</p>
+        <p>公开发布前使用 Windows 代码签名；内部试用可先交付可追溯构建并标记未签名状态。P0 可使用手动下载安装更新；若启用 Tauri Updater，先完成签名验证、更新前任务收尾与数据库迁移恢复。应用卸载不自动删除共享 SDK、AVD、用户导出或启动中的模拟器。</p>
+      </section>
+
+      <section id="verification">
+        <h2><span class="n">17 / VERIFICATION</span>测试策略与验收映射</h2>
+        <h3>以外部副作用和失败分支为重点</h3>
+        <p>单元测试覆盖目标绑定、状态机、包 / AVD 解析、路径边界和锁冲突；Adapter 用版本化真实输出做契约测试。集成测试采用可控假进程模拟回车进度、双流大量输出、超时、退出码与不完整写入；对关键提交点注入应用终止、磁盘满和文件外部修改。Windows 桌面验证使用 Tauri WebDriver 与原生实机操作，不能只在浏览器里验证窗口行为。</p>
+        <div class="table-wrap"><table><caption>逐条对应 PRD 的完整 P0 验收</caption><thead><tr><th style="width:11%">PRD</th><th style="width:36%">关键测试</th><th>通过标准与证据</th></tr></thead><tbody>
+          <tr><td>AC-01</td><td>Studio 既有 SDK / AVD，不同路径，未知配置键</td><td>不重下已有包；保留名称与路径；启动后关联原行。保留前后文件指纹与任务记录</td></tr>
+          <tr><td>AC-02</td><td>无 SDK / Java / Studio 的普通用户环境</td><td>完整走过引导、许可、组件、创建及系统就绪；拒绝许可不继续；提供成功操作记录</td></tr>
+          <tr><td>AC-03</td><td>网络断开、代理错误、校验失败、不同卷磁盘满</td><td>定位到项，保留已完成组件；不安装校验失败包；仅在满足条件时续传</td></tr>
+          <tr><td>AC-04</td><td>真机 unauthorized → 手机授权</td><td>状态自动恢复，安装按钮按事实变化；未授权期间无安装写命令</td></tr>
+          <tr><td>AC-05</td><td>无线配对成功、mDNS 被隔离、连接端口不同</td><td>配对与连接分离；可手动连接；配对码不进入数据库、命令参数或日志</td></tr>
+          <tr><td>AC-06</td><td>A / B 同在线；安装 A 时选择 B、拔掉 A、重启 Server</td><td>所有步骤只绑定 A 的冻结会话；无面向 B 的安装；transportId 复用也不误投</td></tr>
+          <tr><td>AC-07</td><td>签名冲突、降级、ABI / API 不兼容、设备存储不足</td><td>错误分类正确，无静默卸载或降级；卸载重装需要独立确认</td></tr>
+          <tr><td>AC-08</td><td>模拟器进程启动但系统未就绪、卡住及停止超时</td><td>区分启动阶段；180 秒提醒不冒充退出；强停对象可验证；不自动清数据</td></tr>
+          <tr><td>AC-09</td><td>两个 AVD 共用镜像；数据路径为 junction 或共享目录</td><td>依赖拦截有效；删 AVD 不删镜像；不安全递归范围被阻止；按实际重新统计空间</td></tr>
+          <tr><td>AC-10</td><td>SDK / AVD / 安装 / 导出各关键点强制终止应用</td><td>重开复查事实，不重复创建或安装；不完整产物和未知安装结果可见</td></tr>
+          <tr><td>AC-11</td><td>外部不同版本 ADB、Studio 同时运行</td><td>启动观测无隐式重启；冲突可解释；确认重启前显示外部影响，旧会话随重启失效</td></tr>
+          <tr><td>AC-12</td><td>仅 ADB 的真机场景；仅已有 emulator 与镜像</td><td>分别可用，不强制引入 SDK Platform、Build Tools、Java 或完整 IDE</td></tr>
+          <tr><td>AC-13</td><td>自绘按钮、Alt+F4、最大化拖回、Win+Z、悬停贴靠、100%～200% 混合 DPI</td><td>真实窗口状态一致、焦点与点击区正确；关闭遵循任务策略；保留实机录屏 / 截图与系统构建号</td></tr>
+        </tbody></table></div>
+        <p>DEV-05 追加专项：5,000 行 / 秒输入下内存有界、应用多进程与 PID 重启过滤、暂停与清空不改变设备全局缓冲、长采集配额 / 断线缺口、截图二进制无损、保存 / 复制失败、导出脱敏预览。通用规则追加：切页不丢任务、重复点击幂等、不同设备并行、同资源互斥、未保存产物关闭保护。</p>
+        <p>验证矩阵至少含 Intel / AMD 主机、WHPX 可用与不可用、已有 / 全新 SDK、中文及带空格路径、不同权限目录、多个 AVD 根、Android 无线调试支持与不支持设备，以及断网重开。记录 OS / WebView2 / 工具版本，不以一台机器通过替代兼容范围。</p>
+      </section>
+
+      <section id="roadmap">
+        <h2><span class="n">18 / IMPLEMENTATION</span>实施阶段与风险</h2>
+        <p>建议先验证最难替换的平台和工具边界，再开发完整界面。以下为按依赖顺序的实施阶段；人力与日历工期在 M0 形成实测证据后估算，不在本方案中给出缺乏依据的精确排期。</p>
+        <div class="table-wrap"><table><thead><tr><th style="width:13%">阶段</th><th style="width:43%">交付物</th><th>退出标准</th></tr></thead><tbody>
+          <tr><td>M0<br>技术验证</td><td>Tauri Windows 原型、原生窗口桥接、工具兼容 manifest、ProcessRunner 样机、空环境引导与 ADB 共存实验</td><td>悬停贴靠 / DPI 可用；Java / SDK / AVD 版本组合冻结；未知 Server 无副作用发现；确认清数据与进程退出语义</td></tr>
+          <tr><td>M1<br>最小纵向闭环</td><td>工程骨架、DTO / IPC、SQLite、任务与锁、既有 SDK 发现、USB 设备列表、冻结目标安装、日志 / 截图原型</td><td>复用环境完成单 APK 验证；双设备不误投；中断后显示真实结果；界面切页不影响任务</td></tr>
+          <tr><td>M2<br>环境与 SDK</td><td>完整 Bootstrap、许可、运行时按需准备、组件清单 / 计划 / 安装卸载、网络设置与逐项恢复</td><td>普通用户空环境能准备真机与模拟器依赖；部分完成可恢复；依赖与占用拦截有效</td></tr>
+          <tr><td>M3<br>AVD 与无线</td><td>新建、配置、运行就绪、冷启动、正常 / 强制停止、清数据 / 删除、无线配对及手动连接</td><td>新建到启动闭环；既有 AVD 不损坏；配对不误报连接；共享镜像保留，冲突与目标规则成立</td></tr>
+          <tr><td>M4<br>P0 收口与发布</td><td>正式日志过滤 / 长采集、导出隐私、关闭 / 托盘、恢复完整场景、性能数据、签名安装包与验收证据</td><td>AC-01～13 与 DEV-05 专项通过；无阻断缺陷，已知限制与支持版本随包交付</td></tr>
+        </tbody></table></div>
+        <h3>主要风险与具体处理</h3>
+        <div class="table-wrap"><table><thead><tr><th style="width:24%">风险</th><th style="width:40%">处理</th><th>决定点</th></tr></thead><tbody>
+          <tr><td>传统工具弃用、新 CLI Windows 能力不齐</td><td>冻结已验证版本；Adapter 隔离；保留新 CLI 迁移，不调用全局 update</td><td>M0 验证能覆盖目标镜像与创建功能，否则调整首发支持范围后再评审</td></tr>
+          <tr><td>WebView2 与原生贴靠 / DPI 消息交互</td><td>最先完成原生桥接原型，实机覆盖悬停、缩放与多显示器</td><td>WIN-01 通过后定型窗口外壳</td></tr>
+          <tr><td>外部工具并发修改与共享 ADB 自动替换</td><td>只读 Host 探测、版本与路径冻结、租约、指纹及结果复查</td><td>发现不能保证的外部竞态时保留未知结果，不自动修复或重放</td></tr>
+          <tr><td>零环境下载、Java 与许可形成复杂引导</td><td>用途最小化、版本清单、私有运行时选项、独立包引导、分步接受许可</td><td>M0 用全新普通用户系统完整验证，不依赖开发机的隐藏环境</td></tr>
+          <tr><td>AVD 数据破坏与路径越界</td><td>归属验证、停止检查、提交日志、受支持重置流程、保守删除</td><td>未知共享路径只读；不支持的字段与数据布局不提供写入</td></tr>
+          <tr><td>工具输出变化或安装结果不确定</td><td>版本样本、能力探测、结构化错误码、实际清单 / 包版本复查</td><td>解析不确定则降级显示与待检查，不制造百分比或成功结果</td></tr>
+        </tbody></table></div>
+        <div class="callout"><p><strong>可直接进入研发的默认决定：</strong> Tauri 2、React + TypeScript、Rust 领域层、SQLite、Windows 11 x64、官方模拟器独立窗口、共享 ADB、单 APK、单 SDK、默认不驻托盘。需要 M0 用实测冻结的项目是精确依赖与 Android 工具版本、Java 发行与许可、窗口桥接方式和重置文件集合；这些是技术验证产物，不需要先向用户追问普通实现偏好。</p></div>
+      </section>
+
+      <section id="references">
+        <h2><span class="n">19 / REFERENCES</span>依据与官方参考</h2>
+        <p>产品范围以本项目 <a href="00000_20261017232447_Android-DevKit-PRD.html">Android DevKit PRD v0.6</a> 为准。下列资料用于核实框架及工具边界；本文的架构、并发上限、目录布局、恢复机制与性能预算为项目设计建议。网页可能继续更新，发布支持范围以实际验证并冻结的版本为准。</p>
+        <ol class="source-list">
+          <li id="ref-tauri-acl"><strong>R1 · Tauri Capabilities：</strong><a href="https://v2.tauri.app/security/capabilities/">权限、窗口范围与应用自定义命令规则</a>。支撑第 15 节 ACL 边界。</li>
+          <li id="ref-tauri-window"><strong>R2 · Tauri Window Customization：</strong><a href="https://v2.tauri.app/learn/window-customization/">自绘标题栏、拖动与窗口权限</a>。实现配置使用 Tauri 2 schema，不能直接照抄不同版本示例。</li>
+          <li id="ref-tauri-ipc"><strong>R3 · Tauri Calling the Frontend from Rust：</strong><a href="https://v2.tauri.app/develop/calling-frontend/">Event 与 Channel</a>。支撑低频状态与高频日志分离。</li>
+          <li id="ref-tauri-installer"><strong>R4 · Tauri Windows Installer：</strong><a href="https://v2.tauri.app/distribute/windows-installer/">Windows 安装包和 WebView2 部署</a>。支撑运行时与分发方案。</li>
+          <li id="ref-snap"><strong>R5 · Microsoft Snap Layout：</strong><a href="https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-snap-layout-menu">Windows 11 自定义标题栏的系统贴靠</a>。支撑 HTMAXBUTTON 与原生验证要求。</li>
+          <li id="ref-sdkmanager"><strong>R6 · Android sdkmanager：</strong><a href="https://developer.android.com/tools/sdkmanager">安装、卸载、许可、代理参数及弃用说明</a>。</li>
+          <li id="ref-avdmanager"><strong>R7 · Android avdmanager：</strong><a href="https://developer.android.com/tools/avdmanager">AVD 管理与弃用说明</a>。</li>
+          <li id="ref-android-cli"><strong>R8 · Android CLI：</strong><a href="https://developer.android.com/tools/agents/android-cli">总览、Windows 已知问题和数据收集选项</a>；<a href="https://developer.android.com/tools/agents/android-cli/commands/sdk">SDK 命令</a>；<a href="https://developer.android.com/tools/agents/android-cli/commands/sdk_list">SDK 清单格式</a>。</li>
+          <li id="ref-env"><strong>R9 · Android Environment Variables：</strong><a href="https://developer.android.com/tools/variables">SDK、AVD 与环境变量位置及优先关系</a>。</li>
+          <li id="ref-emulator"><strong>R10 · Android Emulator Command Line：</strong><a href="https://developer.android.com/studio/run/emulator-commandline">启动、冷启动、数据目录、wipe-data 与 SD 卡边界</a>。</li>
+          <li id="ref-acceleration"><strong>R11 · Emulator Acceleration：</strong><a href="https://developer.android.com/studio/run/emulator-acceleration">WHPX、硬件检查与 AEHD 结束维护日期</a>。</li>
+          <li id="ref-adb"><strong>R12 · Android Debug Bridge：</strong><a href="https://developer.android.com/tools/adb">无线配对、安装、shell 与截图</a>；<a href="https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/user/adb.1.md">AOSP adb 参数与 Server 状态</a>；<a href="https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/dev/services.md">AOSP Host 服务协议</a>。</li>
+          <li id="ref-logcat"><strong>R13 · Logcat：</strong><a href="https://developer.android.com/tools/logcat">命令选项、格式与过滤</a>。</li>
+          <li id="ref-apkanalyzer"><strong>R14 · APK Analyzer：</strong><a href="https://developer.android.com/tools/apkanalyzer">APK、Manifest、包版本与最低 API 分析接口</a>。</li>
+        </ol>
+        <p class="note">本文件为独立离线 HTML；目录、图示和打印不依赖网络。仅在点击官方参考链接时访问外部网站。</p>
+      </section>
+      <footer class="footer">Android DevKit · 技术方案 · v0.1 · PRD v0.6 · 2026-10-17（Asia/Shanghai）</footer>
+    </article>
+  </main>
+  <script>
+    (() => {
+      const sidebar = document.getElementById('sidebar');
+      const toggle = document.getElementById('menuToggle');
+      const links = [...document.querySelectorAll('.toc a')];
+      const setMenu = open => {
+        sidebar.classList.toggle('open', open);
+        toggle.setAttribute('aria-expanded', String(open));
+      };
+      toggle.addEventListener('click', () => setMenu(!sidebar.classList.contains('open')));
+      links.forEach(link => link.addEventListener('click', () => setMenu(false)));
+      document.addEventListener('keydown', event => { if (event.key === 'Escape') setMenu(false); });
+      document.addEventListener('click', event => {
+        if (sidebar.classList.contains('open') && !sidebar.contains(event.target) && !toggle.contains(event.target)) setMenu(false);
+      });
+      document.getElementById('printButton').addEventListener('click', () => window.print());
+      const sections = [...document.querySelectorAll('section[id]')];
+      let queued = false;
+      const update = () => {
+        const current = [...sections].reverse().find(section => section.getBoundingClientRect().top <= 140) || sections[0];
+        links.forEach(link => {
+          const active = link.hash === '#' + current.id;
+          link.classList.toggle('active', active);
+          if (active) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+        queued = false;
+      };
+      window.addEventListener('scroll', () => {
+        if (!queued) { queued = true; requestAnimationFrame(update); }
+      }, { passive: true });
+      update();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+src/bindings.ts
+docs/
+.qa/
+dist/
+node_modules/
+src-tauri/target/
+src-tauri/gen/

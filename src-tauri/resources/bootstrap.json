@@ -1,0 +1,17 @@
+{
+  "java": {
+    "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12.1%2B1/OpenJDK21U-jre_x64_windows_hotspot_21.0.12.1_1.zip",
+    "checksum": "d35f31e712f0fcf6ac5a093edc90204fbff22f720ba3950bd09d331d5e621636",
+    "checksumType": "sha256",
+    "size": 48999141,
+    "version": "21.0.12.1+1-LTS",
+    "licenseUrl": "https://openjdk.org/legal/gplv2+ce.html"
+  },
+  "commandTools": {
+    "url": "https://dl.google.com/android/repository/commandlinetools-win-15859902_latest.zip",
+    "checksum": "b9862337a13e2809a5159dc3a08d058091bd59f6",
+    "checksumType": "sha1",
+    "size": 155655386,
+    "version": "22.0"
+  }
+}

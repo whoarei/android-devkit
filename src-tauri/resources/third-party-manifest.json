@@ -1,0 +1,2733 @@
+{
+  "entries": [
+    {
+      "name": "Rust: adler2",
+      "version": "2.0.1",
+      "license": "0BSD OR MIT OR Apache-2.0",
+      "repository": "https://github.com/oyvindln/adler2",
+      "sourcePackage": "https://crates.io/api/v1/crates/adler2/2.0.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: aho-corasick",
+      "version": "1.1.5",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/aho-corasick",
+      "sourcePackage": "https://crates.io/api/v1/crates/aho-corasick/1.1.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: alloc-no-stdlib",
+      "version": "3.0.0",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/dropbox/rust-alloc-no-stdlib",
+      "sourcePackage": "https://crates.io/api/v1/crates/alloc-no-stdlib/3.0.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: alloc-stdlib",
+      "version": "0.3.0",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/dropbox/rust-alloc-no-stdlib",
+      "sourcePackage": "https://crates.io/api/v1/crates/alloc-stdlib/0.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: anyhow",
+      "version": "1.0.104",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/anyhow",
+      "sourcePackage": "https://crates.io/api/v1/crates/anyhow/1.0.104/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: arboard",
+      "version": "3.7.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/1Password/arboard",
+      "sourcePackage": "https://crates.io/api/v1/crates/arboard/3.7.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: atomic-waker",
+      "version": "1.1.2",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/smol-rs/atomic-waker",
+      "sourcePackage": "https://crates.io/api/v1/crates/atomic-waker/1.1.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: autocfg",
+      "version": "1.5.1",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/cuviper/autocfg",
+      "sourcePackage": "https://crates.io/api/v1/crates/autocfg/1.5.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: base64",
+      "version": "0.22.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/marshallpierce/rust-base64",
+      "sourcePackage": "https://crates.io/api/v1/crates/base64/0.22.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: base64",
+      "version": "0.23.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/marshallpierce/rust-base64",
+      "sourcePackage": "https://crates.io/api/v1/crates/base64/0.23.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bit-set",
+      "version": "0.8.0",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/contain-rs/bit-set",
+      "sourcePackage": "https://crates.io/api/v1/crates/bit-set/0.8.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bit-vec",
+      "version": "0.8.0",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/contain-rs/bit-vec",
+      "sourcePackage": "https://crates.io/api/v1/crates/bit-vec/0.8.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bitflags",
+      "version": "1.3.2",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/bitflags/bitflags",
+      "sourcePackage": "https://crates.io/api/v1/crates/bitflags/1.3.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bitflags",
+      "version": "2.13.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/bitflags/bitflags",
+      "sourcePackage": "https://crates.io/api/v1/crates/bitflags/2.13.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: block-buffer",
+      "version": "0.10.4",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/utils",
+      "sourcePackage": "https://crates.io/api/v1/crates/block-buffer/0.10.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: brotli",
+      "version": "9.0.0",
+      "license": "BSD-3-Clause AND MIT",
+      "repository": "https://github.com/dropbox/rust-brotli",
+      "sourcePackage": "https://crates.io/api/v1/crates/brotli/9.0.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: brotli-decompressor",
+      "version": "6.0.1",
+      "license": "BSD-3-Clause/MIT",
+      "repository": "https://github.com/dropbox/rust-brotli-decompressor",
+      "sourcePackage": "https://crates.io/api/v1/crates/brotli-decompressor/6.0.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bs58",
+      "version": "0.5.1",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/Nullus157/bs58-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/bs58/0.5.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bumpalo",
+      "version": "3.20.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/fitzgen/bumpalo",
+      "sourcePackage": "https://crates.io/api/v1/crates/bumpalo/3.20.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bytemuck",
+      "version": "1.25.2",
+      "license": "Zlib OR Apache-2.0 OR MIT",
+      "repository": "https://github.com/Lokathor/bytemuck",
+      "sourcePackage": "https://crates.io/api/v1/crates/bytemuck/1.25.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: byteorder",
+      "version": "1.5.0",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/byteorder",
+      "sourcePackage": "https://crates.io/api/v1/crates/byteorder/1.5.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: byteorder-lite",
+      "version": "0.1.0",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/image-rs/byteorder-lite",
+      "sourcePackage": "https://crates.io/api/v1/crates/byteorder-lite/0.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: bytes",
+      "version": "1.12.1",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/bytes",
+      "sourcePackage": "https://crates.io/api/v1/crates/bytes/1.12.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: camino",
+      "version": "1.2.6",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/camino-rs/camino",
+      "sourcePackage": "https://crates.io/api/v1/crates/camino/1.2.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cargo_metadata",
+      "version": "0.19.2",
+      "license": "MIT",
+      "repository": "https://github.com/oli-obk/cargo_metadata",
+      "sourcePackage": "https://crates.io/api/v1/crates/cargo_metadata/0.19.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cargo_toml",
+      "version": "1.0.1",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://gitlab.com/lib.rs/cargo_toml",
+      "sourcePackage": "https://crates.io/api/v1/crates/cargo_toml/1.0.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cargo-platform",
+      "version": "0.1.9",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/cargo",
+      "sourcePackage": "https://crates.io/api/v1/crates/cargo-platform/0.1.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cc",
+      "version": "1.8.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/cc-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/cc/1.8.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cfb",
+      "version": "0.14.0",
+      "license": "MIT",
+      "repository": "https://github.com/mdsteele/rust-cfb",
+      "sourcePackage": "https://crates.io/api/v1/crates/cfb/0.14.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cfg_aliases",
+      "version": "0.2.2",
+      "license": "MIT",
+      "repository": "https://github.com/katharostech/cfg_aliases",
+      "sourcePackage": "https://crates.io/api/v1/crates/cfg_aliases/0.2.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cfg-if",
+      "version": "1.0.5",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/cfg-if",
+      "sourcePackage": "https://crates.io/api/v1/crates/cfg-if/1.0.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: chacha20",
+      "version": "0.10.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/stream-ciphers",
+      "sourcePackage": "https://crates.io/api/v1/crates/chacha20/0.10.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: chrono",
+      "version": "0.4.45",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/chronotope/chrono",
+      "sourcePackage": "https://crates.io/api/v1/crates/chrono/0.4.45/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: clipboard-win",
+      "version": "5.4.1",
+      "license": "BSL-1.0",
+      "repository": "https://github.com/DoumanAsh/clipboard-win",
+      "sourcePackage": "https://crates.io/api/v1/crates/clipboard-win/5.4.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cookie",
+      "version": "0.18.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/SergioBenitez/cookie-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/cookie/0.18.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cpufeatures",
+      "version": "0.2.17",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/utils",
+      "sourcePackage": "https://crates.io/api/v1/crates/cpufeatures/0.2.17/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cpufeatures",
+      "version": "0.3.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/utils",
+      "sourcePackage": "https://crates.io/api/v1/crates/cpufeatures/0.3.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: crc32fast",
+      "version": "1.5.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/srijs/rust-crc32fast",
+      "sourcePackage": "https://crates.io/api/v1/crates/crc32fast/1.5.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: crossbeam-channel",
+      "version": "0.5.17",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/crossbeam-rs/crossbeam",
+      "sourcePackage": "https://crates.io/api/v1/crates/crossbeam-channel/0.5.17/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: crossbeam-utils",
+      "version": "0.8.23",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/crossbeam-rs/crossbeam",
+      "sourcePackage": "https://crates.io/api/v1/crates/crossbeam-utils/0.8.23/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: crypto-common",
+      "version": "0.1.7",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/traits",
+      "sourcePackage": "https://crates.io/api/v1/crates/crypto-common/0.1.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cssparser",
+      "version": "0.37.0",
+      "license": "MPL-2.0",
+      "repository": "https://github.com/servo/rust-cssparser",
+      "sourcePackage": "https://crates.io/api/v1/crates/cssparser/0.37.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cssparser-macros",
+      "version": "0.7.1",
+      "license": "MPL-2.0",
+      "repository": "https://github.com/servo/rust-cssparser",
+      "sourcePackage": "https://crates.io/api/v1/crates/cssparser-macros/0.7.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ctor",
+      "version": "1.0.13",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/mmastrac/linktime",
+      "sourcePackage": "https://crates.io/api/v1/crates/ctor/1.0.13/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: darling",
+      "version": "0.24.1",
+      "license": "MIT",
+      "repository": "https://github.com/TedDriggs/darling",
+      "sourcePackage": "https://crates.io/api/v1/crates/darling/0.24.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: darling_core",
+      "version": "0.24.1",
+      "license": "MIT",
+      "repository": "https://github.com/TedDriggs/darling",
+      "sourcePackage": "https://crates.io/api/v1/crates/darling_core/0.24.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: darling_macro",
+      "version": "0.24.1",
+      "license": "MIT",
+      "repository": "https://github.com/TedDriggs/darling",
+      "sourcePackage": "https://crates.io/api/v1/crates/darling_macro/0.24.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: defmt",
+      "version": "1.2.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/knurling-rs/defmt",
+      "sourcePackage": "https://crates.io/api/v1/crates/defmt/1.2.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: defmt-macros",
+      "version": "1.2.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/knurling-rs/defmt",
+      "sourcePackage": "https://crates.io/api/v1/crates/defmt-macros/1.2.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: defmt-parser",
+      "version": "1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/knurling-rs/defmt",
+      "sourcePackage": "https://crates.io/api/v1/crates/defmt-parser/1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: deranged",
+      "version": "0.5.9",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/jhpratt/deranged",
+      "sourcePackage": "https://crates.io/api/v1/crates/deranged/0.5.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: derive_more",
+      "version": "2.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/JelteF/derive_more",
+      "sourcePackage": "https://crates.io/api/v1/crates/derive_more/2.1.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: derive_more-impl",
+      "version": "2.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/JelteF/derive_more",
+      "sourcePackage": "https://crates.io/api/v1/crates/derive_more-impl/2.1.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: digest",
+      "version": "0.10.7",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/traits",
+      "sourcePackage": "https://crates.io/api/v1/crates/digest/0.10.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dirs",
+      "version": "7.0.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://codeberg.org/dirs/dirs-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/dirs/7.0.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dirs-sys",
+      "version": "0.5.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dirs-dev/dirs-sys-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/dirs-sys/0.5.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: displaydoc",
+      "version": "0.2.7",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/yaahc/displaydoc",
+      "sourcePackage": "https://crates.io/api/v1/crates/displaydoc/0.2.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dom_query",
+      "version": "0.28.0",
+      "license": "MIT",
+      "repository": "https://github.com/niklak/dom_query",
+      "sourcePackage": "https://crates.io/api/v1/crates/dom_query/0.28.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dpi",
+      "version": "0.1.2",
+      "license": "Apache-2.0 AND MIT",
+      "repository": "https://github.com/rust-windowing/winit",
+      "sourcePackage": "https://crates.io/api/v1/crates/dpi/0.1.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dtoa",
+      "version": "1.0.11",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/dtoa",
+      "sourcePackage": "https://crates.io/api/v1/crates/dtoa/1.0.11/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dtoa-short",
+      "version": "0.3.5",
+      "license": "MPL-2.0",
+      "repository": "https://github.com/upsuper/dtoa-short",
+      "sourcePackage": "https://crates.io/api/v1/crates/dtoa-short/0.3.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dunce",
+      "version": "1.0.5",
+      "license": "CC0-1.0 OR MIT-0 OR Apache-2.0",
+      "repository": "https://gitlab.com/kornelski/dunce",
+      "sourcePackage": "https://crates.io/api/v1/crates/dunce/1.0.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: dyn-clone",
+      "version": "1.0.20",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/dyn-clone",
+      "sourcePackage": "https://crates.io/api/v1/crates/dyn-clone/1.0.20/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: embed-resource",
+      "version": "3.0.12",
+      "license": "MIT",
+      "repository": "https://github.com/nabijaczleweli/rust-embed-resource",
+      "sourcePackage": "https://crates.io/api/v1/crates/embed-resource/3.0.12/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: equivalent",
+      "version": "1.0.3",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/indexmap-rs/equivalent",
+      "sourcePackage": "https://crates.io/api/v1/crates/equivalent/1.0.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: erased-serde",
+      "version": "0.4.10",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/erased-serde",
+      "sourcePackage": "https://crates.io/api/v1/crates/erased-serde/0.4.10/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: error-code",
+      "version": "3.4.0",
+      "license": "BSL-1.0",
+      "repository": "https://github.com/DoumanAsh/error-code",
+      "sourcePackage": "https://crates.io/api/v1/crates/error-code/3.4.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: fallible-iterator",
+      "version": "0.3.0",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/sfackler/rust-fallible-iterator",
+      "sourcePackage": "https://crates.io/api/v1/crates/fallible-iterator/0.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: fallible-streaming-iterator",
+      "version": "0.1.9",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/sfackler/fallible-streaming-iterator",
+      "sourcePackage": "https://crates.io/api/v1/crates/fallible-streaming-iterator/0.1.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: fastrand",
+      "version": "2.5.0",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/smol-rs/fastrand",
+      "sourcePackage": "https://crates.io/api/v1/crates/fastrand/2.5.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: fax",
+      "version": "0.2.7",
+      "license": "MIT",
+      "repository": "https://github.com/pdf-rs/fax",
+      "sourcePackage": "https://crates.io/api/v1/crates/fax/0.2.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: fdeflate",
+      "version": "0.3.7",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/fdeflate",
+      "sourcePackage": "https://crates.io/api/v1/crates/fdeflate/0.3.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: find-msvc-tools",
+      "version": "0.1.14",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/cc-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/find-msvc-tools/0.1.14/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: flate2",
+      "version": "1.1.10",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/flate2-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/flate2/1.1.10/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: fnv",
+      "version": "1.0.7",
+      "license": "Apache-2.0 / MIT",
+      "repository": "https://github.com/servo/rust-fnv",
+      "sourcePackage": "https://crates.io/api/v1/crates/fnv/1.0.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: foldhash",
+      "version": "0.1.5",
+      "license": "Zlib",
+      "repository": "https://github.com/orlp/foldhash",
+      "sourcePackage": "https://crates.io/api/v1/crates/foldhash/0.1.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: foldhash",
+      "version": "0.2.0",
+      "license": "Zlib",
+      "repository": "https://github.com/orlp/foldhash",
+      "sourcePackage": "https://crates.io/api/v1/crates/foldhash/0.2.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: form_urlencoded",
+      "version": "1.2.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/rust-url",
+      "sourcePackage": "https://crates.io/api/v1/crates/form_urlencoded/1.2.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: fs2",
+      "version": "0.4.3",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/danburkert/fs2-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/fs2/0.4.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: futures-channel",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/futures-channel/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: futures-core",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/futures-core/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: futures-io",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/futures-io/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: futures-macro",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/futures-macro/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: futures-sink",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/futures-sink/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: futures-task",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/futures-task/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: futures-util",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/futures-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/futures-util/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: generic-array",
+      "version": "0.14.7",
+      "license": "MIT",
+      "repository": "https://github.com/fizyk20/generic-array.git",
+      "sourcePackage": "https://crates.io/api/v1/crates/generic-array/0.14.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: getrandom",
+      "version": "0.2.17",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-random/getrandom",
+      "sourcePackage": "https://crates.io/api/v1/crates/getrandom/0.2.17/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: getrandom",
+      "version": "0.3.4",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-random/getrandom",
+      "sourcePackage": "https://crates.io/api/v1/crates/getrandom/0.3.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: getrandom",
+      "version": "0.4.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-random/getrandom",
+      "sourcePackage": "https://crates.io/api/v1/crates/getrandom/0.4.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: glob",
+      "version": "0.3.4",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/glob",
+      "sourcePackage": "https://crates.io/api/v1/crates/glob/0.3.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: half",
+      "version": "2.7.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/VoidStarKat/half-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/half/2.7.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hashbrown",
+      "version": "0.12.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/hashbrown",
+      "sourcePackage": "https://crates.io/api/v1/crates/hashbrown/0.12.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hashbrown",
+      "version": "0.15.5",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/hashbrown",
+      "sourcePackage": "https://crates.io/api/v1/crates/hashbrown/0.15.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hashbrown",
+      "version": "0.17.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/hashbrown",
+      "sourcePackage": "https://crates.io/api/v1/crates/hashbrown/0.17.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hashlink",
+      "version": "0.10.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/kyren/hashlink",
+      "sourcePackage": "https://crates.io/api/v1/crates/hashlink/0.10.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: heck",
+      "version": "0.5.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/withoutboats/heck",
+      "sourcePackage": "https://crates.io/api/v1/crates/heck/0.5.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hex",
+      "version": "0.4.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/KokaKiwi/rust-hex",
+      "sourcePackage": "https://crates.io/api/v1/crates/hex/0.4.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: html5ever",
+      "version": "0.39.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/html5ever",
+      "sourcePackage": "https://crates.io/api/v1/crates/html5ever/0.39.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: http",
+      "version": "1.5.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/hyperium/http",
+      "sourcePackage": "https://crates.io/api/v1/crates/http/1.5.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: http-body",
+      "version": "1.1.0",
+      "license": "MIT",
+      "repository": "https://github.com/hyperium/http-body",
+      "sourcePackage": "https://crates.io/api/v1/crates/http-body/1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: http-body-util",
+      "version": "0.1.5",
+      "license": "MIT",
+      "repository": "https://github.com/hyperium/http-body",
+      "sourcePackage": "https://crates.io/api/v1/crates/http-body-util/0.1.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: httparse",
+      "version": "1.10.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/seanmonstar/httparse",
+      "sourcePackage": "https://crates.io/api/v1/crates/httparse/1.10.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hyper",
+      "version": "1.12.0",
+      "license": "MIT",
+      "repository": "https://github.com/hyperium/hyper",
+      "sourcePackage": "https://crates.io/api/v1/crates/hyper/1.12.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hyper-rustls",
+      "version": "0.27.10",
+      "license": "Apache-2.0 OR ISC OR MIT",
+      "repository": "https://github.com/rustls/hyper-rustls",
+      "sourcePackage": "https://crates.io/api/v1/crates/hyper-rustls/0.27.10/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: hyper-util",
+      "version": "0.1.21",
+      "license": "MIT",
+      "repository": "https://github.com/hyperium/hyper-util",
+      "sourcePackage": "https://crates.io/api/v1/crates/hyper-util/0.1.21/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ico",
+      "version": "0.5.0",
+      "license": "MIT",
+      "repository": "https://github.com/mdsteele/rust-ico",
+      "sourcePackage": "https://crates.io/api/v1/crates/ico/0.5.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: icu_collections",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/icu_collections/2.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: icu_locale_core",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/icu_locale_core/2.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: icu_normalizer",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/icu_normalizer/2.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: icu_normalizer_data",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/icu_normalizer_data/2.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: icu_properties",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/icu_properties/2.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: icu_properties_data",
+      "version": "2.3.0",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/icu_properties_data/2.3.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: icu_provider",
+      "version": "2.3.1",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/icu_provider/2.3.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ident_case",
+      "version": "1.0.1",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/TedDriggs/ident_case",
+      "sourcePackage": "https://crates.io/api/v1/crates/ident_case/1.0.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: idna",
+      "version": "1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/rust-url/",
+      "sourcePackage": "https://crates.io/api/v1/crates/idna/1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: idna_adapter",
+      "version": "1.2.2",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/hsivonen/idna_adapter",
+      "sourcePackage": "https://crates.io/api/v1/crates/idna_adapter/1.2.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: image",
+      "version": "0.25.10",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/image",
+      "sourcePackage": "https://crates.io/api/v1/crates/image/0.25.10/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: indexmap",
+      "version": "1.9.3",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/bluss/indexmap",
+      "sourcePackage": "https://crates.io/api/v1/crates/indexmap/1.9.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: indexmap",
+      "version": "2.14.2",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/indexmap-rs/indexmap",
+      "sourcePackage": "https://crates.io/api/v1/crates/indexmap/2.14.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: infer",
+      "version": "0.22.0",
+      "license": "MIT",
+      "repository": "https://github.com/bojand/infer",
+      "sourcePackage": "https://crates.io/api/v1/crates/infer/0.22.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ipnet",
+      "version": "2.12.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/krisprice/ipnet",
+      "sourcePackage": "https://crates.io/api/v1/crates/ipnet/2.12.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: itoa",
+      "version": "1.0.18",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/itoa",
+      "sourcePackage": "https://crates.io/api/v1/crates/itoa/1.0.18/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: jiff",
+      "version": "0.2.38",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/jiff",
+      "sourcePackage": "https://crates.io/api/v1/crates/jiff/0.2.38/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: jiff-core",
+      "version": "0.1.1",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/jiff",
+      "sourcePackage": "https://crates.io/api/v1/crates/jiff-core/0.1.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: jiff-tzdb",
+      "version": "0.1.9",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/jiff",
+      "sourcePackage": "https://crates.io/api/v1/crates/jiff-tzdb/0.1.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: jiff-tzdb-platform",
+      "version": "0.1.3",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/jiff",
+      "sourcePackage": "https://crates.io/api/v1/crates/jiff-tzdb-platform/0.1.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: json-patch",
+      "version": "4.2.0",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/idubrov/json-patch",
+      "sourcePackage": "https://crates.io/api/v1/crates/json-patch/4.2.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: jsonptr",
+      "version": "0.7.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/chanced/jsonptr",
+      "sourcePackage": "https://crates.io/api/v1/crates/jsonptr/0.7.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: keyboard-types",
+      "version": "0.8.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-windowing/keyboard-types",
+      "sourcePackage": "https://crates.io/api/v1/crates/keyboard-types/0.8.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: libc",
+      "version": "0.2.191",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/libc",
+      "sourcePackage": "https://crates.io/api/v1/crates/libc/0.2.191/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: libsqlite3-sys",
+      "version": "0.35.0",
+      "license": "MIT",
+      "repository": "https://github.com/rusqlite/rusqlite",
+      "sourcePackage": "https://crates.io/api/v1/crates/libsqlite3-sys/0.35.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: litemap",
+      "version": "0.8.3",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/litemap/0.8.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: lock_api",
+      "version": "0.4.14",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/Amanieu/parking_lot",
+      "sourcePackage": "https://crates.io/api/v1/crates/lock_api/0.4.14/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: log",
+      "version": "0.4.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/log",
+      "sourcePackage": "https://crates.io/api/v1/crates/log/0.4.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: lru-slab",
+      "version": "0.1.3",
+      "license": "MIT OR Apache-2.0 OR Zlib",
+      "repository": "https://github.com/Ralith/lru-slab",
+      "sourcePackage": "https://crates.io/api/v1/crates/lru-slab/0.1.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: markup5ever",
+      "version": "0.39.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/html5ever",
+      "sourcePackage": "https://crates.io/api/v1/crates/markup5ever/0.39.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: memchr",
+      "version": "2.8.3",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/memchr",
+      "sourcePackage": "https://crates.io/api/v1/crates/memchr/2.8.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: mime",
+      "version": "0.3.17",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/hyperium/mime",
+      "sourcePackage": "https://crates.io/api/v1/crates/mime/0.3.17/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: miniz_oxide",
+      "version": "0.8.9",
+      "license": "MIT OR Zlib OR Apache-2.0",
+      "repository": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
+      "sourcePackage": "https://crates.io/api/v1/crates/miniz_oxide/0.8.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: miniz_oxide",
+      "version": "0.9.1",
+      "license": "MIT OR Zlib OR Apache-2.0",
+      "repository": "https://github.com/Frommi/miniz_oxide/tree/master/miniz_oxide",
+      "sourcePackage": "https://crates.io/api/v1/crates/miniz_oxide/0.9.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: mio",
+      "version": "1.2.4",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/mio",
+      "sourcePackage": "https://crates.io/api/v1/crates/mio/1.2.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: moxcms",
+      "version": "0.8.1",
+      "license": "BSD-3-Clause OR Apache-2.0",
+      "repository": "https://github.com/awxkee/moxcms.git",
+      "sourcePackage": "https://crates.io/api/v1/crates/moxcms/0.8.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: muda",
+      "version": "0.20.0",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/muda",
+      "sourcePackage": "https://crates.io/api/v1/crates/muda/0.20.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: new_debug_unreachable",
+      "version": "1.0.6",
+      "license": "MIT",
+      "repository": "https://github.com/mbrubeck/rust-debug-unreachable",
+      "sourcePackage": "https://crates.io/api/v1/crates/new_debug_unreachable/1.0.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: num-conv",
+      "version": "0.2.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/jhpratt/num-conv",
+      "sourcePackage": "https://crates.io/api/v1/crates/num-conv/0.2.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: num-traits",
+      "version": "0.2.19",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-num/num-traits",
+      "sourcePackage": "https://crates.io/api/v1/crates/num-traits/0.2.19/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: once_cell",
+      "version": "1.21.4",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/matklad/once_cell",
+      "sourcePackage": "https://crates.io/api/v1/crates/once_cell/1.21.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: option-ext",
+      "version": "0.2.0",
+      "license": "MPL-2.0",
+      "repository": "https://github.com/soc/option-ext.git",
+      "sourcePackage": "https://crates.io/api/v1/crates/option-ext/0.2.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: parking_lot",
+      "version": "0.12.5",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/Amanieu/parking_lot",
+      "sourcePackage": "https://crates.io/api/v1/crates/parking_lot/0.12.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: parking_lot_core",
+      "version": "0.9.12",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/Amanieu/parking_lot",
+      "sourcePackage": "https://crates.io/api/v1/crates/parking_lot_core/0.9.12/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: percent-encoding",
+      "version": "2.3.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/rust-url/",
+      "sourcePackage": "https://crates.io/api/v1/crates/percent-encoding/2.3.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: phf",
+      "version": "0.13.1",
+      "license": "MIT",
+      "repository": "https://github.com/rust-phf/rust-phf",
+      "sourcePackage": "https://crates.io/api/v1/crates/phf/0.13.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: phf_codegen",
+      "version": "0.13.1",
+      "license": "MIT",
+      "repository": "https://github.com/rust-phf/rust-phf",
+      "sourcePackage": "https://crates.io/api/v1/crates/phf_codegen/0.13.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: phf_generator",
+      "version": "0.13.1",
+      "license": "MIT",
+      "repository": "https://github.com/rust-phf/rust-phf",
+      "sourcePackage": "https://crates.io/api/v1/crates/phf_generator/0.13.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: phf_macros",
+      "version": "0.13.1",
+      "license": "MIT",
+      "repository": "https://github.com/rust-phf/rust-phf",
+      "sourcePackage": "https://crates.io/api/v1/crates/phf_macros/0.13.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: phf_shared",
+      "version": "0.13.1",
+      "license": "MIT",
+      "repository": "https://github.com/rust-phf/rust-phf",
+      "sourcePackage": "https://crates.io/api/v1/crates/phf_shared/0.13.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: pin-project-lite",
+      "version": "0.2.17",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/taiki-e/pin-project-lite",
+      "sourcePackage": "https://crates.io/api/v1/crates/pin-project-lite/0.2.17/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: pkg-config",
+      "version": "0.3.34",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/pkg-config-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/pkg-config/0.3.34/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: plist",
+      "version": "1.10.1",
+      "license": "MIT",
+      "repository": "https://github.com/ebarnard/rust-plist/",
+      "sourcePackage": "https://crates.io/api/v1/crates/plist/1.10.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: png",
+      "version": "0.17.16",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/image-png",
+      "sourcePackage": "https://crates.io/api/v1/crates/png/0.17.16/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: png",
+      "version": "0.18.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/image-png",
+      "sourcePackage": "https://crates.io/api/v1/crates/png/0.18.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: potential_utf",
+      "version": "0.1.6",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/potential_utf/0.1.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: powerfmt",
+      "version": "0.2.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/jhpratt/powerfmt",
+      "sourcePackage": "https://crates.io/api/v1/crates/powerfmt/0.2.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: precomputed-hash",
+      "version": "0.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/emilio/precomputed-hash",
+      "sourcePackage": "https://crates.io/api/v1/crates/precomputed-hash/0.1.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: proc-macro2",
+      "version": "1.0.107",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/proc-macro2",
+      "sourcePackage": "https://crates.io/api/v1/crates/proc-macro2/1.0.107/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: pxfm",
+      "version": "0.1.30",
+      "license": "BSD-3-Clause OR Apache-2.0",
+      "repository": "https://github.com/awxkee/pxfm",
+      "sourcePackage": "https://crates.io/api/v1/crates/pxfm/0.1.30/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: quick-error",
+      "version": "2.0.1",
+      "license": "MIT/Apache-2.0",
+      "repository": "http://github.com/tailhook/quick-error",
+      "sourcePackage": "https://crates.io/api/v1/crates/quick-error/2.0.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: quick-xml",
+      "version": "0.42.0",
+      "license": "MIT",
+      "repository": "https://github.com/tafia/quick-xml",
+      "sourcePackage": "https://crates.io/api/v1/crates/quick-xml/0.42.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: quinn",
+      "version": "0.11.12",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/quinn-rs/quinn",
+      "sourcePackage": "https://crates.io/api/v1/crates/quinn/0.11.12/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: quinn-proto",
+      "version": "0.11.19",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/quinn-rs/quinn",
+      "sourcePackage": "https://crates.io/api/v1/crates/quinn-proto/0.11.19/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: quinn-udp",
+      "version": "0.5.16",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/quinn-rs/quinn",
+      "sourcePackage": "https://crates.io/api/v1/crates/quinn-udp/0.5.16/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: quote",
+      "version": "1.0.47",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/quote",
+      "sourcePackage": "https://crates.io/api/v1/crates/quote/1.0.47/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rand",
+      "version": "0.10.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-random/rand",
+      "sourcePackage": "https://crates.io/api/v1/crates/rand/0.10.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rand_core",
+      "version": "0.10.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-random/rand_core",
+      "sourcePackage": "https://crates.io/api/v1/crates/rand_core/0.10.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rand_pcg",
+      "version": "0.10.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-random/rngs",
+      "sourcePackage": "https://crates.io/api/v1/crates/rand_pcg/0.10.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: raw-window-handle",
+      "version": "0.6.2",
+      "license": "MIT OR Apache-2.0 OR Zlib",
+      "repository": "https://github.com/rust-windowing/raw-window-handle",
+      "sourcePackage": "https://crates.io/api/v1/crates/raw-window-handle/0.6.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ref-cast",
+      "version": "1.0.27",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/ref-cast",
+      "sourcePackage": "https://crates.io/api/v1/crates/ref-cast/1.0.27/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ref-cast-impl",
+      "version": "1.0.27",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/ref-cast",
+      "sourcePackage": "https://crates.io/api/v1/crates/ref-cast-impl/1.0.27/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: regex",
+      "version": "1.13.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/regex",
+      "sourcePackage": "https://crates.io/api/v1/crates/regex/1.13.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: regex-automata",
+      "version": "0.4.18",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/regex",
+      "sourcePackage": "https://crates.io/api/v1/crates/regex-automata/0.4.18/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: regex-syntax",
+      "version": "0.8.11",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/regex",
+      "sourcePackage": "https://crates.io/api/v1/crates/regex-syntax/0.8.11/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: reqwest",
+      "version": "0.12.28",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/seanmonstar/reqwest",
+      "sourcePackage": "https://crates.io/api/v1/crates/reqwest/0.12.28/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rfd",
+      "version": "0.15.4",
+      "license": "MIT",
+      "repository": "https://github.com/PolyMeilex/rfd",
+      "sourcePackage": "https://crates.io/api/v1/crates/rfd/0.15.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ring",
+      "version": "0.17.14",
+      "license": "Apache-2.0 AND ISC",
+      "repository": "https://github.com/briansmith/ring",
+      "sourcePackage": "https://crates.io/api/v1/crates/ring/0.17.14/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: roxmltree",
+      "version": "0.21.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RazrFalcon/roxmltree",
+      "sourcePackage": "https://crates.io/api/v1/crates/roxmltree/0.21.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rusqlite",
+      "version": "0.37.0",
+      "license": "MIT",
+      "repository": "https://github.com/rusqlite/rusqlite",
+      "sourcePackage": "https://crates.io/api/v1/crates/rusqlite/0.37.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rustc_version",
+      "version": "0.4.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/djc/rustc-version-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/rustc_version/0.4.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rustc-hash",
+      "version": "2.1.3",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/rust-lang/rustc-hash",
+      "sourcePackage": "https://crates.io/api/v1/crates/rustc-hash/2.1.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rustls",
+      "version": "0.23.46",
+      "license": "Apache-2.0 OR ISC OR MIT",
+      "repository": "https://github.com/rustls/rustls",
+      "sourcePackage": "https://crates.io/api/v1/crates/rustls/0.23.46/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rustls-pki-types",
+      "version": "1.15.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rustls/pki-types",
+      "sourcePackage": "https://crates.io/api/v1/crates/rustls-pki-types/1.15.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rustls-webpki",
+      "version": "0.103.15",
+      "license": "ISC",
+      "repository": "https://github.com/rustls/webpki",
+      "sourcePackage": "https://crates.io/api/v1/crates/rustls-webpki/0.103.15/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: ryu",
+      "version": "1.0.23",
+      "license": "Apache-2.0 OR BSL-1.0",
+      "repository": "https://github.com/dtolnay/ryu",
+      "sourcePackage": "https://crates.io/api/v1/crates/ryu/1.0.23/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: same-file",
+      "version": "1.0.6",
+      "license": "Unlicense/MIT",
+      "repository": "https://github.com/BurntSushi/same-file",
+      "sourcePackage": "https://crates.io/api/v1/crates/same-file/1.0.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: schemars",
+      "version": "0.8.22",
+      "license": "MIT",
+      "repository": "https://github.com/GREsau/schemars",
+      "sourcePackage": "https://crates.io/api/v1/crates/schemars/0.8.22/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: schemars",
+      "version": "0.9.0",
+      "license": "MIT",
+      "repository": "https://github.com/GREsau/schemars",
+      "sourcePackage": "https://crates.io/api/v1/crates/schemars/0.9.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: schemars",
+      "version": "1.2.3",
+      "license": "MIT",
+      "repository": "https://github.com/GREsau/schemars",
+      "sourcePackage": "https://crates.io/api/v1/crates/schemars/1.2.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: schemars_derive",
+      "version": "0.8.22",
+      "license": "MIT",
+      "repository": "https://github.com/GREsau/schemars",
+      "sourcePackage": "https://crates.io/api/v1/crates/schemars_derive/0.8.22/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: scopeguard",
+      "version": "1.2.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/bluss/scopeguard",
+      "sourcePackage": "https://crates.io/api/v1/crates/scopeguard/1.2.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: selectors",
+      "version": "0.38.0",
+      "license": "MPL-2.0",
+      "repository": "https://github.com/servo/stylo",
+      "sourcePackage": "https://crates.io/api/v1/crates/selectors/0.38.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: semver",
+      "version": "1.0.28",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/semver",
+      "sourcePackage": "https://crates.io/api/v1/crates/semver/1.0.28/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/serde-rs/serde",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde/1.0.229/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_core",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/serde-rs/serde",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_core/1.0.229/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_derive",
+      "version": "1.0.229",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/serde-rs/serde",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_derive/1.0.229/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_derive_internals",
+      "version": "0.29.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/serde-rs/serde",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_derive_internals/0.29.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_json",
+      "version": "1.0.154",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/serde-rs/json",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_json/1.0.154/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_repr",
+      "version": "0.1.21",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/serde-repr",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_repr/0.1.21/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_spanned",
+      "version": "1.1.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/toml-rs/toml",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_spanned/1.1.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_urlencoded",
+      "version": "0.7.1",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/nox/serde_urlencoded",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_urlencoded/0.7.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_with",
+      "version": "3.24.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/jonasbb/serde_with/",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_with/3.24.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde_with_macros",
+      "version": "3.24.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/jonasbb/serde_with/",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde_with_macros/3.24.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serde-untagged",
+      "version": "0.1.9",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/serde-untagged",
+      "sourcePackage": "https://crates.io/api/v1/crates/serde-untagged/0.1.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serialize-to-javascript",
+      "version": "0.1.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/chippers/serialize-to-javascript",
+      "sourcePackage": "https://crates.io/api/v1/crates/serialize-to-javascript/0.1.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: serialize-to-javascript-impl",
+      "version": "0.1.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/chippers/serialize-to-javascript",
+      "sourcePackage": "https://crates.io/api/v1/crates/serialize-to-javascript-impl/0.1.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: servo_arc",
+      "version": "0.4.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/stylo",
+      "sourcePackage": "https://crates.io/api/v1/crates/servo_arc/0.4.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: sha1",
+      "version": "0.10.7",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/hashes",
+      "sourcePackage": "https://crates.io/api/v1/crates/sha1/0.10.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: sha2",
+      "version": "0.10.9",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/RustCrypto/hashes",
+      "sourcePackage": "https://crates.io/api/v1/crates/sha2/0.10.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: shlex",
+      "version": "2.0.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/comex/rust-shlex",
+      "sourcePackage": "https://crates.io/api/v1/crates/shlex/2.0.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: simd-adler32",
+      "version": "0.3.10",
+      "license": "MIT",
+      "repository": "https://github.com/mcountryman/simd-adler32",
+      "sourcePackage": "https://crates.io/api/v1/crates/simd-adler32/0.3.10/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: siphasher",
+      "version": "1.0.4",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/jedisct1/rust-siphash",
+      "sourcePackage": "https://crates.io/api/v1/crates/siphasher/1.0.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: slab",
+      "version": "0.4.12",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/slab",
+      "sourcePackage": "https://crates.io/api/v1/crates/slab/0.4.12/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: smallvec",
+      "version": "1.16.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/rust-smallvec",
+      "sourcePackage": "https://crates.io/api/v1/crates/smallvec/1.16.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: socket2",
+      "version": "0.6.5",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang/socket2",
+      "sourcePackage": "https://crates.io/api/v1/crates/socket2/0.6.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: softbuffer",
+      "version": "0.4.8",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-windowing/softbuffer",
+      "sourcePackage": "https://crates.io/api/v1/crates/softbuffer/0.4.8/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: stable_deref_trait",
+      "version": "1.2.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/storyyeller/stable_deref_trait",
+      "sourcePackage": "https://crates.io/api/v1/crates/stable_deref_trait/1.2.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: static_vcruntime",
+      "version": "3.0.0",
+      "license": "MIT OR Apache-2.0 OR Zlib",
+      "repository": "https://github.com/ChrisDenton/static_vcruntime",
+      "sourcePackage": "https://crates.io/api/v1/crates/static_vcruntime/3.0.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: string_cache",
+      "version": "0.9.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/string-cache",
+      "sourcePackage": "https://crates.io/api/v1/crates/string_cache/0.9.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: string_cache_codegen",
+      "version": "0.6.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/string-cache",
+      "sourcePackage": "https://crates.io/api/v1/crates/string_cache_codegen/0.6.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: strsim",
+      "version": "0.11.1",
+      "license": "MIT",
+      "repository": "https://github.com/rapidfuzz/strsim-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/strsim/0.11.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: subtle",
+      "version": "2.6.1",
+      "license": "BSD-3-Clause",
+      "repository": "https://github.com/dalek-cryptography/subtle",
+      "sourcePackage": "https://crates.io/api/v1/crates/subtle/2.6.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: syn",
+      "version": "2.0.119",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/syn",
+      "sourcePackage": "https://crates.io/api/v1/crates/syn/2.0.119/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: syn",
+      "version": "3.0.9",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/syn",
+      "sourcePackage": "https://crates.io/api/v1/crates/syn/3.0.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: sync_wrapper",
+      "version": "1.0.2",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/Actyx/sync_wrapper",
+      "sourcePackage": "https://crates.io/api/v1/crates/sync_wrapper/1.0.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: synstructure",
+      "version": "0.14.0",
+      "license": "MIT",
+      "repository": "https://github.com/mystor/synstructure",
+      "sourcePackage": "https://crates.io/api/v1/crates/synstructure/0.14.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tao",
+      "version": "0.37.1",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/tauri-apps/tao",
+      "sourcePackage": "https://crates.io/api/v1/crates/tao/0.37.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri",
+      "version": "2.12.4",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri/2.12.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-build",
+      "version": "2.7.3",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-build/2.7.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-codegen",
+      "version": "2.7.3",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-codegen/2.7.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-macros",
+      "version": "2.7.3",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-macros/2.7.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-plugin-single-instance",
+      "version": "2.5.4",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/plugins-workspace",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-plugin-single-instance/2.5.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-runtime",
+      "version": "2.12.2",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-runtime/2.12.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-runtime-wry",
+      "version": "2.12.2",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-runtime-wry/2.12.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-utils",
+      "version": "2.10.2",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-utils/2.10.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-winres",
+      "version": "0.3.6",
+      "license": "MIT",
+      "repository": "https://github.com/tauri-apps/winres",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-winres/0.3.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tendril",
+      "version": "0.5.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/html5ever",
+      "sourcePackage": "https://crates.io/api/v1/crates/tendril/0.5.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: thiserror",
+      "version": "2.0.21",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/thiserror",
+      "sourcePackage": "https://crates.io/api/v1/crates/thiserror/2.0.21/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: thiserror-impl",
+      "version": "2.0.21",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/thiserror",
+      "sourcePackage": "https://crates.io/api/v1/crates/thiserror-impl/2.0.21/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tiff",
+      "version": "0.11.3",
+      "license": "MIT",
+      "repository": "https://github.com/image-rs/image-tiff",
+      "sourcePackage": "https://crates.io/api/v1/crates/tiff/0.11.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: time",
+      "version": "0.3.55",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/time-rs/time",
+      "sourcePackage": "https://crates.io/api/v1/crates/time/0.3.55/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: time-core",
+      "version": "0.1.9",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/time-rs/time",
+      "sourcePackage": "https://crates.io/api/v1/crates/time-core/0.1.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: time-macros",
+      "version": "0.2.32",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/time-rs/time",
+      "sourcePackage": "https://crates.io/api/v1/crates/time-macros/0.2.32/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tinystr",
+      "version": "0.8.4",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/tinystr/0.8.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tinyvec",
+      "version": "1.13.3",
+      "license": "Zlib OR Apache-2.0 OR MIT",
+      "repository": "https://github.com/Lokathor/tinyvec",
+      "sourcePackage": "https://crates.io/api/v1/crates/tinyvec/1.13.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tokio",
+      "version": "1.53.3",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/tokio",
+      "sourcePackage": "https://crates.io/api/v1/crates/tokio/1.53.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tokio-macros",
+      "version": "2.7.2",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/tokio",
+      "sourcePackage": "https://crates.io/api/v1/crates/tokio-macros/2.7.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tokio-rustls",
+      "version": "0.26.6",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rustls/tokio-rustls",
+      "sourcePackage": "https://crates.io/api/v1/crates/tokio-rustls/0.26.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tokio-util",
+      "version": "0.7.20",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/tokio",
+      "sourcePackage": "https://crates.io/api/v1/crates/tokio-util/0.7.20/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: toml",
+      "version": "1.1.8+spec-1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/toml-rs/toml",
+      "sourcePackage": "https://crates.io/api/v1/crates/toml/1.1.8+spec-1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: toml_datetime",
+      "version": "1.1.2+spec-1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/toml-rs/toml",
+      "sourcePackage": "https://crates.io/api/v1/crates/toml_datetime/1.1.2+spec-1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: toml_parser",
+      "version": "1.1.5+spec-1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/toml-rs/toml",
+      "sourcePackage": "https://crates.io/api/v1/crates/toml_parser/1.1.5+spec-1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: toml_writer",
+      "version": "1.1.3+spec-1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/toml-rs/toml",
+      "sourcePackage": "https://crates.io/api/v1/crates/toml_writer/1.1.3+spec-1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tower",
+      "version": "0.5.3",
+      "license": "MIT",
+      "repository": "https://github.com/tower-rs/tower",
+      "sourcePackage": "https://crates.io/api/v1/crates/tower/0.5.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tower-http",
+      "version": "0.6.11",
+      "license": "MIT",
+      "repository": "https://github.com/tower-rs/tower-http",
+      "sourcePackage": "https://crates.io/api/v1/crates/tower-http/0.6.11/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tower-layer",
+      "version": "0.3.3",
+      "license": "MIT",
+      "repository": "https://github.com/tower-rs/tower",
+      "sourcePackage": "https://crates.io/api/v1/crates/tower-layer/0.3.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tower-service",
+      "version": "0.3.3",
+      "license": "MIT",
+      "repository": "https://github.com/tower-rs/tower",
+      "sourcePackage": "https://crates.io/api/v1/crates/tower-service/0.3.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tracing",
+      "version": "0.1.44",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/tracing",
+      "sourcePackage": "https://crates.io/api/v1/crates/tracing/0.1.44/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tracing-attributes",
+      "version": "0.1.31",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/tracing",
+      "sourcePackage": "https://crates.io/api/v1/crates/tracing-attributes/0.1.31/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tracing-core",
+      "version": "0.1.36",
+      "license": "MIT",
+      "repository": "https://github.com/tokio-rs/tracing",
+      "sourcePackage": "https://crates.io/api/v1/crates/tracing-core/0.1.36/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tray-icon",
+      "version": "0.25.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/tauri-apps/tray-icon",
+      "sourcePackage": "https://crates.io/api/v1/crates/tray-icon/0.25.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: try-lock",
+      "version": "0.2.5",
+      "license": "MIT",
+      "repository": "https://github.com/seanmonstar/try-lock",
+      "sourcePackage": "https://crates.io/api/v1/crates/try-lock/0.2.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: typeid",
+      "version": "1.0.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/typeid",
+      "sourcePackage": "https://crates.io/api/v1/crates/typeid/1.0.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: typenum",
+      "version": "1.20.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/paholg/typenum",
+      "sourcePackage": "https://crates.io/api/v1/crates/typenum/1.20.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: unicode-ident",
+      "version": "1.0.27",
+      "license": "(MIT OR Apache-2.0) AND Unicode-3.0",
+      "repository": "https://github.com/dtolnay/unicode-ident",
+      "sourcePackage": "https://crates.io/api/v1/crates/unicode-ident/1.0.27/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: unicode-segmentation",
+      "version": "1.13.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/unicode-rs/unicode-segmentation",
+      "sourcePackage": "https://crates.io/api/v1/crates/unicode-segmentation/1.13.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: untrusted",
+      "version": "0.9.0",
+      "license": "ISC",
+      "repository": "https://github.com/briansmith/untrusted",
+      "sourcePackage": "https://crates.io/api/v1/crates/untrusted/0.9.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: url",
+      "version": "2.5.8",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/rust-url",
+      "sourcePackage": "https://crates.io/api/v1/crates/url/2.5.8/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: urlpattern",
+      "version": "0.6.0",
+      "license": "MIT",
+      "repository": "https://github.com/denoland/rust-urlpattern",
+      "sourcePackage": "https://crates.io/api/v1/crates/urlpattern/0.6.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: utf8_iter",
+      "version": "1.0.4",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/hsivonen/utf8_iter",
+      "sourcePackage": "https://crates.io/api/v1/crates/utf8_iter/1.0.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: uuid",
+      "version": "1.28.0",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/uuid-rs/uuid",
+      "sourcePackage": "https://crates.io/api/v1/crates/uuid/1.28.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: vcpkg",
+      "version": "0.2.15",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/mcgoo/vcpkg-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/vcpkg/0.2.15/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: version_check",
+      "version": "0.9.5",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/SergioBenitez/version_check",
+      "sourcePackage": "https://crates.io/api/v1/crates/version_check/0.9.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: vswhom",
+      "version": "0.1.0",
+      "license": "MIT",
+      "repository": "https://github.com/nabijaczleweli/vswhom.rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/vswhom/0.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: vswhom-sys",
+      "version": "0.1.3",
+      "license": "MIT",
+      "repository": "https://github.com/nabijaczleweli/vswhom-sys.rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/vswhom-sys/0.1.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: walkdir",
+      "version": "2.5.0",
+      "license": "Unlicense/MIT",
+      "repository": "https://github.com/BurntSushi/walkdir",
+      "sourcePackage": "https://crates.io/api/v1/crates/walkdir/2.5.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: want",
+      "version": "0.3.2",
+      "license": "MIT",
+      "repository": "https://github.com/seanmonstar/want",
+      "sourcePackage": "https://crates.io/api/v1/crates/want/0.3.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: web_atoms",
+      "version": "0.2.6",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/servo/html5ever",
+      "sourcePackage": "https://crates.io/api/v1/crates/web_atoms/0.2.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: web-time",
+      "version": "1.1.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/daxpedda/web-time",
+      "sourcePackage": "https://crates.io/api/v1/crates/web-time/1.1.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: webpki-roots",
+      "version": "1.0.9",
+      "license": "CDLA-Permissive-2.0",
+      "repository": "https://github.com/rustls/webpki-roots",
+      "sourcePackage": "https://crates.io/api/v1/crates/webpki-roots/1.0.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: webview2-com",
+      "version": "0.39.1",
+      "license": "MIT",
+      "repository": "https://github.com/wravery/webview2-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/webview2-com/0.39.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: webview2-com-macros",
+      "version": "0.8.1",
+      "license": "MIT",
+      "repository": "https://github.com/wravery/webview2-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/webview2-com-macros/0.8.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: webview2-com-sys",
+      "version": "0.39.1",
+      "license": "MIT",
+      "repository": "https://github.com/wravery/webview2-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/webview2-com-sys/0.39.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: weezl",
+      "version": "0.1.12",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/image-rs/weezl",
+      "sourcePackage": "https://crates.io/api/v1/crates/weezl/0.1.12/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: winapi",
+      "version": "0.3.9",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/retep998/winapi-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/winapi/0.3.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: winapi-util",
+      "version": "0.1.11",
+      "license": "Unlicense OR MIT",
+      "repository": "https://github.com/BurntSushi/winapi-util",
+      "sourcePackage": "https://crates.io/api/v1/crates/winapi-util/0.1.11/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: window-vibrancy",
+      "version": "0.8.1",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri-plugin-vibrancy",
+      "sourcePackage": "https://crates.io/api/v1/crates/window-vibrancy/0.8.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows",
+      "version": "0.62.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows/0.62.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows_x86_64_msvc",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows_x86_64_msvc/0.52.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-collections",
+      "version": "0.3.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-collections/0.3.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-core",
+      "version": "0.62.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-core/0.62.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-future",
+      "version": "0.3.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-future/0.3.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-implement",
+      "version": "0.60.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-implement/0.60.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-interface",
+      "version": "0.59.3",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-interface/0.59.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-link",
+      "version": "0.2.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-link/0.2.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-numerics",
+      "version": "0.3.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-numerics/0.3.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-result",
+      "version": "0.4.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-result/0.4.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-strings",
+      "version": "0.5.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-strings/0.5.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-sys",
+      "version": "0.59.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-sys/0.59.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-sys",
+      "version": "0.61.2",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-sys/0.61.2/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-targets",
+      "version": "0.52.6",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-targets/0.52.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-threading",
+      "version": "0.2.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-threading/0.2.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: windows-version",
+      "version": "0.1.7",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-version/0.1.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: winnow",
+      "version": "1.0.4",
+      "license": "MIT",
+      "repository": "https://github.com/winnow-rs/winnow",
+      "sourcePackage": "https://crates.io/api/v1/crates/winnow/1.0.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: winreg",
+      "version": "0.56.0",
+      "license": "MIT",
+      "repository": "https://github.com/gentoo90/winreg-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/winreg/0.56.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: writeable",
+      "version": "0.6.4",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/writeable/0.6.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: wry",
+      "version": "0.57.0",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/wry",
+      "sourcePackage": "https://crates.io/api/v1/crates/wry/0.57.0/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: yoke",
+      "version": "0.8.3",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/yoke/0.8.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: yoke-derive",
+      "version": "0.8.4",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/yoke-derive/0.8.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zerocopy",
+      "version": "0.8.63",
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "repository": "https://github.com/google/zerocopy",
+      "sourcePackage": "https://crates.io/api/v1/crates/zerocopy/0.8.63/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zerocopy-derive",
+      "version": "0.8.63",
+      "license": "BSD-2-Clause OR Apache-2.0 OR MIT",
+      "repository": "https://github.com/google/zerocopy",
+      "sourcePackage": "https://crates.io/api/v1/crates/zerocopy-derive/0.8.63/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zerofrom",
+      "version": "0.1.8",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/zerofrom/0.1.8/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zerofrom-derive",
+      "version": "0.1.8",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/zerofrom-derive/0.1.8/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zeroize",
+      "version": "1.9.1",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/RustCrypto/utils",
+      "sourcePackage": "https://crates.io/api/v1/crates/zeroize/1.9.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zerotrie",
+      "version": "0.2.5",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/zerotrie/0.2.5/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zerovec",
+      "version": "0.11.8",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/zerovec/0.11.8/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zerovec-derive",
+      "version": "0.11.6",
+      "license": "Unicode-3.0",
+      "repository": "https://github.com/unicode-org/icu4x",
+      "sourcePackage": "https://crates.io/api/v1/crates/zerovec-derive/0.11.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zip",
+      "version": "2.6.1",
+      "license": "MIT",
+      "repository": "https://github.com/zip-rs/zip2.git",
+      "sourcePackage": "https://crates.io/api/v1/crates/zip/2.6.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zlib-rs",
+      "version": "0.6.8",
+      "license": "Zlib",
+      "repository": "https://github.com/trifectatechfoundation/zlib-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/zlib-rs/0.6.8/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zmij",
+      "version": "1.0.23",
+      "license": "MIT",
+      "repository": "https://github.com/dtolnay/zmij",
+      "sourcePackage": "https://crates.io/api/v1/crates/zmij/1.0.23/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zopfli",
+      "version": "0.8.4",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/zopfli-rs/zopfli",
+      "sourcePackage": "https://crates.io/api/v1/crates/zopfli/0.8.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zune-core",
+      "version": "0.5.3",
+      "license": "MIT OR Apache-2.0 OR Zlib",
+      "repository": "https://github.com/etemesi254/zune-image",
+      "sourcePackage": "https://crates.io/api/v1/crates/zune-core/0.5.3/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zune-jpeg",
+      "version": "0.5.15",
+      "license": "MIT OR Apache-2.0 OR Zlib",
+      "repository": "https://github.com/etemesi254/zune-image/tree/dev/crates/zune-jpeg",
+      "sourcePackage": "https://crates.io/api/v1/crates/zune-jpeg/0.5.15/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: @tanstack/query-core",
+      "version": "5.104.3",
+      "license": "MIT",
+      "repository": "https://tanstack.com/query",
+      "sourcePackage": "https://tanstack.com/query",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: @tanstack/react-query",
+      "version": "5.104.3",
+      "license": "MIT",
+      "repository": "https://tanstack.com/query",
+      "sourcePackage": "https://tanstack.com/query",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: @tauri-apps/api",
+      "version": "2.12.4",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri#readme",
+      "sourcePackage": "https://github.com/tauri-apps/tauri#readme",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: @types/react",
+      "version": "19.3.0",
+      "license": "MIT",
+      "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react",
+      "sourcePackage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: csstype",
+      "version": "3.2.3",
+      "license": "MIT",
+      "repository": "https://github.com/frenic/csstype#readme",
+      "sourcePackage": "https://github.com/frenic/csstype#readme",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: lucide-react",
+      "version": "0.468.0",
+      "license": "ISC",
+      "repository": "https://lucide.dev",
+      "sourcePackage": "https://lucide.dev",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: react",
+      "version": "19.3.1",
+      "license": "MIT",
+      "repository": "https://react.dev/",
+      "sourcePackage": "https://react.dev/",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: react-dom",
+      "version": "19.3.1",
+      "license": "MIT",
+      "repository": "https://react.dev/",
+      "sourcePackage": "https://react.dev/",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: scheduler",
+      "version": "0.28.0",
+      "license": "MIT",
+      "repository": "https://react.dev/",
+      "sourcePackage": "https://react.dev/",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: zustand",
+      "version": "5.0.15",
+      "license": "MIT",
+      "repository": "https://github.com/pmndrs/zustand",
+      "sourcePackage": "https://github.com/pmndrs/zustand",
+      "fullTextLocated": true
+    }
+  ],
+  "missingRootLicenseTexts": []
+}

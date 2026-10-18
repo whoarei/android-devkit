@@ -1,0 +1,20 @@
+// Generated from Rust DTOs. Run pnpm bindings to update.
+export type AppError = { code: string, message: string, detail: string, };
+export type Settings = { sdkRoot: string, avdRoots: Array<string>, javaPath: string, proxy: string, bootTimeoutSecs: number, trayEnabled: boolean, };
+export type Environment = { path: string, source: string, adb: string, emulator: string, commandTools: string, java: string, writable: boolean, warnings: Array<string>, };
+export type SdkPackage = { id: string, name: string, version: string, category: string, installed: boolean, installedVersion: string, api: string, abi: string, tag: string, size: number, url: string, checksum: string, checksumType: string, licenseId: string, license: string, dependencies: Array<string>, dependencyMinVersions: { [key in string]?: string }, obsolete: boolean, };
+export type Avd = { id: string, name: string, displayName: string, iniPath: string, dataPath: string, image: string, api: string, abi: string, memory: string, disk: string, gpu: string, fingerprint: string, status: string, error: string, serial: string, owned: boolean, };
+export type Device = { serial: string, transportId: string, serverEpoch: number, model: string, state: string, connection: string, avdName: string, api: string, abi: string, };
+export type Target = { serial: string, transportId: string, serverEpoch: number, };
+export type Operation = { kind: string, args: { [key in string]?: string }, target: Target | null, };
+export type License = { id: string, text: string, hash: string, };
+export type Plan = { id: string, hash: string, operation: Operation, title: string, effects: Array<string>, warnings: Array<string>, licenses: Array<License>, createdAt: number, settingsHash: string, confirmationToken: string, };
+export type Task = { id: string, requestId: string, title: string, operation: Operation, state: string, phase: string, progress: number | null, message: string, log: Array<string>, createdAt: number, updatedAt: number, cancelRequested: boolean, cancellable: boolean, artifact: string, licensePrompt: string, confirmedLicenses: Array<string>, };
+export type ApkInfo = { id: string, path: string, fileName: string, size: number, sha256: string, package: string, version: string, minSdk: string, abis: Array<string>, warning: string, };
+export type Workspace = { settings: Settings, environment: Environment, packages: Array<SdkPackage>, avds: Array<Avd>, devices: Array<Device>, tasks: Array<Task>, server: string, serverEpoch: number, freeBytes: number, };
+export type LogFilter = { level: string, tag: string, keyword: string, package: string, pids: Array<number>, after: number, before: number, };
+export type LogEntry = { seq: number, timestamp: string, pid: number, tid: number, level: string, tag: string, text: string, raw: string, };
+export type LogSnapshot = { rows: Array<LogEntry>, latest: number, oldest: number, dropped: number, buffered: number, active: boolean, status: string, processStatus: string, pids: Array<number>, };
+export type Artifact = { id: string, kind: string, title: string, taskId: string, bytes: number, sha256: string, createdAt: number, acknowledged: boolean, };
+export type ExportPreview = { artifact: Artifact, text: string, offset: number, nextOffset: number | null, rows: number, redacted: boolean, truncated: boolean, warning: string, };
+export type CloseStatus = { tasks: Array<Task>, unsaved: Array<Artifact>, draining: boolean, trayEnabled: boolean, };

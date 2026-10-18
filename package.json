@@ -1,0 +1,43 @@
+{
+  "name": "android-devkit",
+  "private": true,
+  "version": "0.4.0",
+  "type": "module",
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "notices": "node scripts/collect-notices.cjs",
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "tauri": "tauri",
+    "test": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:ui": "node scripts/check-ui.cjs",
+    "bindings": "cargo test --manifest-path src-tauri/Cargo.toml --lib export_typescript_contract -- --ignored",
+    "verify:m3": "powershell -NoProfile -File scripts/build-test-apk.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib m3_real_sdk_lifecycle -- --ignored --nocapture",
+    "verify:m2": "cargo test --manifest-path src-tauri/Cargo.toml --lib m2_blank_environment -- --ignored --nocapture",
+    "verify:wireless": "cargo test --manifest-path src-tauri/Cargo.toml --lib wireless_failure_and_secret_handling -- --ignored --nocapture",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check": "pnpm build && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
+    "verify:m4": "powershell -NoProfile -File scripts/build-test-apk.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib m4_real_sdk_observability -- --ignored --nocapture",
+    "verify:perf": "cargo test --manifest-path src-tauri/Cargo.toml --release --lib log_throughput -- --ignored --nocapture"
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.0",
+    "@tauri-apps/api": "^2.10.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zustand": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.3",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.0",
+    "playwright": "^1.64.1",
+    "prettier": "^3.9.10",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.0"
+  }
+}
