@@ -9,6 +9,7 @@ fn main() {
         "environment_scan",
         "settings_save",
         "catalog_refresh",
+        "sdk_sites_status",
         "plan_create",
         "task_submit",
         "task_cancel",

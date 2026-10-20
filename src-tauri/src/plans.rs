@@ -34,7 +34,14 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
     let settings = app.store.settings();
     let avds = android::avds(&settings);
     let local = android::installed(&settings);
-    let catalog = app.catalog.lock().unwrap().clone();
+    let catalog: Vec<_> = app
+        .catalog
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|package| crate::repository::package_enabled(package, &settings))
+        .cloned()
+        .collect();
     let mut effects = Vec::new();
     let mut warnings = Vec::new();
     let mut licenses = Vec::new();
@@ -160,8 +167,11 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                 ));
             }
             validate_avd_values(&op)?;
-            for key in ["memory", "storage", "gpu"] {
+            for key in ["memory", "gpu"] {
                 op.arg(key)?;
+            }
+            if op.optional("storageMiB").is_empty() && op.optional("storage").is_empty() {
+                return Err(AppError::new("INVALID_STORAGE", "请填写数据分区目标容量"));
             }
             if op.optional("displayName").contains(['\n', '\r'])
                 || op.optional("displayName").len() > 200
@@ -188,12 +198,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                 ));
             }
             effects.push(format!("新建 {}；镜像 {image}", name));
-            effects.push(format!(
-                "内存 {} MiB · 数据 {} GiB · {}",
-                op.optional("memory"),
-                op.optional("storage"),
-                op.optional("gpu")
-            ));
+            effects.extend(crate::avd_settings::summary(&op)?);
             // An installed shared image stays at its current revision during AVD creation.
             let installed_image = local.iter().any(|p| p.id == image);
             let available: Vec<_> = catalog
@@ -256,9 +261,23 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                     }
                     .into(),
                 );
+                if op.kind == "avd_wipe" && a.config.get("devkit.sdcard.managed").is_some_and(|value| value == "no") {
+                    warnings.push("外部扩展存储镜像保留，不会被格式化或删除。".into());
+                }
             }
             if op.kind == "avd_edit" {
+                if op.arg("fingerprint")? != a.fingerprint {
+                    return Err(AppError::new("EXTERNAL_CHANGE", "配置在编辑期间已变化，请重新打开编辑面板"));
+                }
                 validate_avd_values(&op)?;
+                if !op.optional("storageMiB").is_empty() {
+                    warnings.push("只修改数据分区目标容量，不自动清除用户数据；已有分区是否扩容取决于模拟器。需要重建分区时请另行使用清除数据。".into());
+                }
+                if op.optional("sdCardMode") == "size" {
+                    warnings.push("将创建并挂载新的扩展存储镜像，原扩展存储镜像保留，不复制其中数据。".into());
+                }
+                effects.extend(crate::avd_settings::resolved_changes(&op, &a.config)?.into_iter()
+                    .filter(|(key,value)| a.config.get(key) != Some(value)).map(|(key,value)| format!("{key} = {value}")));
             }
             match op.kind.as_str() {
                 "avd_start" => "启动模拟器",

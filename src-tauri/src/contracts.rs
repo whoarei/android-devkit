@@ -4,6 +4,8 @@ fn source() -> String {
     let declarations = [
         AppError::decl(),
         Settings::decl(),
+        SdkSite::decl(),
+        SdkSiteStatus::decl(),
         Environment::decl(),
         SdkPackage::decl(),
         Avd::decl(),

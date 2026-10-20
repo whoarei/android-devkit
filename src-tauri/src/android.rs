@@ -132,6 +132,15 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
     }
     let doc = roxmltree::Document::parse(xml)
         .map_err(|e| AppError::new("CATALOG_FORMAT", e.to_string()))?;
+    if !matches!(
+        doc.root_element().tag_name().name(),
+        "repository" | "sdk-repository" | "sdk-sys-img" | "sdk-addon"
+    ) {
+        return Err(AppError::new(
+            "CATALOG_FORMAT",
+            "需要 Android repository / remotePackage 格式的 XML 仓库",
+        ));
+    }
     let licenses: BTreeMap<String, String> = doc
         .descendants()
         .filter(|n| n.has_tag_name("license"))
@@ -150,7 +159,7 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
             continue;
         }
         let revision = node.children().find(|n| n.has_tag_name("revision"));
-        let version = revision
+        let mut version = revision
             .map(|r| {
                 ["major", "minor", "micro"]
                     .into_iter()
@@ -166,6 +175,12 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
                     .join(".")
             })
             .unwrap_or_default();
+        if let Some(preview) = revision
+            .map(|node| child_text(node, "preview"))
+            .filter(|value| !value.is_empty() && value != "0")
+        {
+            version.push_str(&format!("-rc{preview}"));
+        }
         let archive = node.descendants().find(|n| {
             n.has_tag_name("archive") && {
                 let host = child_text(*n, "host-os");
@@ -206,6 +221,8 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
             "image"
         } else if id.starts_with("platforms;") {
             "platform"
+        } else if id.starts_with("sources;") {
+            "source"
         } else {
             "tool"
         };
@@ -214,8 +231,23 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
             .find(|n| n.has_tag_name("channelRef"))
             .and_then(|n| n.attribute("ref"))
             .unwrap_or("channel-0");
-        if !installed && channel != "channel-0" {
-            continue;
+        let mut channel = channel
+            .strip_prefix("channel-")
+            .and_then(|value| value.parse::<u8>().ok())
+            .unwrap_or(0);
+        // Some official Canary snapshots use channel-0; API codenames and
+        // preview revisions still identify them as preview components.
+        if channel == 0
+            && (id.to_ascii_lowercase().contains("canary")
+                || version.contains("-rc")
+                || node.descendants().any(|node| {
+                    node.has_tag_name("codename")
+                        && node
+                            .text()
+                            .is_some_and(|value| !value.trim().is_empty() && value != "REL")
+                }))
+        {
+            channel = 3;
         }
         packages.push(SdkPackage {
             id: id.clone(),
@@ -230,10 +262,19 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
             size: complete
                 .map(|n| child_text(n, "size").parse().unwrap_or(0))
                 .unwrap_or(0),
-            url: if url.starts_with("https://") || url.is_empty() {
+            url: if url.is_empty() {
                 url
             } else {
-                format!("{base}{url}")
+                let archive = reqwest::Url::parse(base)
+                    .and_then(|base| base.join(&url))
+                    .map_err(|_| AppError::new("CATALOG_FORMAT", "仓库下载地址无效"))?;
+                if archive.scheme() != "https" {
+                    return Err(AppError::new(
+                        "CATALOG_FORMAT",
+                        "仓库下载地址必须使用 HTTPS",
+                    ));
+                }
+                archive.to_string()
             },
             checksum: checksum_node.and_then(|n| n.text()).unwrap_or("").into(),
             checksum_type: checksum_node
@@ -271,6 +312,8 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
                 })
                 .collect(),
             obsolete: node.attribute("obsolete") == Some("true"),
+            channel,
+            source_url: String::new(),
         });
     }
     Ok(packages)
@@ -390,6 +433,7 @@ pub fn avds(settings: &Settings) -> Vec<Avd> {
                     error: error.into(),
                     serial: String::new(),
                     owned: data.join(".devkit-owned").is_file(),
+                    config: p,
                 });
             }
         }
@@ -589,6 +633,7 @@ pub fn normalize_endpoint(value: &str) -> Result<String> {
         })
 }
 pub fn safe_avd_path(avd: &Avd, settings: &Settings) -> Result<PathBuf> {
+    crate::avd_settings::assert_no_shared_storage(avd, settings)?;
     let path = std::fs::canonicalize(&avd.data_path)?;
     let meta = std::fs::symlink_metadata(&avd.data_path)?;
     #[cfg(windows)]
@@ -665,6 +710,26 @@ mod tests {
         assert_eq!(p[0].license, "Terms");
         assert_eq!(p[0].size, 123);
         assert!(p[0].url.ends_with("/x.zip"));
+        for root in ["sdk-repository", "sdk-sys-img", "sdk-addon"] {
+            let xml = x
+                .replace("<repository>", &format!("<{root}>"))
+                .replace("</repository>", &format!("</{root}>"));
+            assert_eq!(
+                parse_catalog(&xml, "https://example.com/", false)
+                    .unwrap()
+                    .len(),
+                1
+            );
+        }
+        assert!(parse_catalog("<html/>", "https://example.com/", false).is_err());
+        let canary = x.replace(
+            "path=\"platform-tools\"",
+            "path=\"platforms;android-canary-20261007\"",
+        );
+        assert_eq!(
+            parse_catalog(&canary, "https://example.com/", false).unwrap()[0].channel,
+            3
+        );
     }
     #[test]
     fn validates_network_addresses() {

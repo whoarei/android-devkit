@@ -257,6 +257,25 @@
   .task-card {
     padding: 10px 12px;
   }
+  .avd-editor-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .modal.avd-modal {
+    padding: 0;
+  }
+  .avd-modal-body {
+    padding: 12px 14px;
+  }
+  .avd-modal > .modal-heading,
+  .avd-modal > .modal-actions {
+    padding: 14px;
+  }
+  .avd-preview {
+    display: none;
+  }
+  .sdk-site {
+    flex-wrap: wrap;
+  }
   .task-row {
     flex-wrap: wrap;
     gap: 8px;

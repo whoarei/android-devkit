@@ -56,6 +56,58 @@ fn args(pairs: &[(&str, &str)]) -> BTreeMap<String, String> {
         .collect()
 }
 
+#[tokio::test]
+#[ignore = "read-only network check of official SDK feeds; writes evidence only under .qa/runtime"]
+async fn sdk_repository_catalog() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .join(".qa/runtime")
+        .join(format!("sdk-catalog-{}", now()));
+    std::fs::create_dir_all(&root).unwrap();
+    for channel in [0, 3] {
+        let settings = Settings {
+            sdk_channel: channel,
+            ..Default::default()
+        };
+        let (packages, statuses) = crate::repository::fetch(&settings).await.unwrap();
+        assert!(
+            statuses.iter().all(|site| site.error.is_empty()),
+            "{statuses:?}"
+        );
+        assert!(packages
+            .iter()
+            .any(|package| package.id.starts_with("platforms;")));
+        assert!(packages
+            .iter()
+            .any(|package| package.id == "platform-tools"));
+        assert!(packages
+            .iter()
+            .any(|package| package.id.starts_with("system-images;")));
+        assert!(packages.iter().all(|package| package.channel <= channel));
+        if channel == 0 {
+            assert!(packages
+                .iter()
+                .all(|package| !package.id.to_ascii_lowercase().contains("canary")));
+        }
+        if channel == 3 {
+            assert!(packages.iter().any(|package| package.channel > 0));
+        }
+        std::fs::write(
+            root.join(format!("channel-{channel}.json")),
+            serde_json::to_vec_pretty(&serde_json::json!({"packages":packages,"sites":statuses}))
+                .unwrap(),
+        )
+        .unwrap();
+        println!(
+            "channel {channel}: {} packages / {} sources",
+            packages.len(),
+            statuses.len()
+        );
+    }
+    println!("SDK catalog evidence: {}", root.display());
+}
+
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "downloads official tools into an isolated empty SDK; never changes E:\\Android\\sdk"]
 async fn m2_blank_environment() {
@@ -186,6 +238,12 @@ async fn run_lifecycle(include_m4: bool) {
             ("memory", "2048"),
             ("storage", "2"),
             ("gpu", "auto"),
+            ("cpuCores", "2"),
+            ("vmHeap", "256"),
+            ("cameraFront", "none"),
+            ("cameraBack", "emulated"),
+            ("sdCardMode", "size"),
+            ("sdCardMiB", "64"),
         ]),
         None,
     )
@@ -195,6 +253,9 @@ async fn run_lifecycle(include_m4: bool) {
         .find(|a| a.name == name)
         .unwrap();
     let before = std::fs::read_to_string(PathBuf::from(&a.data_path).join("config.ini")).unwrap();
+    let sd = PathBuf::from(a.config.get("sdcard.path").expect("managed SD path"));
+    assert!(sd.is_file());
+    assert!(std::fs::metadata(&sd).unwrap().len() >= 64 * 1024 * 1024);
     execute(
         &app,
         "avd_edit",
@@ -204,11 +265,21 @@ async fn run_lifecycle(include_m4: bool) {
             ("displayName", "DevKit M3 QA edited"),
             ("memory", "2048"),
             ("gpu", "auto"),
+            ("cpuCores", "3"),
+            ("vmHeap", "256"),
+            ("networkSpeed", "lte"),
+            ("networkLatency", "20:100"),
+            ("skinMode", "none"),
+            ("orientation", "portrait"),
         ]),
         None,
     )
     .await;
     assert!(before.contains("image.sysdir.1"));
+    let edited = crate::android::read_properties(&PathBuf::from(&a.data_path).join("config.ini"));
+    assert_eq!(edited["hw.cpu.ncore"], "3");
+    assert_eq!(edited["runtime.network.speed"], "lte");
+    assert_eq!(edited["runtime.network.latency"], "20:100");
     execute(&app, "avd_start", args(&[("avdId", &a.id)]), None).await;
     let snapshot = app.snapshot().await.unwrap();
     let device = snapshot
@@ -251,7 +322,15 @@ async fn run_lifecycle(include_m4: bool) {
     execute(&app, "avd_stop", args(&[("avdId", &a.id)]), None).await;
     execute(&app, "avd_cold", args(&[("avdId", &a.id)]), None).await;
     execute(&app, "avd_stop", args(&[("avdId", &a.id)]), None).await;
+    // A stale overlay must not restore data after the managed SD is formatted.
+    let overlay = PathBuf::from(format!("{}.qcow2", sd.to_string_lossy()));
+    std::fs::write(&overlay, b"stale-overlay-marker").unwrap();
     execute(&app, "avd_wipe", args(&[("avdId", &a.id)]), None).await;
+    if overlay.is_file() {
+        assert!(!std::fs::read(&overlay)
+            .unwrap()
+            .starts_with(b"stale-overlay-marker"));
+    }
     execute(&app, "avd_delete", args(&[("avdId", &a.id)]), None).await;
     assert!(!PathBuf::from(&a.data_path).exists());
     assert!(PathBuf::from(

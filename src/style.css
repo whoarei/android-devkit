@@ -29,6 +29,10 @@ button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
 }
+button[aria-busy='true'] {
+  cursor: progress;
+  opacity: 1;
+}
 button,
 input,
 select,
@@ -698,6 +702,261 @@ h1 {
   align-items: center;
   margin-bottom: 22px;
 }
+.sdk-manager {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.sdk-manager .sdk-overview {
+  margin-bottom: 0;
+}
+.sdk-tabs {
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+.sdk-tabs button {
+  white-space: nowrap;
+}
+.sdk-browser-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.sdk-browser-toolbar .hint {
+  flex: 1;
+  min-width: 200px;
+  margin: 0;
+}
+.sdk-browser-toolbar select {
+  font-size: 11px;
+  padding: 8px;
+}
+.sdk-catalog-options {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 10px;
+}
+.sdk-catalog-options > span {
+  margin-right: auto;
+}
+.sdk-catalog-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sdk-tree {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: auto;
+  background: white;
+  min-width: 0;
+}
+.sdk-tree-header,
+.sdk-package {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 90px 75px 78px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  min-width: 680px;
+}
+.sdk-tree-header {
+  font-size: 10px;
+  color: var(--muted);
+  background: #f5f8f1;
+}
+.sdk-group-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 680px;
+  text-align: left;
+  padding: 12px 16px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: #eff4eb;
+}
+.sdk-group-heading strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+.sdk-group-heading > span {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted);
+}
+.sdk-subgroup-heading {
+  background: #f7f9f4;
+  padding-block: 9px;
+}
+.sdk-image-abi > .sdk-subgroup-heading {
+  background: #fcfdfb;
+}
+.sdk-subgroup-heading small {
+  font-size: 9px;
+  color: var(--muted);
+}
+.sdk-update-tag {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--green);
+}
+.sdk-package {
+  font-size: 11px;
+  border-top: 1px solid #edf1e8;
+}
+.sdk-package > div {
+  min-width: 0;
+  padding-left: 25px;
+}
+.sdk-package b {
+  display: block;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.sdk-package small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 9px;
+  overflow-wrap: anywhere;
+}
+.sdk-package select {
+  width: 100%;
+  font-size: 10px;
+  padding: 6px;
+}
+.sdk-sites {
+  display: grid;
+  gap: 9px;
+}
+.sdk-site {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 14px;
+}
+.sdk-site > div:first-of-type {
+  flex: 1;
+  min-width: 0;
+}
+.sdk-site strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+.sdk-site code,
+.sdk-site small {
+  display: block;
+  font-size: 10px;
+  margin-top: 7px;
+  overflow-wrap: anywhere;
+}
+.avd-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 170px;
+  gap: 22px;
+  align-items: start;
+}
+.avd-editor-layout > div {
+  min-width: 0;
+}
+.avd-settings {
+  min-width: 0;
+}
+.avd-settings details {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  margin: 9px 0;
+  background: white;
+}
+.avd-settings summary {
+  padding: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: #40664b;
+  background: #f1f5ed;
+}
+.avd-settings .form-grid,
+.avd-settings details > .field,
+.avd-settings details > .hint {
+  margin: 0;
+  padding: 0 12px 8px;
+}
+.avd-settings .form-grid {
+  gap: 0 12px;
+}
+.avd-settings .field {
+  margin: 12px 0;
+  min-width: 0;
+}
+.avd-settings input,
+.avd-settings select {
+  width: 100%;
+  min-width: 0;
+  font-size: 11px;
+}
+.storage-input {
+  display: flex;
+  gap: 6px;
+  min-width: 0;
+}
+.storage-input input {
+  min-width: 0;
+  flex: 1;
+}
+.storage-input select {
+  flex: 0 0 65px;
+  width: 65px;
+  padding-inline: 5px;
+}
+.avd-preview {
+  position: sticky;
+  top: 0;
+  background: #f0f4ed;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 14px;
+  min-width: 0;
+}
+.avd-preview > strong {
+  font-size: 12px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.avd-screen {
+  max-width: 100%;
+  margin: 20px auto;
+  border: 2px solid #8da08c;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #e2ebdc, #f8faf5);
+  display: grid;
+  place-items: center;
+  color: #81977a;
+  font-size: 10px;
+}
+.avd-preview dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  font-size: 10px;
+}
+.avd-preview dt {
+  color: var(--muted);
+}
+.avd-preview dd {
+  margin: 0 0 7px;
+  overflow-wrap: anywhere;
+}
 .sdk-overview > div {
   display: flex;
   align-items: center;
@@ -821,6 +1080,30 @@ h1 {
 }
 .modal.wide {
   width: 700px;
+}
+.modal.avd-modal {
+  width: 960px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 0;
+}
+.avd-modal > .modal-heading {
+  padding: 20px 24px;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.avd-modal-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 24px;
+}
+.avd-modal > .modal-actions {
+  padding: 14px 24px;
+  margin: 0;
+  flex-shrink: 0;
 }
 .modal-heading {
   display: flex;

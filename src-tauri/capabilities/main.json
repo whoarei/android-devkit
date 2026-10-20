@@ -10,6 +10,7 @@
     "allow-environment-scan",
     "allow-settings-save",
     "allow-catalog-refresh",
+    "allow-sdk-sites-status",
     "allow-plan-create",
     "allow-task-submit",
     "allow-task-cancel",

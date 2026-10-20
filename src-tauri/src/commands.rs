@@ -26,6 +26,7 @@ pub fn environment_scan(app: Service<'_>) -> Vec<Environment> {
 }
 #[tauri::command]
 pub fn settings_save(app: Service<'_>, settings: Settings) -> Result<()> {
+    crate::repository::validate(&settings)?;
     if !app.store.active_tasks()?.is_empty() {
         return Err(AppError::new("TASKS_ACTIVE", "任务执行中不能切换工具环境"));
     }
@@ -72,6 +73,10 @@ pub async fn catalog_refresh(app: Service<'_>) -> Result<Vec<String>> {
     app.refresh_catalog().await
 }
 #[tauri::command]
+pub fn sdk_sites_status(app: Service<'_>) -> Vec<SdkSiteStatus> {
+    crate::repository::statuses(&app.data, &app.store.settings())
+}
+#[tauri::command]
 pub fn plan_create(app: Service<'_>, operation: Operation) -> Result<Plan> {
     app.prepare_plan(operation)
 }
@@ -112,7 +117,8 @@ pub async fn file_choose(kind: String) -> Result<Option<String>> {
     tokio::task::spawn_blocking(move || {
         let dialog = rfd::FileDialog::new();
         let path = match kind.as_str() {
-            "sdk" | "avd" => dialog.pick_folder(),
+            "sdk" | "avd" | "skin" => dialog.pick_folder(),
+            "sdcard" => dialog.add_filter("SD card image", &["img"]).pick_file(),
             "java" => dialog.add_filter("Java", &["exe"]).pick_file(),
             _ => dialog.add_filter("Android APK", &["apk"]).pick_file(),
         };

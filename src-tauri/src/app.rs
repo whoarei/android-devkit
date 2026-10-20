@@ -16,6 +16,7 @@ pub struct App {
     pub plans: Mutex<HashMap<String, Plan>>,
     pub apks: Mutex<HashMap<String, ApkInfo>>,
     pub catalog: Mutex<Vec<SdkPackage>>,
+    pub catalog_gate: tokio::sync::Mutex<()>,
     pub epoch: AtomicU64,
     pub draining: AtomicBool,
     pub locks: Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
@@ -53,6 +54,7 @@ impl App {
             plans: Mutex::new(HashMap::new()),
             apks: Mutex::new(apks),
             catalog: Mutex::new(catalog),
+            catalog_gate: tokio::sync::Mutex::new(()),
             epoch: AtomicU64::new(now()),
             draining: AtomicBool::new(false),
             locks: Mutex::new(HashMap::new()),
@@ -138,6 +140,7 @@ impl App {
         }
         let local = android::installed(&settings);
         let mut packages = self.catalog.lock().unwrap().clone();
+        packages.retain(|package| crate::repository::package_enabled(package, &settings));
         for p in local {
             if let Some(remote) = packages.iter_mut().find(|r| r.id == p.id) {
                 remote.installed = true;
@@ -163,7 +166,35 @@ impl App {
         })
     }
     pub async fn refresh_catalog(&self) -> Result<Vec<String>> {
-        let (p, w) = bootstrap::catalog(&self.store.settings()).await?;
+        let _guard = self.catalog_gate.lock().await;
+        let settings = self.store.settings();
+        let (p, statuses) = crate::repository::fetch(&settings).await?;
+        if serde_json::to_vec(&settings)? != serde_json::to_vec(&self.store.settings())? {
+            return Err(AppError::new(
+                "CATALOG_SETTINGS_CHANGED",
+                "刷新期间设置发生变化，请按当前设置重新刷新目录",
+            ));
+        }
+        std::fs::write(
+            self.data.join("sdk-site-status.json"),
+            serde_json::to_vec(&statuses)?,
+        )?;
+        let w: Vec<_> = statuses
+            .iter()
+            .filter(|status| !status.error.is_empty())
+            .map(|status| format!("{}: {}", status.name, status.error))
+            .collect();
+        if p.is_empty() {
+            self.notify();
+            return Err(AppError::new(
+                "CATALOG_UNAVAILABLE",
+                if w.is_empty() {
+                    "所选更新通道暂无可用组件".into()
+                } else {
+                    w.join("\n")
+                },
+            ));
+        }
         std::fs::write(self.data.join("catalog.json"), serde_json::to_vec(&p)?)?;
         *self.catalog.lock().unwrap() = p;
         self.notify();
@@ -273,7 +304,7 @@ pub fn validate_avd_values(op: &Operation) -> Result<()> {
     {
         return Err(AppError::new("INVALID_GPU", "不支持的图形模式"));
     }
-    Ok(())
+    crate::avd_settings::validate(op)
 }
 pub fn avd_locked(path: &Path) -> bool {
     std::fs::read_dir(path)

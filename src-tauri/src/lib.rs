@@ -3,6 +3,7 @@ mod acceptance;
 mod android;
 mod apk;
 mod app;
+mod avd_settings;
 mod bootstrap;
 mod commands;
 #[cfg(test)]
@@ -22,6 +23,7 @@ mod recording;
 mod recovery;
 #[cfg(test)]
 mod regression_tests;
+mod repository;
 mod storage;
 use tauri::Manager;
 pub fn run() {
@@ -47,6 +49,7 @@ pub fn run() {
             commands::environment_scan,
             commands::settings_save,
             commands::catalog_refresh,
+            commands::sdk_sites_status,
             commands::plan_create,
             commands::task_submit,
             commands::task_cancel,

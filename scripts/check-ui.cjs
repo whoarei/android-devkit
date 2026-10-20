@@ -50,7 +50,18 @@ const { chromium } = require('playwright');
   const catalogResult = await page.evaluate(async () =>
     window.__TAURI_INTERNALS__.invoke('catalog_refresh'),
   );
-  await page.getByRole('button', { name: '刷新仓库', exact: true }).waitFor();
+  await page.getByRole('button', { name: 'SDK Update Sites', exact: true }).click();
+  await page.getByLabel('启用 Android SDK', { exact: true }).waitFor();
+  assert.equal(await page.locator('.sdk-site').count(), 4);
+  await page.screenshot({ path: path.join(output, 'sdk-sites-native.png') });
+  await page.getByRole('button', { name: 'SDK Tools', exact: true }).click();
+  await page.getByRole('textbox', { name: '搜索组件', exact: true }).fill('platform-tools');
+  await page.getByLabel('platform-tools 变更', { exact: true }).waitFor();
+  await page.getByRole('textbox', { name: '搜索组件', exact: true }).fill('');
+  await page.getByRole('button', { name: 'SDK Platforms', exact: true }).click();
+  await page.locator('.sdk-group-heading').first().waitFor();
+  await page.screenshot({ path: path.join(output, 'sdk-platforms-native.png') });
+  await page.getByRole('button', { name: '刷新', exact: true }).waitFor();
   await page.locator('nav').getByRole('button', { name: '环境诊断', exact: true }).click();
   await page.getByRole('heading', { name: '硬件加速', exact: true }).waitFor({ timeout: 30000 });
   await page.screenshot({ path: path.join(output, 'diagnostics.png') });

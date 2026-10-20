@@ -1,6 +1,8 @@
 use crate::{
     android,
-    app::{assert_avd_stopped, assert_package_unused, validate_app_package, App},
+    app::{
+        assert_avd_stopped, assert_package_unused, validate_app_package, validate_avd_values, App,
+    },
     bootstrap,
     domain::*,
     process::{self, Spec},
@@ -408,24 +410,30 @@ impl App {
                 if a.fingerprint != op.arg("fingerprint")? {
                     return Err(AppError::new("EXTERNAL_CHANGE", "配置在编辑期间已变化"));
                 }
-                let mut changes = BTreeMap::new();
-                for (arg, key) in [
-                    ("displayName", "avd.ini.displayname"),
-                    ("memory", "hw.ramSize"),
-                    ("gpu", "hw.gpu.mode"),
-                ] {
-                    if !op.optional(arg).is_empty() {
-                        if op.optional(arg).contains(['\n', '\r']) {
-                            return Err(AppError::new("INVALID_VALUE", "字段不能包含换行"));
-                        }
-                        changes.insert(key.into(), op.optional(arg).into());
-                    }
+                validate_avd_values(op)?;
+                let mut changes = crate::avd_settings::resolved_changes(op, &a.config)?;
+                let new_sd =
+                    crate::avd_settings::create_sd_card(settings, Path::new(&a.data_path), op, id)
+                        .await?;
+                if let Some(path) = &new_sd {
+                    changes.insert("sdcard.path".into(), path.to_string_lossy().into());
                 }
-                android::write_properties_preserving(
+                let result = android::write_properties_preserving(
                     &Path::new(&a.data_path).join("config.ini"),
                     &changes,
                     &a.fingerprint,
-                )?;
+                );
+                if let Err(error) = result {
+                    return Err(if let Some(path) = new_sd {
+                        AppError::new(
+                            "PARTIAL_COMPLETE",
+                            "扩展存储镜像已创建，但配置未保存；请检查原配置后重试",
+                        )
+                        .detail(format!("{}\n{error}", path.display()))
+                    } else {
+                        error
+                    });
+                }
                 Ok("配置已保存，未知字段保留".into())
             }
             "avd_delete" => {
@@ -460,12 +468,20 @@ impl App {
                 assert_avd_stopped(&a)?;
                 let path = android::safe_avd_path(&a, settings)?;
                 reject_reparse_tree(&path)?;
+                crate::avd_settings::reset_managed_sd(settings, &a).await?;
                 for name in [
                     "sdcard.img",
                     "sdcard.img.qcow2",
                     "snapshots.img",
                     "snapshots",
                 ] {
+                    if name.starts_with("sdcard")
+                        && a.config
+                            .get("devkit.sdcard.managed")
+                            .is_some_and(|value| value == "no")
+                    {
+                        continue;
+                    }
                     let p = path.join(name);
                     if p.is_dir() {
                         std::fs::remove_dir_all(&p)?;
@@ -480,7 +496,7 @@ impl App {
                             .detail(e.to_string())
                     })?;
                 self.stop_avd(id, settings, &a).await?;
-                Ok("用户数据、快照和独立 SD 卡已重置，设备已停止".into())
+                Ok("用户数据、快照与应用管理的扩展存储已重置；外部镜像保留，设备已停止".into())
             }
             "wireless_pair" => {
                 let path = android::compatible_adb(settings).await?;
@@ -762,7 +778,20 @@ impl App {
                     format!("--proxy_port={}", u.port().unwrap_or(8080)),
                 ]);
             }
-            let spec = process::java_tool(settings, "sdkmanager", args)?;
+            let mut spec = process::java_tool(settings, "sdkmanager", args)?;
+            let package = self
+                .catalog
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|package| package.id == *pkg)
+                .cloned();
+            crate::repository::configure_sdkmanager(
+                &self.data,
+                settings,
+                package.as_ref(),
+                &mut spec,
+            )?;
             let (tx, rx) = tokio::sync::mpsc::channel(8);
             self.answers.lock().unwrap().insert(id.into(), tx);
             let app = self.clone();
@@ -1013,18 +1042,18 @@ impl App {
         }
         let config = data.join("config.ini");
         let hash = digest(&std::fs::read(&config)?);
-        let changes = BTreeMap::from([
-            ("hw.ramSize".into(), op.optional("memory").into()),
-            (
-                "disk.dataPartition.size".into(),
-                format!("{}G", op.optional("storage")),
-            ),
-            ("hw.gpu.mode".into(), op.optional("gpu").into()),
-            (
-                "avd.ini.displayname".into(),
-                op.optional("displayName").to_owned(),
-            ),
-        ]);
+        let current = android::read_properties(&config);
+        let mut changes = crate::avd_settings::resolved_changes(op, &current)?;
+        if let Some(path) = crate::avd_settings::create_sd_card(settings, &data, op, id).await? {
+            // Bind the final location, because the staging directory is moved at commit.
+            changes.insert(
+                "sdcard.path".into(),
+                root.join(format!("{name}.avd"))
+                    .join(path.file_name().unwrap())
+                    .to_string_lossy()
+                    .into(),
+            );
+        }
         android::write_properties_preserving(&config, &changes, &hash)?;
         std::fs::write(data.join(".devkit-owned"), id)?;
         let final_data = root.join(format!("{name}.avd"));
@@ -1086,7 +1115,13 @@ impl App {
             .stdin(Stdio::null())
             .stdout(Stdio::from(log.try_clone()?))
             .stderr(Stdio::from(log));
-        if cold {
+        let config = android::read_properties(&Path::new(&avd.data_path).join("config.ini"));
+        command.args(crate::avd_settings::launch_args(&config)?);
+        if cold
+            || config
+                .get("fastboot.forceColdBoot")
+                .is_some_and(|value| value == "yes")
+        {
             command.arg("-no-snapshot-load");
         }
         if wipe {

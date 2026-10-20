@@ -1,4 +1,4 @@
-use crate::{android, domain::*};
+use crate::domain::*;
 use sha2::Digest;
 use std::{
     io::{Read, Write},
@@ -33,60 +33,6 @@ pub fn client(settings: &Settings) -> Result<reqwest::Client> {
     b.build()
         .map_err(|e| AppError::new("NETWORK", e.to_string()))
 }
-pub async fn catalog(settings: &Settings) -> Result<(Vec<SdkPackage>, Vec<String>)> {
-    let c = client(settings)?;
-    let sources = [
-        (
-            "https://dl.google.com/android/repository/repository2-3.xml",
-            "https://dl.google.com/android/repository/",
-        ),
-        (
-            "https://dl.google.com/android/repository/sys-img/android/sys-img2-3.xml",
-            "https://dl.google.com/android/repository/sys-img/android/",
-        ),
-        (
-            "https://dl.google.com/android/repository/sys-img/google_apis/sys-img2-3.xml",
-            "https://dl.google.com/android/repository/sys-img/google_apis/",
-        ),
-        (
-            "https://dl.google.com/android/repository/sys-img/google_apis_playstore/sys-img2-3.xml",
-            "https://dl.google.com/android/repository/sys-img/google_apis_playstore/",
-        ),
-    ];
-    let mut all = Vec::new();
-    let mut warnings = Vec::new();
-    for (url, base) in sources {
-        let result = async {
-            let response = c
-                .get(url)
-                .send()
-                .await
-                .map_err(|e| AppError::new("NETWORK", e.to_string()))?
-                .error_for_status()
-                .map_err(|e| AppError::new("NETWORK", e.to_string()))?;
-            if response.content_length().unwrap_or(0) > 24 * 1024 * 1024 {
-                return Err(AppError::new("CATALOG_TOO_LARGE", "目录过大"));
-            }
-            let text = response
-                .text()
-                .await
-                .map_err(|e| AppError::new("NETWORK", e.to_string()))?;
-            android::parse_catalog(&text, base, false)
-        }
-        .await;
-        match result {
-            Ok(mut p) => all.append(&mut p),
-            Err(e) => warnings.push(format!("{url}: {}", e.message)),
-        }
-    }
-    if all.is_empty() {
-        return Err(AppError::new("CATALOG_UNAVAILABLE", warnings.join("\n")));
-    }
-    all.sort_by(|a, b| a.id.cmp(&b.id));
-    all.dedup_by(|a, b| a.id == b.id);
-    Ok((all, warnings))
-}
-
 pub fn assert_writable(path: &Path) -> Result<()> {
     std::fs::create_dir_all(path)?;
     let probe = path.join(format!(".devkit-probe-{}", uuid::Uuid::new_v4()));

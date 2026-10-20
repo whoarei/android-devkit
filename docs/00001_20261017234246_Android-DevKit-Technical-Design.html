@@ -228,6 +228,8 @@ ExecutionResult {
       <section id="sdk">
         <h2><span class="n">07 / SDK MANAGEMENT</span>SDK 组件管理</h2>
         <h3>清单与变更计划 <span class="req">SDK-01～03</span></h3>
+        <p>系统镜像树使用 API → 镜像类型 → ABI → 组件四层结构。类型优先按规范组件 ID 的第三段识别 AOSP、Google APIs、Google Play，避免 page_size_16kb 等通用元数据标签造成归类错误；未知类型保留独立分组。ABI 从 ID 第四段读取，空缺时使用元数据。选择状态绑定包 ID，展开状态按分类 / 搜索 / 状态筛选作用域保存；搜索与筛选默认展开匹配路径，全展开 / 收起遍历所有分支，各级数量与更新提示按筛选后的子项计算。</p>
+        <p>界面采用 SDK Platforms / SDK Tools / SDK Update Sites。平台按 API、工具按包 ID 首段分组；搜索与安装 / 更新 / 待变更筛选组合，稳定与预览修订号按数值比较。四个内置源及自定义 HTTPS repository / remotePackage XML 逐源解析并保存状态；限制来源数量与 XML 体积，自定义源包 ID 冲突拒绝加载。sdkmanager 使用应用私有 ANDROID_USER_HOME / repositories.cfg，仅注册当前已确认组件的自定义源，附加所选频道参数，不修改用户 Android Studio 源配置。目录刷新串行化，保存前再次核对设置；来源设置改变使旧计划失效。分类与站点交互参考 <a href="https://developer.android.com/studio/intro/update">Android 官方 SDK 管理说明</a>。</p>
         <p>本地清单优先读取实际安装记录，结合受支持工具查询；远端清单保存来源、获取时间、频道和原始输出样本。断网可展示上次远端目录，但标记过期，已安装清单与启动已有设备仍可用。推荐规则基于目标架构、用户选择和已装版本，不固定某个 Android API。</p>
         <p>RepositoryCatalog 按兼容清单配置的官方仓库源读取版本化元数据，补齐 CLI 列表通常不能完整提供的下载体积、归档校验值、依赖、许可文本与镜像标签。它只为浏览和预检提供信息，普通组件仍由官方工具安装；按命名空间维护解析器，禁用外部实体，约束 XML 大小，并交叉核对包 ID 与版本。元数据缺失时显示未知 / 估算；不能猜出一个精确下载量或默认为已接受许可。</p>
         <p>用户勾选后只生成不可执行的草稿。确认时计算依赖、许可、空间、已知引用与单例组件替换关系；生成带 <code>planHash</code> 和环境指纹的 Plan。执行前获取 SDK 锁、重新检查实际清单；版本、许可、源或风险变化时返回重新确认。</p>
@@ -259,6 +261,7 @@ android --sdk=&lt;SDK&gt; sdk install &lt;packageId&gt;</code></pre>
         <h3>发现与配置编辑 <span class="req">AVD-01 / AVD-04</span></h3>
         <p>建立 AVD 定义清单，读取注册 INI 与真实数据路径、系统镜像、硬件 profile 和允许字段；缺配置或镜像的条目保留并说明原因。运行会话通过 <code>adb emu avd name</code> 等可靠证据关联回定义，结合已记录启动实例判断。同名、型号或端口相似都不足以自动关联。</p>
         <p>显示名与内部名分离。新建内部名采用受限 ASCII 字符和唯一性检查；既有内部名保持不变，P0 的改名只改受支持的显示名。内存、存储与图形字段按版本和镜像限制验证；运行中禁止修改，未知键与原始格式保留。外部更改冲突按第 04 节处理。</p>
+        <p>高级配置覆盖 CPU / RAM / VM Heap、显示、摄像头、网络、启动、存储、皮肤与输入能力。前端固定打开时的配置指纹，只提交变更字段；后端使用白名单、数值与文件校验，再比对指纹原位保存。网络速度 / 延迟映射 runtime.network.* 并在启动时传入 -netspeed / -netdelay；无皮肤使用分辨率 skin.name 和空 skin.path。新 SD 镜像使用 mksdcard 生成唯一文件，创建暂存提交时修正最终路径；标记为自有的镜像在清数据时重建并清除 qcow2 覆盖层，外部镜像保留。清理前检查其他登记 AVD 的存储引用。容量修改不自动擦除用户数据。选项参考 <a href="https://developer.android.com/studio/run/managing-avds">官方 AVD 属性说明</a>，映射经本机模拟器验证。</p>
         <h3>创建采用可恢复的分步提交 <span class="req">AVD-02</span></h3>
         <ol>
           <li>选择手机 / 平板和受支持硬件 profile；选择 Android API、AOSP / Google APIs / Google Play 与主机匹配的 ABI。Play 镜像还需满足硬件 profile 能力，不混同为普通 Google APIs。</li>

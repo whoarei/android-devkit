@@ -1,15 +1,5 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  useId,
-  Children,
-  isValidElement,
-  cloneElement,
-  type ReactNode,
-  type ReactElement,
-} from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
@@ -46,6 +36,10 @@ import {
 import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
+import { SdkManager } from './SdkManager';
+import { AvdSettingsFields, AvdPreview, EditAvd, newAvdSettings, type AvdForm } from './AvdEditor';
+import { hasSdkUpdate } from './sdk';
+import { Button, Badge, Modal, Field } from './ui';
 import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
 import type { Settings, Workspace, Device, Avd, Plan, Operation, ApkInfo, Target } from './types';
 
@@ -69,102 +63,6 @@ const titles: Record<Page, string> = {
   settings: '设置',
 };
 type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
-function Button({
-  children,
-  onClick,
-  primary = false,
-  danger = false,
-  disabled = false,
-  title,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-  primary?: boolean;
-  danger?: boolean;
-  disabled?: boolean;
-  title?: string;
-}) {
-  return (
-    <button
-      title={title}
-      disabled={disabled}
-      className={`button ${primary ? 'primary' : ''} ${danger ? 'danger' : ''}`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-function Badge({ state }: { state: string }) {
-  return (
-    <span className={`badge ${state}`}>
-      <i />
-      {stateLabel[state] ?? state}
-    </span>
-  );
-}
-function Modal({
-  title,
-  children,
-  onClose,
-  wide = false,
-}: {
-  title: string;
-  children: ReactNode;
-  onClose: () => void;
-  wide?: boolean;
-}) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
-  return (
-    <div
-      className="modal-backdrop"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <section
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className={`modal ${wide ? 'wide' : ''}`}
-      >
-        <div className="modal-heading">
-          <h2>{title}</h2>
-          <button className="icon-button" aria-label="关闭面板" onClick={onClose}>
-            <X size={18} />
-          </button>
-        </div>
-        {children}
-      </section>
-    </div>
-  );
-}
-function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
-  const id = useId();
-  const connect = (node: ReactNode): ReactNode => {
-    if (!isValidElement(node)) return node;
-    const item = node as ReactElement<{ id?: string; children?: ReactNode }>;
-    if (typeof item.type === 'string' && ['input', 'select', 'textarea'].includes(item.type))
-      return cloneElement(item, { id });
-    return item.props.children
-      ? cloneElement(item, { children: Children.map(item.props.children, connect) })
-      : item;
-  };
-  return (
-    <div className="field">
-      <label htmlFor={id}>{label}</label>
-      {Children.map(children, connect)}
-      {hint && <small>{hint}</small>}
-    </div>
-  );
-}
-
 export function App() {
   const { page, setPage, selected, select } = useUi();
   const client = useQueryClient();
@@ -182,7 +80,6 @@ export function App() {
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(false),
     [filter, setFilter] = useState('all'),
-    [search, setSearch] = useState(''),
     [apk, setApk] = useState<ApkInfo | null>(null),
     [maximized, setMaximized] = useState(false),
     [preview, setPreview] = useState('');
@@ -200,8 +97,17 @@ export function App() {
     await Promise.all([
       client.invalidateQueries({ queryKey: ['workspace'] }),
       client.invalidateQueries({ queryKey: ['task-list'] }),
+      client.invalidateQueries({ queryKey: ['sdk-sites'] }),
     ]);
   };
+  const catalogRefresh = useMutation({
+    mutationFn: async (beforeRefresh?: () => Promise<void>) => {
+      await beforeRefresh?.();
+      const warnings = await call<string[]>('catalog_refresh');
+      await refresh();
+      return warnings;
+    },
+  });
   const guard = async <T,>(work: () => Promise<T>): Promise<T | undefined> => {
     setError('');
     try {
@@ -464,20 +370,12 @@ export function App() {
             )}
             {page === 'sdk' && (
               <Button
-                onClick={() => {
-                  setBusy(true);
-                  void guard(async () => {
-                    const warnings = await call<string[]>('catalog_refresh');
-                    notify(
-                      warnings.length ? '部分仓库不可用，其余目录已更新' : '官方仓库目录已更新',
-                    );
-                    await refresh();
-                  }).finally(() => setBusy(false));
-                }}
+                onClick={() => void guard(() => catalogRefresh.mutateAsync(undefined))}
                 disabled={busy}
+                loading={catalogRefresh.isPending}
               >
-                <RefreshCw size={15} className={busy ? 'spin' : ''} />
-                刷新仓库
+                <RefreshCw size={15} className={catalogRefresh.isPending ? 'spin' : ''} />
+                刷新
               </Button>
             )}
           </div>
@@ -494,10 +392,11 @@ export function App() {
             </div>
           </div>
         )}
-        {(error || query.error) && (
+        {(query.error ||
+          (error && !plan && !['create', 'wireless', 'edit'].includes(modal ?? ''))) && (
           <div role="alert" className="error-banner">
             <AlertCircle size={17} />
-            <span>{error || errorText(query.error)}</span>
+            <span>{query.error ? errorText(query.error) : error}</span>
             <button aria-label="关闭错误" onClick={() => setError('')}>
               <X size={15} />
             </button>
@@ -820,13 +719,14 @@ export function App() {
           </>
         )}
         {page === 'sdk' && (
-          <SdkPanel
+          <SdkManager
             data={data}
             prepare={prepare}
             busy={busy}
-            setModal={setModal}
-            search={search}
-            setSearch={setSearch}
+            refresh={refresh}
+            refreshing={catalogRefresh.isPending}
+            refreshCatalog={(beforeRefresh) => catalogRefresh.mutateAsync(beforeRefresh)}
+            warnings={catalogRefresh.isSuccess ? catalogRefresh.data : []}
           />
         )}
         {page === 'tasks' && (
@@ -875,7 +775,13 @@ export function App() {
         </div>
       )}
       {modal === 'create' && (
-        <CreateAvd data={data} close={() => setModal(null)} prepare={prepare} />
+        <CreateAvd
+          data={data}
+          close={() => setModal(null)}
+          prepare={prepare}
+          busy={busy}
+          error={error}
+        />
       )}
       {modal === 'wireless' && (
         <ConnectDevice
@@ -889,6 +795,8 @@ export function App() {
       {modal === 'edit' && selectedAvd && (
         <EditAvd
           avd={selectedAvd}
+          busy={busy}
+          error={error}
           close={() => setModal(null)}
           save={(args) => void avdAction('avd_edit', selectedAvd, args)}
         />
@@ -948,6 +856,11 @@ export function App() {
       )}
       {plan && (
         <Modal title={plan.title} onClose={() => setPlan(null)} wide>
+          {error && (
+            <p className="error-banner" role="alert">
+              {error}
+            </p>
+          )}
           <div className="plan-summary">
             {plan.effects.map((effect, i) => (
               <p key={i}>
@@ -1004,202 +917,28 @@ export function App() {
   );
 }
 
-function SdkPanel({
-  data,
-  prepare,
-  busy,
-  search,
-  setSearch,
-}: {
-  data?: Workspace;
-  prepare: (kind: string, args?: Record<string, string>) => Promise<void>;
-  busy: boolean;
-  setModal: (m: ModalName) => void;
-  search: string;
-  setSearch: (v: string) => void;
-}) {
-  const [tab, setTab] = useState('all'),
-    [selected, setSelected] = useState<Record<string, string>>({});
-  const [allVersions, setAllVersions] = useState(false),
-    [limit, setLimit] = useState(150);
-  const newestApi = Math.max(
-    0,
-    ...(data?.packages
-      .filter((p) => p.category === 'platform' && !p.obsolete)
-      .map((p) => Number(p.api) || 0) ?? []),
-  );
-  const packages =
-    data?.packages.filter(
-      (p) =>
-        (tab === 'all' || p.category === tab) &&
-        !p.obsolete &&
-        (allVersions ||
-          search.trim() !== '' ||
-          p.installed ||
-          ['platform-tools', 'emulator', 'cmdline-tools;22.0'].includes(p.id) ||
-          (Number(p.api) >= newestApi - 1 && p.category === 'platform') ||
-          (p.category === 'image' && p.abi === 'x86_64' && Number(p.api) >= newestApi - 1)) &&
-        `${p.name} ${p.id} ${p.api}`.toLowerCase().includes(search.toLowerCase()),
-    ) ?? [];
-  packages.sort(
-    (a, b) =>
-      Number(b.installed) - Number(a.installed) ||
-      b.id.localeCompare(a.id, undefined, { numeric: true }),
-  );
-  return (
-    <>
-      <div className="sdk-overview">
-        <div>
-          <HardDrive size={22} />
-          <div>
-            <b>{data?.settings.sdkRoot ?? 'E:\Android\sdk'}</b>
-            <small>
-              {data?.packages.filter((p) => p.installed).length ?? 0} 个已安装组件 · 可用空间{' '}
-              {data?.freeBytes ? `${(data.freeBytes / 1024 ** 3).toFixed(1)} GiB` : '读取中'}
-            </small>
-          </div>
-        </div>
-        <Button onClick={() => void prepare('bootstrap', { purpose: 'usb' })}>准备真机环境</Button>
-        <Button onClick={() => void prepare('bootstrap', { purpose: 'emulator' })}>
-          准备模拟器环境
-        </Button>
-      </div>
-      <div className="section-toolbar">
-        <div className="tabs">
-          {[
-            ['all', '全部'],
-            ['platform', '平台'],
-            ['tool', '工具'],
-            ['image', '系统镜像'],
-          ].map(([id, label]) => (
-            <button key={id} className={tab === id ? 'selected' : ''} onClick={() => setTab(id)}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <label className="search">
-          <Search size={15} />
-          <input
-            aria-label="搜索组件"
-            placeholder="搜索组件、API 或名称"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-      </div>
-      <div className="catalog-filter">
-        <span>稳定通道 · 已安装与近期稳定组件；按用途选择，不会自动升级</span>
-        <label>
-          <input
-            type="checkbox"
-            checked={allVersions}
-            onChange={(e) => setAllVersions(e.target.checked)}
-          />
-          查看全部稳定组件
-        </label>
-      </div>
-      <div className="package-table">
-        <div className="package-header">
-          <span>组件</span>
-          <span>版本</span>
-          <span>状态</span>
-          <span>变更</span>
-        </div>
-        {packages.slice(0, limit).map((p) => (
-          <div className="package-row" key={p.id}>
-            <div>
-              <b>{p.name || p.id}</b>
-              <small>
-                {p.id} {p.abi && `· ${p.abi}`}
-              </small>
-            </div>
-            <span>{p.installedVersion || p.version}</span>
-            <span className={p.installed ? 'installed' : 'muted'}>
-              {p.installed
-                ? p.installedVersion && p.installedVersion !== p.version
-                  ? '有可选更新'
-                  : '已安装'
-                : size(p.size)}
-            </span>
-            <select
-              aria-label={`${p.id} 变更`}
-              value={selected[p.id] ?? ''}
-              onChange={(e) => setSelected((s) => ({ ...s, [p.id]: e.target.value }))}
-            >
-              <option value="">{p.installed ? '保留' : '不安装'}</option>
-              {p.installed && p.installedVersion && p.installedVersion !== p.version && (
-                <option value="install">更新至 {p.version}</option>
-              )}
-              <option value={p.installed ? 'remove' : 'install'}>
-                {p.installed ? '卸载' : '安装'}
-              </option>
-            </select>
-          </div>
-        ))}
-        {packages.length === 0 && (
-          <div className="empty-state">
-            <Package size={30} />
-            <h3>按需准备组件</h3>
-            <p>刷新官方仓库目录后，选择要安装的工具、平台或镜像。</p>
-          </div>
-        )}
-      </div>
-      {packages.length > limit && (
-        <Button onClick={() => setLimit((n) => n + 150)}>
-          再显示 150 项（共 {packages.length} 项）
-        </Button>
-      )}
-      {Object.values(selected).some(Boolean) && (
-        <div className="change-bar">
-          <div>
-            <b>待执行变更</b>
-            <small>确认后才会开始；已完成项保留</small>
-          </div>
-          <Button
-            disabled={busy}
-            onClick={() => {
-              const ids = Object.keys(selected).filter((k) => selected[k] === 'remove');
-              if (ids.length) void prepare('sdk_remove', { packages: ids.join('\n') });
-            }}
-          >
-            确认卸载 {Object.values(selected).filter((v) => v === 'remove').length} 项
-          </Button>
-          <Button
-            primary
-            disabled={busy}
-            onClick={() => {
-              const ids = Object.keys(selected).filter((k) => selected[k] === 'install');
-              if (ids.length) void prepare('sdk_install', { packages: ids.join('\n') });
-            }}
-          >
-            确认安装 {Object.values(selected).filter((v) => v === 'install').length} 项
-          </Button>
-        </div>
-      )}
-    </>
-  );
-}
-
 function CreateAvd({
   data,
   close,
   prepare,
+  busy,
+  error,
 }: {
   data?: Workspace;
   close: () => void;
   prepare: (k: string, a: Record<string, string>) => Promise<void>;
+  busy: boolean;
+  error: string;
 }) {
   const [step, setStep] = useState(1),
-    [form, setForm] = useState({
+    [form, setForm] = useState<AvdForm>({
+      ...newAvdSettings(),
       name: 'DevKit_Phone',
       displayName: '日常测试手机',
       profile: 'pixel_2',
       image:
         data?.packages.find((p) => p.category === 'image' && p.installed && p.abi === 'x86_64')
           ?.id ?? '',
-      memory: '2048',
-      storage: '8',
-      gpu: 'auto',
     });
   const set = (key: string, v: string) => setForm((f) => ({ ...f, [key]: v }));
   const images =
@@ -1207,118 +946,113 @@ function CreateAvd({
       (p) => p.category === 'image' && (p.abi === 'x86_64' || p.id.endsWith(';x86_64')),
     ) ?? [];
   return (
-    <Modal title="新建模拟器" onClose={close} wide>
-      <div className="wizard-steps">
-        {['设备形态', '系统镜像', '确认配置'].map((label, i) => (
-          <span className={step === i + 1 ? 'current' : ''} key={label}>
-            <b>{i + 1}</b>
-            {label}
-          </span>
-        ))}
-      </div>
-      {step === 1 ? (
-        <>
-          <h3>选择适合验证的设备</h3>
-          <div className="device-choices">
-            <button
-              className={form.profile === 'pixel_2' ? 'selected' : ''}
-              onClick={() => {
-                set('profile', 'pixel_2');
-                set('displayName', '日常测试手机');
-              }}
-            >
-              <Smartphone size={36} />
-              <b>手机</b>
-              <small>Pixel 2 · 常用触屏设备</small>
-            </button>
-            <button
-              className={form.profile === 'Nexus 9' ? 'selected' : ''}
-              onClick={() => {
-                set('profile', 'Nexus 9');
-                set('displayName', '平板适配测试');
-              }}
-            >
-              <Monitor size={38} />
-              <b>平板</b>
-              <small>Nexus 9 · 大屏适配</small>
-            </button>
-          </div>
-          <p className="hint">使用官方硬件 profile，内存与图形参数可在下一步调整。</p>
-        </>
-      ) : step === 2 ? (
-        <>
-          <h3>选择 Android 系统</h3>
-          <p className="hint">首发 Windows x64 优先选择 x86_64 镜像。缺失镜像会加入创建任务。</p>
-          <div className="image-options">
-            {images.map((p) => (
-              <label key={p.id} className={form.image === p.id ? 'selected' : ''}>
+    <Modal title="新建模拟器" onClose={close} wide className="avd-modal">
+      <div className="avd-modal-body">
+        <div className="wizard-steps">
+          {['设备形态', '系统镜像', '确认配置'].map((label, i) => (
+            <span className={step === i + 1 ? 'current' : ''} key={label}>
+              <b>{i + 1}</b>
+              {label}
+            </span>
+          ))}
+        </div>
+        {step === 1 ? (
+          <>
+            <h3>选择适合验证的设备</h3>
+            <div className="device-choices">
+              <button
+                className={form.profile === 'pixel_2' ? 'selected' : ''}
+                onClick={() => {
+                  set('profile', 'pixel_2');
+                  set('displayName', '日常测试手机');
+                  set('screenWidth', '1080');
+                  set('screenHeight', '1920');
+                  set('density', '420');
+                }}
+              >
+                <Smartphone size={36} />
+                <b>手机</b>
+                <small>Pixel 2 · 常用触屏设备</small>
+              </button>
+              <button
+                className={form.profile === 'Nexus 9' ? 'selected' : ''}
+                onClick={() => {
+                  set('profile', 'Nexus 9');
+                  set('displayName', '平板适配测试');
+                  set('screenWidth', '1536');
+                  set('screenHeight', '2048');
+                  set('density', '320');
+                }}
+              >
+                <Monitor size={38} />
+                <b>平板</b>
+                <small>Nexus 9 · 大屏适配</small>
+              </button>
+            </div>
+            <p className="hint">
+              使用官方硬件 profile，性能、显示、摄像头、网络和存储可在确认配置时调整。
+            </p>
+          </>
+        ) : step === 2 ? (
+          <>
+            <h3>选择 Android 系统</h3>
+            <p className="hint">首发 Windows x64 优先选择 x86_64 镜像。缺失镜像会加入创建任务。</p>
+            <div className="image-options">
+              {images.map((p) => (
+                <label key={p.id} className={form.image === p.id ? 'selected' : ''}>
+                  <input
+                    type="radio"
+                    name="image"
+                    checked={form.image === p.id}
+                    onChange={() => set('image', p.id)}
+                  />
+                  <div>
+                    <b>{p.name || p.id}</b>
+                    <small>
+                      {p.id} ·{' '}
+                      {p.installed ? (hasSdkUpdate(p) ? '有可选更新' : '已安装') : size(p.size)}
+                    </small>
+                  </div>
+                </label>
+              ))}
+              {!images.length && <p>尚无镜像目录，请先关闭向导并在 SDK 页面刷新官方仓库。</p>}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="form-grid">
+              <Field label="内部名称">
+                <input value={form.name} onChange={(e) => set('name', e.target.value)} />
+              </Field>
+              <Field label="显示名称">
                 <input
-                  type="radio"
-                  name="image"
-                  checked={form.image === p.id}
-                  onChange={() => set('image', p.id)}
+                  value={form.displayName}
+                  onChange={(e) => set('displayName', e.target.value)}
                 />
-                <div>
-                  <b>{p.name || p.id}</b>
-                  <small>
-                    {p.id} ·{' '}
-                    {p.installed
-                      ? p.installedVersion && p.installedVersion !== p.version
-                        ? '有可选更新'
-                        : '已安装'
-                      : size(p.size)}
-                  </small>
-                </div>
-              </label>
-            ))}
-            {!images.length && <p>尚无镜像目录，请先关闭向导并在 SDK 页面刷新官方仓库。</p>}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="form-grid">
-            <Field label="内部名称">
-              <input value={form.name} onChange={(e) => set('name', e.target.value)} />
-            </Field>
-            <Field label="显示名称">
-              <input
-                value={form.displayName}
-                onChange={(e) => set('displayName', e.target.value)}
+              </Field>
+            </div>
+            <div className="avd-editor-layout">
+              <AvdSettingsFields values={form} set={set} creating />
+              <AvdPreview
+                values={form}
+                title={form.displayName}
+                api={form.image.split(';')[1]?.replace('android-', '')}
+                abi="x86_64"
               />
-            </Field>
-            <Field label="内存（MiB）">
-              <input
-                type="number"
-                min={512}
-                max={16384}
-                value={form.memory}
-                onChange={(e) => set('memory', e.target.value)}
-              />
-            </Field>
-            <Field label="数据分区（GiB）">
-              <input
-                type="number"
-                min={2}
-                max={128}
-                value={form.storage}
-                onChange={(e) => set('storage', e.target.value)}
-              />
-            </Field>
-            <Field label="图形模式">
-              <select value={form.gpu} onChange={(e) => set('gpu', e.target.value)}>
-                <option value="auto">自动</option>
-                <option value="host">主机 GPU</option>
-                <option value="software">软件渲染</option>
-              </select>
-            </Field>
-          </div>
-          <p className="hint">
-            数据目录：{data?.settings.avdRoots.at(-1)}
-            <br />
-            系统镜像：{form.image}
+            </div>
+            <p className="hint">
+              数据目录：{data?.settings.avdRoots.at(-1)}
+              <br />
+              系统镜像：{form.image}
+            </p>
+          </>
+        )}
+        {error && (
+          <p className="error-banner" role="alert">
+            {error}
           </p>
-        </>
-      )}
+        )}
+      </div>
       <div className="modal-actions">
         <Button onClick={step === 1 ? close : () => setStep((s) => s - 1)}>
           {step === 1 ? '取消' : '上一步'}
@@ -1333,7 +1067,7 @@ function CreateAvd({
             <ChevronRight size={14} />
           </Button>
         ) : (
-          <Button primary onClick={() => void prepare('avd_create', form)}>
+          <Button primary disabled={busy} onClick={() => void prepare('avd_create', form)}>
             查看创建计划
           </Button>
         )}
@@ -1469,46 +1203,6 @@ function ConnectDevice({
     </Modal>
   );
 }
-function EditAvd({
-  avd,
-  close,
-  save,
-}: {
-  avd: Avd;
-  close: () => void;
-  save: (a: Record<string, string>) => void;
-}) {
-  const [name, setName] = useState(avd.displayName),
-    [memory, setMemory] = useState(avd.memory),
-    [gpu, setGpu] = useState(avd.gpu || 'auto');
-  return (
-    <Modal title="编辑模拟器配置" onClose={close}>
-      <Field label="显示名称">
-        <input value={name} onChange={(e) => setName(e.target.value)} />
-      </Field>
-      <Field label="内存（MiB）">
-        <input value={memory} onChange={(e) => setMemory(e.target.value)} />
-      </Field>
-      <Field label="图形模式">
-        <select value={gpu} onChange={(e) => setGpu(e.target.value)}>
-          {['auto', 'host', 'software'].map((g) => (
-            <option key={g}>{g}</option>
-          ))}
-        </select>
-      </Field>
-      <p className="hint">内部名称、镜像、未知配置键和数据目录保持原样。外部修改会阻止覆盖。</p>
-      <div className="modal-actions">
-        <Button onClick={close}>取消</Button>
-        <Button
-          primary
-          onClick={() => save({ displayName: name, memory, gpu, fingerprint: avd.fingerprint })}
-        >
-          查看保存计划
-        </Button>
-      </div>
-    </Modal>
-  );
-}
 function SettingsPanel({
   initial,
   guard,
@@ -1526,6 +1220,8 @@ function SettingsPanel({
       proxy: '',
       bootTimeoutSecs: 180,
       trayEnabled: false,
+      sdkSites: [],
+      sdkChannel: 0,
     },
   );
   useEffect(() => {

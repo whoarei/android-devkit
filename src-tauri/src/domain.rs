@@ -58,6 +58,10 @@ pub struct Settings {
     pub boot_timeout_secs: u64,
     #[serde(default)]
     pub tray_enabled: bool,
+    #[serde(default)]
+    pub sdk_sites: Vec<SdkSite>,
+    #[serde(default)]
+    pub sdk_channel: u8,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -83,8 +87,31 @@ impl Default for Settings {
             proxy: String::new(),
             boot_timeout_secs: 180,
             tray_enabled: false,
+            sdk_sites: Vec::new(),
+            sdk_channel: 0,
         }
     }
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SdkSite {
+    pub name: String,
+    pub url: String,
+    pub enabled: bool,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SdkSiteStatus {
+    pub name: String,
+    pub url: String,
+    pub enabled: bool,
+    pub builtin: bool,
+    #[cfg_attr(test, ts(type = "number"))]
+    pub checked_at: u64,
+    pub package_count: u32,
+    pub error: String,
 }
 
 #[cfg_attr(test, derive(ts_rs::TS))]
@@ -125,6 +152,10 @@ pub struct SdkPackage {
     #[serde(default)]
     pub dependency_min_versions: BTreeMap<String, String>,
     pub obsolete: bool,
+    #[serde(default)]
+    pub channel: u8,
+    #[serde(default)]
+    pub source_url: String,
 }
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -146,6 +177,8 @@ pub struct Avd {
     pub error: String,
     pub serial: String,
     pub owned: bool,
+    #[serde(default)]
+    pub config: BTreeMap<String, String>,
 }
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
