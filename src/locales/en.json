@@ -440,5 +440,9 @@
   "忽略并清理": "Discard and clear cache",
   "忽略会删除对应的本地缓存；已另存文件、原始采集段和任务记录保留。": "Discarding deletes the corresponding cached copies. Saved files, original recordings and task history are kept.",
   "没有待保存的文件": "No pending files",
-  "忽略上述未保存文件并清理对应本地缓存": "Discard these unsaved files and delete their cached copies"
+  "忽略上述未保存文件并清理对应本地缓存": "Discard these unsaved files and delete their cached copies",
+  "选中设备": "Select device",
+  "取消选中设备": "Deselect device",
+  "暂不可用": "Unavailable",
+  "目标设备暂不可用，请重新选择或等待设备恢复。": "The target device is unavailable. Select another device or wait for it to recover."
 }

@@ -22,6 +22,7 @@
 
 - M0：Tauri 原生窗口桥接，Windows 11 最大化按钮悬停贴靠，DPI 感知；工具链兼容验证，参数数组进程执行和输出限流。
 - M1：Rust 生成 TypeScript IPC 类型，SQLite 任务与审计记录，资源锁，SDK / AVD / USB / 无线会话发现；冻结设备目标安装单 APK、启动应用、截图预览 / 保存 / 复制和基础 Logcat。
+- 设备卡片支持点击、Enter 或空格选中，再次操作同一卡片会取消选中并关闭详情与日志视图。卡片上的“安装 APK”直接选择文件并打开安装面板，取消选文件不会打开设备详情；安装目标独立选择，设备断开或连接身份变化时须重新确认目标，不会自动转移安装。
 - M2：用途最小化环境引导；官方仓库目录、许可、缺失 Java 私有运行时；SDK 组件安装 / 卸载、依赖最低版本检查、占用拦截、网络代理和逐项状态复查。
 - M3：手机 / 平板 AVD 创建、配置编辑、就绪探测、打开窗口、冷启动、正常 / 强制停止、清数据和删除；无线配对、手动连接及断开。设备工作台另提供「网络 ADB」，按设备 IP 与端口直接连接已开启的 TCP/IP 调试服务（默认端口 5555，支持 IPv4 / IPv6），无需配对码；连接后验证实际可用性，可单独断开该端点。首次启用传统 TCP/IP 调试需先通过 USB 授权并执行 `adb -s <USB序列号> tcpip 5555`，应用不会自动开启设备端监听。配对成功与连接可用分开显示，配对码不写入任务数据库。
 - M4 本轮：Logcat 级别 / Tag / 关键词 / PID / 应用过滤，应用进程集合刷新；暂停、清空游标；独立文件采集与配额 / 时限 / 轮转、缺口记录、崩溃后文件封口；默认脱敏、实际内容分页预览与范围选择；未保存产物退出保护、默认关闭的可选托盘；数据库 v1 → v2 备份迁移、全部在途任务恢复；NSIS 内部验收安装包与第三方许可清单。
@@ -60,6 +61,7 @@ pnpm test
 
 # 先运行 pnpm dev；隔离浏览器中的网络 ADB 表单回归，不访问真实设备
 pnpm test:network-ui
+pnpm test:device-ui
 pnpm test:tasks-ui
 pnpm test:sdk-avd-ui
 
@@ -81,7 +83,7 @@ pnpm tauri build
 
 ## CI 与发布
 
-[GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 在推送 `main` / `codex/**` 分支、Pull Request、`v*` 标签或手动触发时运行。Windows x64 流程使用固定版本的 Node.js、pnpm 和 Rust，安装锁定依赖，检查版本一致性、Rust 格式、TypeScript / Vite、Clippy、Rust 测试与生成的 IPC 类型；随后使用隔离 Chromium 测试网络 ADB、任务中心、SDK / AVD、中英文及主题界面，构建 NSIS 安装包并核对安装器内容。界面测试使用独立端口 `19328` 和模拟 IPC，不访问真实设备或 SDK。
+[GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 在推送 `main` / `codex/**` 分支、Pull Request、`v*` 标签或手动触发时运行。Windows x64 流程使用固定版本的 Node.js、pnpm 和 Rust，安装锁定依赖，检查版本一致性、Rust 格式、TypeScript / Vite、Clippy、Rust 测试与生成的 IPC 类型；随后使用隔离 Chromium 测试网络 ADB、设备选择与 APK 安装交互、任务中心、SDK / AVD、中英文及主题界面，构建 NSIS 安装包并核对安装器内容。界面测试使用独立端口 `19328` 和模拟 IPC，不访问真实设备或 SDK。
 
 成功后可在 Actions 中下载安装包、便携 ZIP、第三方许可、构建信息和 `SHA256SUMS.txt`；失败时保留界面截图。推送与应用版本一致的 `vX.Y.Z` 标签会在全部检查通过后自动创建正式 GitHub Release，发布同一批经过校验的构建产物。日常 CI 仅有读取权限，只有发布任务获得仓库内容写入权限；无需配置额外令牌。
 

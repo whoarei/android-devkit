@@ -35,6 +35,7 @@ server.on('error', (error) => {
     if (!ready) throw Error('Production preview did not become ready');
     for (const script of [
       'check-network-ui.cjs',
+      'check-device-ui.cjs',
       'check-task-center-ui.cjs',
       'check-sdk-avd-ui.cjs',
     ]) {

@@ -71,6 +71,7 @@ export function App() {
   const locale = useLocale();
   const theme = useTheme();
   const { page, setPage, selected, select } = useUi();
+  const toggleSelection = (key: string) => select(selected === key ? '' : key);
   const client = useQueryClient();
   const query = useQuery({
     queryKey: ['workspace'],
@@ -90,6 +91,13 @@ export function App() {
     [maximized, setMaximized] = useState(false),
     [preview, setPreview] = useState('');
   const [exportPreview, setExportPreview] = useState<ExportPreview | null>(null);
+  const [apkDevice, setApkDevice] = useState<Device | null>(null);
+  const [choosingApk, setChoosingApk] = useState(false);
+  const apkPickerBusy = useRef(false);
+  const apkContext = useRef({ data, selected });
+  useEffect(() => {
+    apkContext.current = { data, selected };
+  }, [data, selected]);
   const requestExport = (request: ExportRequest) => {
     void guard(async () => setExportPreview(await call<ExportPreview>('export_prepare', request)));
   };
@@ -147,14 +155,33 @@ export function App() {
     });
     setBusy(false);
   };
-  const chooseApk = async (path?: string) => {
-    await guard(async () => {
-      const file = path ?? (await call<string | null>('file_choose', { kind: 'apk' }));
-      if (file) {
-        setApk(await call<ApkInfo>('apk_prepare', { path: file }));
-        setModal('apk');
-      }
-    });
+  const chooseApk = async (path?: string, requestedTarget?: string) => {
+    if (apkPickerBusy.current) return;
+    const context = apkContext.current;
+    const key = requestedTarget ?? context.selected;
+    const avd = context.data?.avds.find((a) => a.id === key);
+    const sessions =
+      avd && context.data?.avds.filter((a) => a.name === avd.name).length === 1
+        ? context.data.devices.filter((d) => d.avdName === avd.name)
+        : [];
+    const initialTarget =
+      context.data?.devices.find((d) => deviceKey(d) === key) ??
+      (sessions.length === 1 ? sessions[0] : null);
+    apkPickerBusy.current = true;
+    setChoosingApk(true);
+    try {
+      await guard(async () => {
+        const file = path ?? (await call<string | null>('file_choose', { kind: 'apk' }));
+        if (file) {
+          setApk(await call<ApkInfo>('apk_prepare', { path: file }));
+          setApkDevice(initialTarget ? { ...initialTarget } : null);
+          setModal('apk');
+        }
+      });
+    } finally {
+      apkPickerBusy.current = false;
+      setChoosingApk(false);
+    }
   };
   useEffect(() => {
     if (!native) return;
@@ -183,8 +210,7 @@ export function App() {
             event.payload.position.y / devicePixelRatio,
           )
           ?.closest<HTMLElement>('[data-device-key]');
-        if (row?.dataset.deviceKey) select(row.dataset.deviceKey);
-        void chooseApk(event.payload.paths[0]);
+        void chooseApk(event.payload.paths[0], row?.dataset.deviceKey);
       }),
     );
     return () => {
@@ -234,6 +260,9 @@ export function App() {
     (selectedAvd && data?.avds.filter((a) => a.name === selectedAvd.name).length === 1
       ? data?.devices.find((d) => d.avdName === selectedAvd.name)
       : undefined);
+  const apkTarget = apkDevice
+    ? data?.devices.find((d) => deviceKey(d) === deviceKey(apkDevice))
+    : undefined;
   const extraSessions =
     data?.devices.filter(
       (d) => !d.avdName || data.avds.filter((a) => a.name === d.avdName).length !== 1,
@@ -489,10 +518,14 @@ export function App() {
                     <div
                       key={deviceKey(d)}
                       tabIndex={0}
+                      title={selected === deviceKey(d) ? t('取消选中设备') : t('选中设备')}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') select(deviceKey(d));
+                        if (['Enter', ' '].includes(e.key) && e.target === e.currentTarget) {
+                          e.preventDefault();
+                          toggleSelection(deviceKey(d));
+                        }
                       }}
-                      onClick={() => select(deviceKey(d))}
+                      onClick={() => toggleSelection(deviceKey(d))}
                       data-device-key={deviceKey(d)}
                       className={`device-row ${selected === deviceKey(d) ? 'selected' : ''}`}
                     >
@@ -521,11 +554,10 @@ export function App() {
                       <Badge state={d.state} />
                       <button
                         className="row-button"
-                        disabled={d.state !== 'ready'}
+                        disabled={d.state !== 'ready' || choosingApk}
                         onClick={(e) => {
                           e.stopPropagation();
-                          select(deviceKey(d));
-                          void chooseApk();
+                          void chooseApk(undefined, deviceKey(d));
                         }}
                       >
                         {t('安装 APK')}
@@ -539,10 +571,14 @@ export function App() {
                     <div
                       key={a.id}
                       tabIndex={0}
+                      title={selected === a.id ? t('取消选中设备') : t('选中设备')}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') select(a.id);
+                        if (['Enter', ' '].includes(e.key) && e.target === e.currentTarget) {
+                          e.preventDefault();
+                          toggleSelection(a.id);
+                        }
                       }}
-                      onClick={() => select(a.id)}
+                      onClick={() => toggleSelection(a.id)}
                       data-device-key={a.id}
                       className={`device-row ${selected === a.id ? 'selected' : ''}`}
                     >
@@ -562,12 +598,11 @@ export function App() {
                       <Badge state={a.status} />
                       <button
                         className="row-button"
-                        disabled={!['stopped', 'ready'].includes(a.status)}
+                        disabled={!['stopped', 'ready'].includes(a.status) || choosingApk}
                         onClick={(e) => {
                           e.stopPropagation();
                           if (a.status === 'ready') {
-                            select(a.id);
-                            void chooseApk();
+                            void chooseApk(undefined, a.id);
                           } else void avdAction('avd_start', a);
                         }}
                       >
@@ -598,7 +633,11 @@ export function App() {
                 )}
                 <div className="add-device-hint">
                   <span>{t('拖入单个 APK 安装到所选设备')}</span>
-                  <button className="text-button" onClick={() => void chooseApk()}>
+                  <button
+                    className="text-button"
+                    disabled={choosingApk}
+                    onClick={() => void chooseApk()}
+                  >
                     <FileUp size={14} />
                     {t('选择 APK')}
                   </button>
@@ -650,7 +689,7 @@ export function App() {
                   <div className="detail-actions">
                     <Button
                       primary
-                      disabled={target?.state !== 'ready'}
+                      disabled={target?.state !== 'ready' || choosingApk}
                       onClick={() => void chooseApk()}
                     >
                       <Download size={15} />
@@ -849,7 +888,7 @@ export function App() {
         />
       )}
       {modal === 'apk' && apk && (
-        <Modal title={t('安装 APK')} onClose={() => setModal(null)}>
+        <Modal title={t('安装 APK')} onClose={() => setModal(null)} hidden={Boolean(plan)}>
           <div className="file-summary">
             <Package size={28} />
             <div>
@@ -862,10 +901,18 @@ export function App() {
           </div>
           <Field label={t('目标设备')}>
             <select
-              value={target ? deviceKey(target) : ''}
-              onChange={(e) => select(e.target.value)}
+              value={apkDevice ? deviceKey(apkDevice) : ''}
+              disabled={busy}
+              onChange={(e) =>
+                setApkDevice(data?.devices.find((d) => deviceKey(d) === e.target.value) ?? null)
+              }
             >
               <option value="">{t('选择明确目标')}</option>
+              {apkDevice && apkTarget?.state !== 'ready' && (
+                <option value={deviceKey(apkDevice)} disabled>
+                  {apkDevice.model} · {apkDevice.serial} · {t('暂不可用')}
+                </option>
+              )}
               {data?.devices
                 .filter((d) => d.state === 'ready')
                 .map((d) => (
@@ -875,6 +922,11 @@ export function App() {
                 ))}
             </select>
           </Field>
+          {apkDevice && apkTarget?.state !== 'ready' && (
+            <p className="warning-text" role="status">
+              {t('目标设备暂不可用，请重新选择或等待设备恢复。')}
+            </p>
+          )}
           <p className="hint">
             {t('最低 API ')}
             {apk.minSdk || t('未知')} · ABI {apk.abis.join(', ') || t('无指定 native ABI')}
@@ -885,8 +937,8 @@ export function App() {
             <Button onClick={() => setModal(null)}>{t('取消')}</Button>
             <Button
               primary
-              disabled={!target || target.state !== 'ready'}
-              onClick={() => void prepare('apk_install', { apkId: apk.id }, target ?? null)}
+              disabled={busy || !apkTarget || apkTarget.state !== 'ready'}
+              onClick={() => void prepare('apk_install', { apkId: apk.id }, apkTarget ?? null)}
             >
               {t('确认安装计划')}
             </Button>
