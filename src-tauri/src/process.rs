@@ -74,7 +74,8 @@ async fn bounded_read(
     limit: usize,
 ) -> std::io::Result<Vec<u8>> {
     let mut result = Vec::new();
-    let mut buffer = [0; 16384];
+    // Keep pipe buffers out of nested async frames on small Windows stacks.
+    let mut buffer = vec![0; 16384];
     loop {
         let n = stream.read(&mut buffer).await?;
         if n == 0 {

@@ -251,7 +251,9 @@ export function App() {
     let gone = false;
     const cleanups: Promise<() => void>[] = [];
     cleanups.push(listen('workspace-changed', () => refresh()));
-    cleanups.push(listen<{ message: string }>('task-error', (event) => setError(event.payload.message)));
+    cleanups.push(
+      listen<{ message: string }>('task-error', (event) => setError(event.payload.message)),
+    );
     cleanups.push(
       listen<boolean>('native-maximize-hover', (event) => setNativeHover(event.payload)),
     );
@@ -580,10 +582,12 @@ export function App() {
                         </strong>
                         <p>
                           {d.connection === 'wireless'
-                            ? '无线'
-                            : d.connection === 'emulator'
-                              ? '模拟器会话'
-                              : 'USB'}{' '}
+                            ? '无线调试'
+                            : d.connection === 'network'
+                              ? '网络 ADB'
+                              : d.connection === 'emulator'
+                                ? '模拟器会话'
+                                : 'USB'}{' '}
                           <span>·</span> {d.api ? `API ${d.api}` : d.serial}
                           <span>·</span>
                           {d.serial.slice(-12)}
@@ -709,7 +713,7 @@ export function App() {
                     )}
                   </dl>
                   {selectedDevice?.state === 'unauthorized' && (
-                    <p className="hint">请解锁手机并允许此电脑进行 USB 调试；授权后将自动更新。</p>
+                    <p className="hint">请解锁设备并允许此电脑进行 ADB 调试；授权后将自动更新。</p>
                   )}
                   <div className="detail-actions">
                     <Button
@@ -785,15 +789,21 @@ export function App() {
                         </Button>
                       </>
                     )}
-                    {selectedDevice?.connection === 'wireless' && (
-                      <Button
-                        onClick={() =>
-                          void prepare('wireless_disconnect', { address: selectedDevice.serial })
-                        }
-                      >
-                        断开无线连接
-                      </Button>
-                    )}
+                    {selectedDevice &&
+                      ['wireless', 'network'].includes(selectedDevice.connection) && (
+                        <Button
+                          onClick={() =>
+                            void prepare(
+                              selectedDevice.connection === 'network'
+                                ? 'network_disconnect'
+                                : 'wireless_disconnect',
+                              { address: selectedDevice.serial },
+                            )
+                          }
+                        >
+                          断开网络连接
+                        </Button>
+                      )}
                   </div>
                 </aside>
               )}
@@ -910,7 +920,15 @@ export function App() {
       {modal === 'create' && (
         <CreateAvd data={data} close={() => setModal(null)} prepare={prepare} />
       )}
-      {modal === 'wireless' && <Wireless close={() => setModal(null)} prepare={prepare} />}
+      {modal === 'wireless' && (
+        <ConnectDevice
+          close={() => setModal(null)}
+          prepare={prepare}
+          busy={busy}
+          error={error}
+          clearError={() => setError('')}
+        />
+      )}
       {modal === 'edit' && selectedAvd && (
         <EditAvd
           avd={selectedAvd}
@@ -1366,36 +1384,82 @@ function CreateAvd({
     </Modal>
   );
 }
-function Wireless({
+function ConnectDevice({
   close,
   prepare,
+  busy,
+  error,
+  clearError,
 }: {
   close: () => void;
   prepare: (k: string, a: Record<string, string>) => Promise<void>;
+  busy: boolean;
+  error: string;
+  clearError: () => void;
 }) {
-  const [mode, setMode] = useState('pair'),
+  const [mode, setMode] = useState<'pair' | 'connect' | 'network'>('pair'),
     [host, setHost] = useState(''),
-    [port, setPort] = useState(''),
+    [pairPort, setPairPort] = useState(''),
+    [connectPort, setConnectPort] = useState(''),
+    [networkPort, setNetworkPort] = useState('5555'),
     [code, setCode] = useState('');
+  const port = mode === 'pair' ? pairPort : mode === 'connect' ? connectPort : networkPort;
+  const setPort =
+    mode === 'pair' ? setPairPort : mode === 'connect' ? setConnectPort : setNetworkPort;
+  const addressHost = host.trim();
+  const address = `${addressHost.includes(':') && !addressHost.startsWith('[') ? `[${addressHost}]` : addressHost}:${port.trim()}`;
   return (
-    <Modal title="无线连接设备" onClose={close}>
-      <div className="tabs">
-        <button className={mode === 'pair' ? 'selected' : ''} onClick={() => setMode('pair')}>
-          1. 配对码
-        </button>
-        <button className={mode === 'connect' ? 'selected' : ''} onClick={() => setMode('connect')}>
-          2. 连接设备
-        </button>
+    <Modal title="连接设备" onClose={close}>
+      <div className="tabs" aria-label="设备连接方式">
+        {(
+          [
+            ['pair', '1. 无线配对'],
+            ['connect', '2. 已配对连接'],
+            ['network', '网络 ADB'],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            className={mode === value ? 'selected' : ''}
+            aria-pressed={mode === value}
+            disabled={busy}
+            onClick={() => {
+              setMode(value);
+              setCode('');
+              clearError();
+            }}
+          >
+            {label}
+          </button>
+        ))}
       </div>
-      <p className="hint">手机开启开发者选项 → 无线调试。电脑和手机应在可互通的同一网络。</p>
+      <p className="hint">
+        {mode === 'network'
+          ? '直接连接设备已开启的 ADB TCP/IP 端口，无需配对码。电脑需能访问设备所在网络。'
+          : '手机开启开发者选项 → 无线调试。电脑和手机应在可互通的同一网络。'}
+      </p>
       <Field label="设备 IP 地址">
-        <input placeholder="192.168.1.10" value={host} onChange={(e) => setHost(e.target.value)} />
+        <input
+          placeholder="192.168.1.10"
+          value={host}
+          disabled={busy}
+          onChange={(e) => setHost(e.target.value)}
+        />
       </Field>
       <Field
         label={mode === 'pair' ? '配对端口' : '连接端口'}
-        hint="配对端口与连接端口通常不同，请以手机当前页面为准。"
+        hint={
+          mode === 'network'
+            ? '默认 5555，可改为设备实际监听的端口。支持 IPv4 / IPv6 地址。'
+            : '配对端口与连接端口通常不同，请以手机当前页面为准。'
+        }
       >
-        <input inputMode="numeric" value={port} onChange={(e) => setPort(e.target.value)} />
+        <input
+          inputMode="numeric"
+          value={port}
+          disabled={busy}
+          onChange={(e) => setPort(e.target.value)}
+        />
       </Field>
       {mode === 'pair' && (
         <Field label="6 位配对码">
@@ -1404,23 +1468,45 @@ function Wireless({
             maxLength={6}
             inputMode="numeric"
             value={code}
+            disabled={busy}
             onChange={(e) => setCode(e.target.value)}
           />
         </Field>
       )}
-      <p className="hint">配对成功不代表已连接。取消配对需在手机的无线调试设置中选择“忘记”。</p>
+      {mode === 'network' ? (
+        <p className="hint">
+          首次开启：先通过 USB 连接并允许调试，再执行{' '}
+          <code>adb -s &lt;USB 序列号&gt; tcpip 5555</code>，然后使用设备 IP 连接。
+          已开启网络调试的设备可直接连接，建议仅在可信网络使用。
+        </p>
+      ) : (
+        <p className="hint">配对成功不代表已连接。取消配对需在手机的无线调试设置中选择“忘记”。</p>
+      )}
+      {error && (
+        <p className="plan-warning" role="alert">
+          {error}
+        </p>
+      )}
       <div className="modal-actions">
         <Button onClick={close}>取消</Button>
         <Button
           primary
+          disabled={busy}
           onClick={() =>
-            void prepare(mode === 'pair' ? 'wireless_pair' : 'wireless_connect', {
-              address: `${host}:${port}`,
-              ...(mode === 'pair' ? { code } : {}),
-            })
+            void prepare(
+              mode === 'pair'
+                ? 'wireless_pair'
+                : mode === 'network'
+                  ? 'network_connect'
+                  : 'wireless_connect',
+              {
+                address,
+                ...(mode === 'pair' ? { code: code.trim() } : {}),
+              },
+            )
           }
         >
-          {mode === 'pair' ? '配对' : '连接并验证'}
+          {busy ? '正在检查…' : mode === 'pair' ? '配对' : '连接并验证'}
         </Button>
       </div>
     </Modal>

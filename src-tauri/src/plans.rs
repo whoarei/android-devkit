@@ -272,7 +272,8 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             }
         }
         "wireless_pair" => {
-            android::validate_endpoint(op.arg("address")?)?;
+            let address = android::normalize_endpoint(op.arg("address")?)?;
+            op.args.insert("address".into(), address);
             let code = op.arg("code")?;
             if code.len() != 6 || !code.bytes().all(|b| b.is_ascii_digit()) {
                 return Err(AppError::new("INVALID_PAIR_CODE", "配对码应为 6 位数字"));
@@ -283,13 +284,18 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             ));
             "无线设备配对"
         }
-        "wireless_connect" | "wireless_disconnect" => {
-            android::validate_endpoint(op.arg("address")?)?;
+        "wireless_connect" | "wireless_disconnect" | "network_connect" | "network_disconnect" => {
+            let address = android::normalize_endpoint(op.arg("address")?)?;
+            op.args.insert("address".into(), address);
             effects.push(op.arg("address")?.into());
-            if op.kind == "wireless_connect" {
-                "连接无线设备"
-            } else {
-                "断开无线连接"
+            match op.kind.as_str() {
+                "network_connect" => {
+                    effects.push("直接连接设备已开启的 ADB TCP/IP 端口，并验证设备实际可用".into());
+                    "连接网络 ADB 设备"
+                }
+                "network_disconnect" => "断开网络 ADB 连接",
+                "wireless_connect" => "连接无线设备",
+                _ => "断开无线连接",
             }
         }
         "apk_install" | "app_reinstall" => {
@@ -406,6 +412,45 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn network_connection_plans_require_an_explicit_valid_endpoint_without_pairing() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = App::new(dir.path().join("state")).unwrap();
+        app.store
+            .save_settings(&Settings {
+                sdk_root: dir.path().join("sdk").to_string_lossy().into(),
+                avd_roots: vec![dir.path().join("avd").to_string_lossy().into()],
+                ..Default::default()
+            })
+            .unwrap();
+        for kind in ["network_connect", "network_disconnect"] {
+            let operation = |address: &str| Operation {
+                kind: kind.into(),
+                args: BTreeMap::from([("address".into(), address.into())]),
+                target: None,
+            };
+            let plan = app.prepare_plan(operation("[2001:0db8::1]:5555")).unwrap();
+            assert_eq!(plan.operation.optional("address"), "[2001:db8::1]:5555");
+            assert!(!plan.operation.args.contains_key("code"));
+            assert!(plan
+                .effects
+                .iter()
+                .any(|effect| effect.contains("[2001:db8::1]:5555")));
+            for address in [
+                "",
+                "192.168.1.2",
+                "192.168.1.2:0",
+                "192.168.1.2:65536",
+                "--help",
+            ] {
+                assert!(
+                    app.prepare_plan(operation(address)).is_err(),
+                    "{kind}: {address}"
+                );
+            }
+        }
+        assert!(app.store.tasks().unwrap().is_empty());
+    }
     #[test]
     fn consent_and_catalog_revision_are_enforced_before_side_effects() {
         let dir = tempfile::tempdir().unwrap();

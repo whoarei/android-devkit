@@ -12,6 +12,7 @@
     "tauri": "tauri",
     "test": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:ui": "node scripts/check-ui.cjs",
+    "test:network-ui": "node scripts/check-network-ui.cjs",
     "bindings": "cargo test --manifest-path src-tauri/Cargo.toml --lib export_typescript_contract -- --ignored",
     "verify:m3": "powershell -NoProfile -File scripts/build-test-apk.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib m3_real_sdk_lifecycle -- --ignored --nocapture",
     "verify:m2": "cargo test --manifest-path src-tauri/Cargo.toml --lib m2_blank_environment -- --ignored --nocapture",

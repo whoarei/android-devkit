@@ -204,7 +204,9 @@ impl App {
             t.message = "检查当前状态".into();
             t.cancellable = false;
         })?;
-        let result = self.execute(id, &op, &settings, &secret).await;
+        // The operation dispatcher contains large SDK/AVD futures. Keep it out
+        // of the task runner's future to avoid overflowing Windows debug stacks.
+        let result = Box::pin(self.execute(id, &op, &settings, &secret)).await;
         let persisted = match result {
             Ok(message) => self.update(id, |t| {
                 t.state = if t.cancel_requested && message == "已取消" {
@@ -498,7 +500,7 @@ impl App {
                 }
                 Ok("配对成功，尚未确认连接。请输入手机无线调试页的连接端口继续。".into())
             }
-            "wireless_connect" => {
+            "wireless_connect" | "network_connect" => {
                 android::adb(
                     settings,
                     None,
@@ -512,16 +514,25 @@ impl App {
                     if d.iter()
                         .any(|d| d.serial == op.optional("address") && d.state == "ready")
                     {
-                        return Ok("无线连接已验证，设备可用".into());
+                        return Ok(if op.kind == "network_connect" {
+                            "网络 ADB 连接已验证，设备可用"
+                        } else {
+                            "无线连接已验证，设备可用"
+                        }
+                        .into());
                     }
                     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
                 Err(AppError::new(
                     "CONNECT_NOT_READY",
-                    "未验证可用连接；检查连接端口、网络隔离或重新配对",
+                    if op.kind == "network_connect" {
+                        "未验证可用连接；请检查 IP、端口、设备 TCP/IP 调试是否开启及调试授权"
+                    } else {
+                        "未验证可用连接；检查连接端口、网络隔离或重新配对"
+                    },
                 ))
             }
-            "wireless_disconnect" => {
+            "wireless_disconnect" | "network_disconnect" => {
                 android::adb(
                     settings,
                     None,
@@ -530,7 +541,7 @@ impl App {
                 )
                 .await?
                 .success()?;
-                Ok("已断开该无线连接；手机侧授权仍保留".into())
+                Ok("已断开该网络连接；设备端 ADB 监听与调试授权仍保留".into())
             }
             "apk_install" | "app_reinstall" => {
                 let apk = self

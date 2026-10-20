@@ -430,7 +430,7 @@ fn log_throughput() {
 async fn wireless_failure_and_secret_handling() {
     let dir = tempfile::tempdir().unwrap();
     let app = App::new(dir.path().into()).unwrap();
-    for kind in ["wireless_pair", "wireless_connect"] {
+    for kind in ["wireless_pair", "wireless_connect", "network_connect"] {
         let op = Operation {
             kind: kind.into(),
             args: args(&[("address", "127.0.0.1:9"), ("code", "860731")]),

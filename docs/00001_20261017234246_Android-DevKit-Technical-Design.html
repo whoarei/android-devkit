@@ -90,7 +90,7 @@
           <tr><td>ONB-01</td><td>EnvironmentService + BootstrapService</td><td>有限扫描、复用或新建、用途驱动依赖、许可、SDK / AVD / 缓存路径与空间预检</td></tr>
           <tr><td>SDK-01～03</td><td>SdkService + SdkToolAdapter</td><td>本地与远端清单、搜索、变更计划、显式安装卸载、代理、依赖拦截及逐项重试</td></tr>
           <tr><td>AVD-01～04</td><td>AvdService + EmulatorSupervisor</td><td>读取既有 AVD、创建手机 / 平板、启动停止、冷启动、受限编辑、清数据与删除</td></tr>
-          <tr><td>DEV-01～03</td><td>AdbCoordinator + DeviceRegistry</td><td>USB、配对码无线连接、事实状态、可靠身份、当前与默认目标、共享 ADB 诊断</td></tr>
+          <tr><td>DEV-01～03</td><td>AdbCoordinator + DeviceRegistry</td><td>USB、配对码无线连接、网络 ADB 直连、事实状态、可靠身份、当前与默认目标、共享 ADB 诊断</td></tr>
           <tr><td>DEV-04</td><td>ApkService + InstallTask</td><td>单 APK 校验、明确目标、覆盖安装、安装错误解释、可识别时启动应用</td></tr>
           <tr><td>DEV-05</td><td>LogService + CaptureService + DiagnosticsService</td><td>基础 Logcat、10,000 行缓冲、长采集、截图预览 / 保存 / 复制、脱敏摘要与日志导出</td></tr>
           <tr><td>通用规则 / AC-10</td><td>TaskEngine + ResourceLockManager + Reconciler</td><td>跨页任务、资源互斥、阶段取消、异常退出后复查实际状态、可审计的高影响操作</td></tr>
@@ -296,7 +296,8 @@ android --sdk=&lt;SDK&gt; sdk install &lt;packageId&gt;</code></pre>
         <h3>无线配对状态机</h3>
         <div class="state-path">输入配对地址 / 端口 / 码 → pairing → paired_unconnected → connecting → 验证 transport → ready</div>
         <p>配对码通过 stdin 提交给 <code>adb pair</code>，只在内存中短时保留，不作为进程参数或日志内容。配对端口与连接端口分开；通过受支持 mDNS 能力发现连接地址，失败则允许手动输入。配对 60 秒为初始超时，错误码区分配对过期、拒绝与网络失败；不无限重试。</p>
-        <p>只有设备出现在目标 Server 且通信通过，才显示“连接成功”。无线断开调用明确端点的 disconnect；手机侧取消配对提供系统设置指引，不能伪装成主机可以可靠执行的 adb unpair。旧式 tcpip 无配对模式不进入 P0。<a href="https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi">官方无线配对流程</a>。</p>
+        <p>只有设备出现在目标 Server 且通信通过，才显示“连接成功”。无线断开调用明确端点的 disconnect；手机侧取消配对提供系统设置指引，不能伪装成主机可以可靠执行的 adb unpair。<a href="https://developer.android.com/tools/adb#connect-to-a-device-over-wi-fi">官方无线配对流程</a>。</p>
+        <p>网络 ADB 使用独立的 <code>network_connect</code> / <code>network_disconnect</code> 计划，按规范化的 IP:端口执行 <code>adb connect</code> / <code>adb disconnect</code>。IPv6 使用 <code>[地址]:端口</code>，端口限 1～65535；默认 5555 仅为表单建议值。连接后必须确认同一端点出现在目标 Server 且设备探针通过，再标记可用；不以 adb 的退出码或提示文字替代通信验证。IP 端点在列表展示为“网络 ADB”，mDNS TLS 服务展示为“无线调试”，IP 端点本身不作为是否已配对或是否加密的证据。应用提供 USB 授权与 <code>adb -s &lt;USB序列号&gt; tcpip 5555</code> 的开启指引，不自动改变设备端监听。<a href="https://developer.android.com/tools/adb#connect-wirelessly-with-a-device-after-an-initial-usb-connection-only-option-available-on-android-10-and-lower">官方 TCP/IP 调试流程</a>。</p>
         <p>USB 驱动问题按“未发现设备”与“已发现未授权”分别诊断，给出 OEM / Windows 官方入口。应用不自动下载来源未知的驱动，不默认申请管理员权限。</p>
       </section>
 

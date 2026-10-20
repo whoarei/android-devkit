@@ -435,8 +435,10 @@ pub fn parse_devices(text: &str, epoch: u64) -> Vec<Device> {
             Some(Device {
                 connection: if serial.starts_with("emulator-") {
                     "emulator"
-                } else if serial.contains(':') || serial.contains("._adb-tls-") {
+                } else if serial.contains("._adb-tls-") {
                     "wireless"
+                } else if serial.contains(':') {
+                    "network"
                 } else {
                     "usb"
                 }
@@ -573,19 +575,18 @@ pub async fn devices(settings: &Settings, epoch: u64) -> Vec<Device> {
     devices
 }
 
-pub fn validate_endpoint(value: &str) -> Result<()> {
-    let (host, port) = value
-        .rsplit_once(':')
-        .ok_or_else(|| AppError::new("INVALID_ADDRESS", "地址格式应为 IP:端口"))?;
-    if host.parse::<std::net::IpAddr>().is_err()
-        || port.parse::<u16>().ok().filter(|p| *p > 0).is_none()
-    {
-        return Err(AppError::new(
-            "INVALID_ADDRESS",
-            "请输入有效 IP 和 1～65535 端口",
-        ));
-    }
-    Ok(())
+pub fn normalize_endpoint(value: &str) -> Result<String> {
+    value
+        .parse::<SocketAddr>()
+        .ok()
+        .filter(|address| address.port() > 0)
+        .map(|address| address.to_string())
+        .ok_or_else(|| {
+            AppError::new(
+                "INVALID_ADDRESS",
+                "请输入有效 IP 和 1～65535 端口；IPv6 地址应使用 [地址]:端口",
+            )
+        })
 }
 pub fn safe_avd_path(avd: &Avd, settings: &Settings) -> Result<PathBuf> {
     let path = std::fs::canonicalize(&avd.data_path)?;
@@ -667,9 +668,42 @@ mod tests {
     }
     #[test]
     fn validates_network_addresses() {
-        assert!(validate_endpoint("192.168.1.2:12345").is_ok());
-        for x in ["a;calc:4", "1.1.1.1:0", "1.1.1.1:99999"] {
-            assert!(validate_endpoint(x).is_err());
+        assert_eq!(
+            normalize_endpoint("192.168.1.2:5555").unwrap(),
+            "192.168.1.2:5555"
+        );
+        assert_eq!(
+            normalize_endpoint("[2001:0db8::1]:5555").unwrap(),
+            "[2001:db8::1]:5555"
+        );
+        for x in [
+            "a;calc:4",
+            "1.1.1.1:0",
+            "1.1.1.1:99999",
+            "192.168.1.2",
+            "2001:db8::1:5555",
+        ] {
+            assert!(
+                normalize_endpoint(x).is_err(),
+                "accepted invalid endpoint {x}"
+            );
         }
+    }
+    #[test]
+    fn network_sessions_preserve_endpoint_and_authorization_state() {
+        let devices = parse_devices(
+            "USB123 device usb:1 transport_id:1\n192.168.1.2:5555 unauthorized transport_id:2\n[2001:db8::1]:5555 offline transport_id:3\nadb-phone._adb-tls-connect._tcp device transport_id:4\nemulator-5554 device transport_id:5",
+            9,
+        );
+        let connections: Vec<_> = devices.iter().map(|d| d.connection.as_str()).collect();
+        assert_eq!(
+            connections,
+            ["usb", "network", "network", "wireless", "emulator"]
+        );
+        assert_eq!(devices[1].serial, "192.168.1.2:5555");
+        assert_eq!(devices[1].state, "unauthorized");
+        assert_eq!(devices[2].state, "offline");
+        assert_eq!(devices[1].server_epoch, 9);
+        assert_eq!(devices[1].transport_id, "2");
     }
 }
