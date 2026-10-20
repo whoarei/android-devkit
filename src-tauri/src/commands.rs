@@ -8,6 +8,20 @@ use tauri::{Manager, State};
 type Service<'a> = State<'a, Arc<App>>;
 
 #[tauri::command]
+pub fn ui_locale_set(app: Service<'_>, locale: String) -> Result<()> {
+    let english = match locale.as_str() {
+        "zh-CN" => false,
+        "en-US" => true,
+        _ => return Err(AppError::new("INVALID_LOCALE", "不支持的界面语言")),
+    };
+    app.english.store(english, Ordering::Relaxed);
+    if let Some(handle) = app.handle.lock().unwrap().clone() {
+        crate::lifecycle::update_tray(&handle, &app);
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn workspace_snapshot(app: Service<'_>) -> Result<Workspace> {
     app.snapshot().await
 }

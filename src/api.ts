@@ -1,16 +1,23 @@
+import { t } from './i18n';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 export const native = isTauri();
 export function call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!native)
     return Promise.reject({
       code: 'DESKTOP_REQUIRED',
-      message: '请使用桌面应用连接本机 SDK；浏览器中不执行设备操作。',
+      message: t('请使用桌面应用连接本机 SDK；浏览器中不执行设备操作。'),
     });
   return invoke<T>(command, args);
 }
 export function errorText(e: unknown): string {
   if (typeof e === 'object' && e !== null && 'message' in e)
-    return String((e as { message: string }).message);
+    return String(
+      (
+        e as {
+          message: string;
+        }
+      ).message,
+    );
   return String(e);
 }
 export const stateLabel: Record<string, string> = {
@@ -33,4 +40,4 @@ export const taskActive = (state: string) =>
   ['queued', 'running', 'waiting_confirmation'].includes(state);
 export const deviceKey = (d: { serial: string; transportId: string; serverEpoch: number }) =>
   `device:${d.serverEpoch}:${d.transportId}:${d.serial}`;
-export const size = (n: number) => (n ? `${(n / 1024 / 1024).toFixed(1)} MiB` : '待获取');
+export const size = (n: number) => (n ? `${(n / 1024 / 1024).toFixed(1)} MiB` : t('待获取'));

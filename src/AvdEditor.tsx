@@ -1,8 +1,8 @@
+import { t } from './i18n';
 import { useId, useState } from 'react';
 import { call, errorText } from './api';
 import { Button, Field, Modal } from './ui';
 import type { Avd } from './bindings';
-
 export type AvdForm = Record<string, string>;
 const mib = (value: string) => {
   const match = value?.trim().match(/^(\d+(?:\.\d+)?)([GMKB]?)$/i);
@@ -116,7 +116,7 @@ function StorageField({
           }
         />
         <select
-          aria-label={`${label}单位`}
+          aria-label={t('{0}单位', label)}
           value={unit}
           onChange={(event) => setUnit(event.target.value)}
         >
@@ -145,7 +145,7 @@ export function AvdSettingsFields({
         min={min}
         max={max}
         value={values[key] ?? ''}
-        placeholder="保留原值 / 默认值"
+        placeholder={t('保留原值 / 默认值')}
         onChange={(event) => set(key, event.target.value)}
       />
     </Field>
@@ -158,10 +158,13 @@ export function AvdSettingsFields({
         onChange={(event) => set(key, event.target.value)}
       >
         <option value="" disabled={Boolean(values[key])}>
-          保留默认值
+          {t('保留默认值')}
         </option>
         {values[key] && !options.some(([value]) => value === values[key]) && (
-          <option value={values[key]}>当前：{values[key]}</option>
+          <option value={values[key]}>
+            {t('当前：')}
+            {values[key]}
+          </option>
         )}
         {options.map(([value, title]) => (
           <option value={value} key={value}>
@@ -176,7 +179,7 @@ export function AvdSettingsFields({
       <input
         list={`${id}-${key}`}
         value={values[key] ?? ''}
-        placeholder="留空保留原值"
+        placeholder={t('留空保留原值')}
         onChange={(event) => set(key, event.target.value)}
       />
       <datalist id={`${id}-${key}`}>
@@ -196,49 +199,49 @@ export function AvdSettingsFields({
     }
   };
   const cameras: [string, string][] = [
-    ['none', '关闭'],
-    ['emulated', '软件模拟'],
-    ['virtualscene', '虚拟场景'],
-    ['webcam0', '本机摄像头 0'],
-    ['webcam1', '本机摄像头 1'],
+    ['none', t('关闭')],
+    ['emulated', t('软件模拟')],
+    ['virtualscene', t('虚拟场景')],
+    ['webcam0', t('本机摄像头 0')],
+    ['webcam1', t('本机摄像头 1')],
   ];
   return (
     <div className="avd-settings">
       <details open>
-        <summary>性能与显示</summary>
+        <summary>{t('性能与显示')}</summary>
         <div className="form-grid">
-          {number('CPU 核心数', 'cpuCores', 1, 16)}
-          {number('内存（MiB）', 'memory', 512, 16384)}
+          {number(t('CPU 核心数'), 'cpuCores', 1, 16)}
+          {number(t('内存（MiB）'), 'memory', 512, 16384)}
           {number('VM Heap（MiB）', 'vmHeap', 16, 2048)}
-          {select('图形模式', 'gpu', [
-            ['auto', '自动'],
-            ['host', '主机 GPU'],
-            ['software', '软件渲染'],
+          {select(t('图形模式'), 'gpu', [
+            ['auto', t('自动')],
+            ['host', t('主机 GPU')],
+            ['software', t('软件渲染')],
           ])}
-          {number('屏幕宽度（px）', 'screenWidth', 240, 8192)}
-          {number('屏幕高度（px）', 'screenHeight', 240, 8192)}
-          {number('屏幕密度（dpi）', 'density', 72, 1000)}
-          {select('启动方向', 'orientation', [
-            ['portrait', '竖屏'],
-            ['landscape', '横屏'],
+          {number(t('屏幕宽度（px）'), 'screenWidth', 240, 8192)}
+          {number(t('屏幕高度（px）'), 'screenHeight', 240, 8192)}
+          {number(t('屏幕密度（dpi）'), 'density', 72, 1000)}
+          {select(t('启动方向'), 'orientation', [
+            ['portrait', t('竖屏')],
+            ['landscape', t('横屏')],
           ])}
         </div>
       </details>
       <details>
-        <summary>摄像头与网络</summary>
+        <summary>{t('摄像头与网络')}</summary>
         <div className="form-grid">
           {presets(
-            '前置摄像头',
+            t('前置摄像头'),
             'cameraFront',
             cameras.filter(([value]) => value !== 'virtualscene'),
-            'none / emulated / webcam 编号',
+            t('none / emulated / webcam 编号'),
           )}
-          {presets('后置摄像头', 'cameraBack', cameras, 'webcam 编号须对应本机可用摄像头')}
+          {presets(t('后置摄像头'), 'cameraBack', cameras, t('webcam 编号须对应本机可用摄像头'))}
           {presets(
-            '网络速度',
+            t('网络速度'),
             'networkSpeed',
             [
-              ['full', '不限速'],
+              ['full', t('不限速')],
               ['gsm', 'GSM'],
               ['gprs', 'GPRS'],
               ['edge', 'EDGE'],
@@ -247,116 +250,122 @@ export function AvdSettingsFields({
               ['lte', 'LTE'],
               ['5g', '5G'],
             ],
-            '预设或 kbit/s 数值，例 1024:2048（上传:下载）',
+            t('预设或 kbit/s 数值，例 1024:2048（上传:下载）'),
           )}
           {presets(
-            '网络延迟',
+            t('网络延迟'),
             'networkLatency',
             [
-              ['none', '无延迟'],
+              ['none', t('无延迟')],
               ['gsm', 'GSM'],
               ['gprs', 'GPRS'],
               ['edge', 'EDGE'],
               ['umts', '3G'],
             ],
-            '预设或毫秒数，例 20:100（最小:最大）',
+            t('预设或毫秒数，例 20:100（最小:最大）'),
           )}
         </div>
       </details>
       <details>
-        <summary>启动与存储</summary>
+        <summary>{t('启动与存储')}</summary>
         <div className="form-grid">
-          {select('默认启动方式', 'bootMode', [
-            ['quick', '快速启动'],
-            ['cold', '冷启动'],
+          {select(t('默认启动方式'), 'bootMode', [
+            ['quick', t('快速启动')],
+            ['cold', t('冷启动')],
           ])}
           <StorageField
-            label="数据分区目标容量"
+            label={t('数据分区目标容量')}
             field="storageMiB"
             values={values}
             set={set}
-            hint="2～128 GiB，不自动清除已有用户数据。已有分区是否扩容由模拟器处理。"
+            hint={t('2～128 GiB，不自动清除已有用户数据。已有分区是否扩容由模拟器处理。')}
           />
-          {select('扩展存储', 'sdCardMode', [
-            ...(!creating ? [['keep', '保留现有扩展存储'] as [string, string]] : []),
-            ['none', '不使用'],
-            ['size', '创建新的扩展存储镜像'],
-            ['external', '使用现有镜像文件'],
+          {select(t('扩展存储'), 'sdCardMode', [
+            ...(!creating ? [['keep', t('保留现有扩展存储')] as [string, string]] : []),
+            ['none', t('不使用')],
+            ['size', t('创建新的扩展存储镜像')],
+            ['external', t('使用现有镜像文件')],
           ])}
           {values.sdCardMode === 'size' && (
             <StorageField
-              label="扩展存储容量"
+              label={t('扩展存储容量')}
               field="sdCardMiB"
               values={values}
               set={set}
-              hint="64 MiB～32 GiB；创建新镜像，原镜像保留。"
+              hint={t('64 MiB～32 GiB；创建新镜像，原镜像保留。')}
             />
           )}
         </div>
         {values.sdCardMode === 'external' && (
-          <Field label="扩展存储镜像路径" hint="选择现有 .img 文件；配置变更不会格式化该文件。">
+          <Field
+            label={t('扩展存储镜像路径')}
+            hint={t('选择现有 .img 文件；配置变更不会格式化该文件。')}
+          >
             <div className="input-action">
               <input
                 value={values.sdCardPath}
                 onChange={(event) => set('sdCardPath', event.target.value)}
               />
-              <Button onClick={() => void choose('sdCardPath', 'sdcard')}>选择镜像</Button>
+              <Button onClick={() => void choose('sdCardPath', 'sdcard')}>{t('选择镜像')}</Button>
             </div>
           </Field>
         )}
         {values.sdCardMode === 'keep' && values.sdCardPath && (
-          <p className="hint path">当前：{values.sdCardPath}</p>
+          <p className="hint path">
+            {t('当前：')}
+            {values.sdCardPath}
+          </p>
         )}
       </details>
       <details>
-        <summary>设备皮肤与边框</summary>
+        <summary>{t('设备皮肤与边框')}</summary>
         <div className="form-grid">
-          {select('设备皮肤', 'skinMode', [
-            ...(!creating ? [['keep', '保留现有皮肤'] as [string, string]] : []),
-            ['none', '无皮肤'],
-            ['custom', '自定义皮肤目录'],
+          {select(t('设备皮肤'), 'skinMode', [
+            ...(!creating ? [['keep', t('保留现有皮肤')] as [string, string]] : []),
+            ['none', t('无皮肤')],
+            ['custom', t('自定义皮肤目录')],
           ])}
-          {select('显示设备边框', 'showDeviceFrame', [
-            ['yes', '显示'],
-            ['no', '隐藏'],
+          {select(t('显示设备边框'), 'showDeviceFrame', [
+            ['yes', t('显示')],
+            ['no', t('隐藏')],
           ])}
         </div>
         {values.skinMode === 'custom' && (
-          <Field label="皮肤目录" hint="目录必须包含 layout 文件；分辨率应与皮肤匹配。">
+          <Field label={t('皮肤目录')} hint={t('目录必须包含 layout 文件；分辨率应与皮肤匹配。')}>
             <div className="input-action">
               <input
                 value={values.skinPath}
                 onChange={(event) => set('skinPath', event.target.value)}
               />
-              <Button onClick={() => void choose('skinPath', 'skin')}>选择目录</Button>
+              <Button onClick={() => void choose('skinPath', 'skin')}>{t('选择目录')}</Button>
             </div>
           </Field>
         )}
       </details>
       <details>
-        <summary>输入与设备能力</summary>
+        <summary>{t('输入与设备能力')}</summary>
         <div className="form-grid">
-          {select('硬件键盘输入', 'keyboard', [
-            ['yes', '启用'],
-            ['no', '关闭'],
+          {select(t('硬件键盘输入'), 'keyboard', [
+            ['yes', t('启用')],
+            ['no', t('关闭')],
           ])}
-          {select('麦克风输入', 'audioInput', [
-            ['yes', '启用'],
-            ['no', '关闭'],
+          {select(t('麦克风输入'), 'audioInput', [
+            ['yes', t('启用')],
+            ['no', t('关闭')],
           ])}
-          {select('电池模拟', 'battery', [
-            ['yes', '启用'],
-            ['no', '关闭'],
+          {select(t('电池模拟'), 'battery', [
+            ['yes', t('启用')],
+            ['no', t('关闭')],
           ])}
           {select('GPS', 'gps', [
-            ['yes', '启用'],
-            ['no', '关闭'],
+            ['yes', t('启用')],
+            ['no', t('关闭')],
           ])}
         </div>
       </details>
       {error && (
         <p className="error-banner" role="alert">
-          {error}
+          {t(error)}
         </p>
       )}
     </div>
@@ -385,24 +394,24 @@ export function AvdPreview({
         : width / height;
   return (
     <aside className="avd-preview">
-      <strong>{title || '虚拟设备'}</strong>
+      <strong>{title || t('虚拟设备')}</strong>
       <div
         className="avd-screen"
         style={{ aspectRatio: String(ratio), width: `${Math.min(150, 210 * ratio)}px` }}
       >
-        <span>{values.orientation === 'landscape' ? '横屏' : '竖屏'}</span>
+        <span>{values.orientation === 'landscape' ? t('横屏') : t('竖屏')}</span>
       </div>
       <dl>
-        <dt>分辨率</dt>
+        <dt>{t('分辨率')}</dt>
         <dd>
           {known
             ? `${landscape ? Math.max(width, height) : values.orientation === 'portrait' ? Math.min(width, height) : width} × ${landscape ? Math.min(width, height) : values.orientation === 'portrait' ? Math.max(width, height) : height}`
-            : '沿用硬件配置'}
+            : t('沿用硬件配置')}
         </dd>
-        <dt>密度</dt>
-        <dd>{values.density || '默认'} dpi</dd>
+        <dt>{t('密度')}</dt>
+        <dd>{values.density || t('默认')} dpi</dd>
         <dt>API</dt>
-        <dd>{api || '由镜像决定'}</dd>
+        <dd>{api || t('由镜像决定')}</dd>
         <dt>ABI</dt>
         <dd>{abi || 'x86_64'}</dd>
       </dl>
@@ -438,11 +447,11 @@ export function EditAvd({
     save({ ...args, fingerprint: initial.fingerprint });
   };
   return (
-    <Modal title="编辑模拟器配置" onClose={close} wide className="avd-modal">
+    <Modal title={t('编辑模拟器配置')} onClose={close} wide className="avd-modal">
       <div className="avd-modal-body">
         <div className="avd-editor-layout">
           <div>
-            <Field label="显示名称">
+            <Field label={t('显示名称')}>
               <input
                 value={values.displayName}
                 onChange={(event) => set('displayName', event.target.value)}
@@ -453,18 +462,20 @@ export function EditAvd({
           <AvdPreview values={values} title={values.displayName} api={avd.api} abi={avd.abi} />
         </div>
         <p className="hint">
-          配置在下次启动时生效。内部名称、系统镜像及已有用户数据保留；未修改的配置键保持原值。
+          {t(
+            '配置在下次启动时生效。内部名称、系统镜像及已有用户数据保留；未修改的配置键保持原值。',
+          )}
         </p>
         {(error || conflict) && (
           <p className="error-banner" role="alert">
-            {conflict ? '配置已在其他工具中更新，请关闭后重新打开编辑面板。' : error}
+            {conflict ? t('配置已在其他工具中更新，请关闭后重新打开编辑面板。') : t(error)}
           </p>
         )}
       </div>
       <div className="modal-actions">
-        <Button onClick={close}>取消</Button>
+        <Button onClick={close}>{t('取消')}</Button>
         <Button primary disabled={busy || conflict || !changed} onClick={submit}>
-          查看保存计划
+          {t('查看保存计划')}
         </Button>
       </div>
     </Modal>

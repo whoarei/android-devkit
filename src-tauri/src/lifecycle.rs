@@ -1,7 +1,11 @@
 use crate::{app::App, domain::*};
 use std::sync::{atomic::Ordering, Arc};
 use tauri::{Emitter, Manager};
-struct TrayStatus(tauri::menu::MenuItem<tauri::Wry>);
+struct TrayItems {
+    show: tauri::menu::MenuItem<tauri::Wry>,
+    status: tauri::menu::MenuItem<tauri::Wry>,
+    quit: tauri::menu::MenuItem<tauri::Wry>,
+}
 pub fn create_tray(handle: &tauri::AppHandle) -> Result<()> {
     use tauri::{
         menu::{Menu, MenuItem},
@@ -14,7 +18,7 @@ pub fn create_tray(handle: &tauri::AppHandle) -> Result<()> {
     let quit =
         MenuItem::with_id(handle, "quit", "退出…", true, None::<&str>).map_err(window_error)?;
     let menu = Menu::with_items(handle, &[&show, &status, &quit]).map_err(window_error)?;
-    handle.manage(TrayStatus(status));
+    handle.manage(TrayItems { show, status, quit });
     let mut builder = TrayIconBuilder::with_id("devkit")
         .menu(&menu)
         .tooltip("Android DevKit")
@@ -67,10 +71,21 @@ pub fn update_tray(h: &tauri::AppHandle, app: &App) {
             .iter()
             .filter(|t| matches!(t.state.as_str(), "failed" | "needs_review"))
             .count();
-        let text = format!("Android DevKit · {active} 个进行中 · {failed} 个需检查");
+        let english = app.english.load(Ordering::Relaxed);
+        let text = if english {
+            format!("Android DevKit · {active} active · {failed} need review")
+        } else {
+            format!("Android DevKit · {active} 个进行中 · {failed} 个需检查")
+        };
         let _ = tray.set_tooltip(Some(&text));
-        if let Some(item) = h.try_state::<TrayStatus>() {
-            let _ = item.0.set_text(&text);
+        if let Some(items) = h.try_state::<TrayItems>() {
+            let _ = items.status.set_text(&text);
+            let _ = items.show.set_text(if english {
+                "Open workbench"
+            } else {
+                "打开工作台"
+            });
+            let _ = items.quit.set_text(if english { "Exit…" } else { "退出…" });
         }
     }
 }

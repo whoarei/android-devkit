@@ -3,6 +3,7 @@
   "description": "Local workbench only; all system actions validated by Rust",
   "windows": ["main"],
   "permissions": [
+    "allow-ui-locale-set",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "allow-workspace-snapshot",

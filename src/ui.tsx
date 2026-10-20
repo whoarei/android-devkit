@@ -1,3 +1,4 @@
+import { t } from './i18n';
 import {
   useEffect,
   useId,
@@ -9,7 +10,6 @@ import {
 } from 'react';
 import { X } from 'lucide-react';
 import { stateLabel } from './api';
-
 export function Button({
   children,
   onClick,
@@ -29,7 +29,7 @@ export function Button({
 }) {
   return (
     <button
-      title={title}
+      title={title ? t(title) : undefined}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={`button ${primary ? 'primary' : ''} ${danger ? 'danger' : ''}`}
@@ -43,7 +43,7 @@ export function Badge({ state }: { state: string }) {
   return (
     <span className={`badge ${state}`}>
       <i />
-      {stateLabel[state] ?? state}
+      {t(stateLabel[state] ?? state)}
     </span>
   );
 }
@@ -77,12 +77,12 @@ export function Modal({
       <section
         role="dialog"
         aria-modal="true"
-        aria-label={title}
+        aria-label={t(title)}
         className={`modal ${wide ? 'wide' : ''} ${className}`}
       >
         <div className="modal-heading">
-          <h2>{title}</h2>
-          <button className="icon-button" aria-label="关闭面板" onClick={onClose}>
+          <h2>{t(title)}</h2>
+          <button className="icon-button" aria-label={t('关闭面板')} onClick={onClose}>
             <X size={18} />
           </button>
         </div>
@@ -104,7 +104,10 @@ export function Field({
   let connected = false;
   const connect = (node: ReactNode): ReactNode => {
     if (!isValidElement(node)) return node;
-    const item = node as ReactElement<{ id?: string; children?: ReactNode }>;
+    const item = node as ReactElement<{
+      id?: string;
+      children?: ReactNode;
+    }>;
     if (typeof item.type === 'string' && ['input', 'select', 'textarea'].includes(item.type)) {
       if (connected) return item;
       connected = true;
@@ -116,9 +119,9 @@ export function Field({
   };
   return (
     <div className="field">
-      <label htmlFor={id}>{label}</label>
+      <label htmlFor={id}>{t(label)}</label>
       {Children.map(children, connect)}
-      {hint && <small>{hint}</small>}
+      {hint && <small>{t(hint)}</small>}
     </div>
   );
 }

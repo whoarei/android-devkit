@@ -123,6 +123,17 @@ textarea {
   display: flex;
   height: 40px;
 }
+.locale-switch {
+  flex-shrink: 0;
+  align-self: center;
+  margin-right: 10px;
+  padding: 3px 7px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--green);
+  font-size: 10px;
+}
 .window-buttons button {
   border: 0;
   border-radius: 0;

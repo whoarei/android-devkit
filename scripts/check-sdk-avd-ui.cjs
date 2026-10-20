@@ -137,6 +137,31 @@ const path = require('node:path');
         invoke: async (command, args) => {
           if (command === 'workspace_snapshot') return structuredClone(window.__fixture);
           if (command === 'window_state') return { maximized: false };
+          if (command === 'artifacts_list') return [];
+          if (command === 'task_list')
+            return {
+              tasks: [
+                {
+                  id: 'localized-task',
+                  title: '启动模拟器',
+                  state: 'succeeded',
+                  phase: 'complete',
+                  message: '模拟器系统已就绪',
+                  operation: { kind: 'avd_start', args: {}, target: null },
+                  createdAt: 1,
+                  updatedAt: 1,
+                  log: [],
+                  progress: null,
+                  artifact: '',
+                  licensePrompt: '',
+                  cancellable: false,
+                },
+              ],
+              total: 1,
+              counts: { succeeded: 1 },
+              offset: 0,
+              pageSize: 30,
+            };
           if (command === 'sdk_sites_status')
             return [
               {
@@ -473,6 +498,58 @@ const path = require('node:path');
     assert.equal(created.args.profile, 'Nexus 9');
     assert.equal(created.args.storageMiB, '8192');
     assert.equal(created.args.screenHeight, '2048');
+    await page.getByRole('button', { name: '返回修改', exact: true }).click();
+    await dialog.getByLabel('显示名称', { exact: true }).fill('自定义 name must stay');
+    await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    dialog = page.getByRole('dialog', { name: 'Create emulator', exact: true });
+    assert.equal(
+      await dialog.getByLabel('Display name', { exact: true }).inputValue(),
+      '自定义 name must stay',
+    );
+    await dialog.getByRole('button', { name: 'Review creation plan', exact: true }).waitFor();
+    assert.equal(await page.locator('html').getAttribute('lang'), 'en-US');
+    await dialog.getByRole('button', { name: 'Close panel', exact: true }).click();
+    await page.getByRole('button', { name: 'SDK Manager', exact: true }).click();
+    await page.getByLabel('Show preview components', { exact: true }).waitFor();
+    await page.getByRole('textbox', { name: 'Search components', exact: true }).fill('Sources');
+    const selectedSource = page.getByLabel('sources;android-35 change', { exact: true });
+    await selectedSource.selectOption('install');
+    await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
+    assert.equal(
+      await page.getByLabel('sources;android-35 变更', { exact: true }).inputValue(),
+      'install',
+    );
+    await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    await page.getByRole('button', { name: 'Task Center', exact: true }).click();
+    await page.getByRole('heading', { name: 'Task Center', exact: true }).waitFor();
+    await page.getByText('Emulator system is ready', { exact: true }).waitFor();
+    await page.getByText('Start emulator', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    assert.equal(
+      await page.getByLabel('Interface language', { exact: true }).inputValue(),
+      'en-US',
+    );
+    await page.reload();
+    await page.getByRole('heading', { name: 'Device Workbench', exact: true }).waitFor();
+    assert.equal(await page.locator('html').getAttribute('lang'), 'en-US');
+    await page.getByRole('button', { name: 'Connect device', exact: true }).click();
+    dialog = page.getByRole('dialog', { name: 'Connect device', exact: true });
+    await dialog.getByLabel('Device IP address', { exact: true }).fill('192.0.2.10');
+    await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
+    assert.equal(await page.getByLabel('设备 IP 地址', { exact: true }).inputValue(), '192.0.2.10');
+    await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    await page.setViewportSize({ width: 480, height: 640 });
+    assert.equal(
+      await page.getByRole('dialog').evaluate((el) => el.scrollWidth > el.clientWidth),
+      false,
+    );
+    await page.screenshot({ path: path.join(output, 'language-english-compact.png') });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole('button', { name: 'Close panel', exact: true }).click();
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.screenshot({ path: path.join(output, 'language-settings-english.png') });
+    await page.getByLabel('Interface language', { exact: true }).selectOption('zh-CN');
+    await page.getByRole('heading', { name: '设置', exact: true }).waitFor();
     assert.deepEqual(errors, []);
     console.log(
       'SDK/AVD UI: shared refresh animation, navigation, failures, warnings, preview/site refresh, hierarchy, filters, updates, cross-tab plans, site CRUD, settings diff, storage units, frozen config, creation and compact layout passed.',

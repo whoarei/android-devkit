@@ -1,10 +1,18 @@
+import { t } from './i18n';
 import type { SdkPackage } from './bindings';
-
 export type SdkTreeNode =
-  | { kind: 'package'; package: SdkPackage }
-  | { kind: 'group'; key: string; title: string; packages: SdkPackage[]; children: SdkTreeNode[] };
+  | {
+      kind: 'package';
+      package: SdkPackage;
+    }
+  | {
+      kind: 'group';
+      key: string;
+      title: string;
+      packages: SdkPackage[];
+      children: SdkTreeNode[];
+    };
 export const packageNode = (p: SdkPackage): SdkTreeNode => ({ kind: 'package', package: p });
-
 export function imageFamily(p: SdkPackage) {
   // The canonical ID retains image variants when metadata uses a generic tag (e.g. 16 KB).
   const tag = p.id.split(';')[2] || p.tag || 'unknown';
@@ -13,12 +21,18 @@ export function imageFamily(p: SdkPackage) {
   if (/^google_apis(?:_|$)/.test(tag)) return { key: 'apis', title: 'Google APIs', order: 1 };
   if (tag === 'default' || /^aosp(?:_|$)/.test(tag))
     return { key: 'aosp', title: 'AOSP', order: 0 };
-  return { key: `other:${tag}`, title: `其他镜像 · ${tag}`, order: 3 };
+  return { key: `other:${tag}`, title: t('其他镜像 \u00B7 {0}', tag), order: 3 };
 }
 export const imageAbi = (p: SdkPackage) => p.id.split(';')[3] || p.abi || '未标注 ABI';
-
 export function imageNodes(packages: SdkPackage[], parent: string): SdkTreeNode[] {
-  const families = new Map<string, { title: string; order: number; packages: SdkPackage[] }>();
+  const families = new Map<
+    string,
+    {
+      title: string;
+      order: number;
+      packages: SdkPackage[];
+    }
+  >();
   for (const p of packages.filter((p) => p.id.startsWith('system-images;'))) {
     const family = imageFamily(p);
     if (!families.has(family.key)) families.set(family.key, { ...family, packages: [] });
@@ -55,7 +69,6 @@ export function imageNodes(packages: SdkPackage[], parent: string): SdkTreeNode[
       };
     });
 }
-
 export function hasSdkUpdate(p: SdkPackage): boolean {
   if (!p.installed || !p.installedVersion) return false;
   const revision = (value: string) => {

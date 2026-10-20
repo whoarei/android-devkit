@@ -44,6 +44,7 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            commands::ui_locale_set,
             commands::workspace_snapshot,
             commands::task_list,
             commands::environment_scan,

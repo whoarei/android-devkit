@@ -1,3 +1,4 @@
+import { t, useLocale, setLocale, type Locale } from './i18n';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
@@ -42,7 +43,6 @@ import { hasSdkUpdate } from './sdk';
 import { Button, Badge, Modal, Field } from './ui';
 import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
 import type { Settings, Workspace, Device, Avd, Plan, Operation, ApkInfo, Target } from './types';
-
 type Page = 'devices' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
 const useUi = create<{
   page: Page;
@@ -64,6 +64,7 @@ const titles: Record<Page, string> = {
 };
 type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
 export function App() {
+  const locale = useLocale();
   const { page, setPage, selected, select } = useUi();
   const client = useQueryClient();
   const query = useQuery({
@@ -117,6 +118,9 @@ export function App() {
       return undefined;
     }
   };
+  useEffect(() => {
+    if (native) void call('ui_locale_set', { locale }).catch((error) => setError(errorText(error)));
+  }, [locale]);
   const prepare = async (
     kind: string,
     args: Record<string, string> = {},
@@ -147,7 +151,9 @@ export function App() {
     const cleanups: Promise<() => void>[] = [];
     cleanups.push(listen('workspace-changed', () => refresh()));
     cleanups.push(
-      listen<{ message: string }>('task-error', (event) => setError(event.payload.message)),
+      listen<{
+        message: string;
+      }>('task-error', (event) => setError(event.payload.message)),
     );
     cleanups.push(
       listen<boolean>('native-maximize-hover', (event) => setNativeHover(event.payload)),
@@ -157,7 +163,7 @@ export function App() {
       getCurrentWebview().onDragDropEvent((event) => {
         if (event.payload.type !== 'drop') return;
         if (event.payload.paths.length !== 1) {
-          setError('每次仅支持拖入一个完整 APK 文件');
+          setError(t('每次仅支持拖入一个完整 APK 文件'));
           return;
         }
         const row = document
@@ -183,7 +189,9 @@ export function App() {
   useEffect(() => {
     if (!native) return;
     const sync = () => {
-      void call<{ maximized: boolean }>('window_state').then((v) => setMaximized(v.maximized));
+      void call<{
+        maximized: boolean;
+      }>('window_state').then((v) => setMaximized(v.maximized));
       const r = maxButton.current?.getBoundingClientRect();
       if (r)
         void call('window_regions', {
@@ -236,7 +244,7 @@ export function App() {
       setPlan(null);
       setModal(null);
       await refresh();
-      notify('任务已提交，可在任务中心查看');
+      notify(t('任务已提交，可在任务中心查看'));
     });
     setBusy(false);
   };
@@ -255,11 +263,20 @@ export function App() {
           onDoubleClick={() => void call('window_action', { action: 'maximize' })}
         />
         <span className="title-env">
-          本机环境 <span>·</span> {data?.environment.adb ? '已连接 SDK' : '环境准备'}
+          {t('本机环境 ')}
+          <span>·</span> {data?.environment.adb ? t('已连接 SDK') : t('环境准备')}
         </span>
+        <button
+          className="locale-switch"
+          aria-label={t('切换界面语言')}
+          title={t('切换界面语言')}
+          onClick={() => setLocale(locale === 'zh-CN' ? 'en-US' : 'zh-CN')}
+        >
+          {locale === 'zh-CN' ? 'EN' : '中文'}
+        </button>
         <div className="window-buttons">
           <button
-            aria-label="最小化"
+            aria-label={t('最小化')}
             onClick={() => void call('window_action', { action: 'minimize' })}
           >
             <Minus size={13} />
@@ -267,13 +284,13 @@ export function App() {
           <button
             ref={maxButton}
             className={nativeHover ? 'native-hover' : ''}
-            aria-label={maximized ? '还原' : '最大化'}
+            aria-label={maximized ? t('还原') : t('最大化')}
             onClick={() => void call('window_action', { action: 'maximize' })}
           >
             {maximized ? <Copy size={12} /> : <Square size={12} />}
           </button>
           <button
-            aria-label="关闭窗口"
+            aria-label={t('关闭窗口')}
             className="window-close"
             onClick={() =>
               native ? void call('window_action', { action: 'close' }) : setModal('close')
@@ -284,7 +301,7 @@ export function App() {
         </div>
       </header>
       <aside className="sidebar">
-        <div className="sidebar-heading">工作空间</div>
+        <div className="sidebar-heading">{t('工作空间')}</div>
         <nav>
           {(
             [
@@ -295,12 +312,12 @@ export function App() {
           ).map(([id, Icon]) => (
             <button
               key={id}
-              aria-label={titles[id]}
+              aria-label={t(titles[id])}
               className={page === id ? 'active' : ''}
               onClick={() => setPage(id)}
             >
               <Icon size={18} />
-              <span>{titles[id]}</span>
+              <span>{t(titles[id])}</span>
               {id === 'tasks' && active.length > 0 && <b>{active.length}</b>}
             </button>
           ))}
@@ -315,19 +332,19 @@ export function App() {
             ).map(([id, Icon]) => (
               <button
                 key={id}
-                aria-label={titles[id]}
+                aria-label={t(titles[id])}
                 className={page === id ? 'active' : ''}
                 onClick={() => setPage(id)}
               >
                 <Icon size={18} />
-                {titles[id]}
+                {t(titles[id])}
               </button>
             ))}
           </nav>
           <div className="sdk-card">
             <span className={`connection-dot ${data?.environment.adb ? 'online' : ''}`} />
             <div>
-              <b>{data?.environment.adb ? 'SDK 已就位' : '准备开发环境'}</b>
+              <b>{data?.environment.adb ? t('SDK 已就位') : t('准备开发环境')}</b>
               <small title={data?.settings.sdkRoot}>
                 {data?.settings.sdkRoot ?? 'E:\Android\sdk'}
               </small>
@@ -342,17 +359,17 @@ export function App() {
         <div className="page-top">
           <div>
             <div className="eyebrow">ANDROID DEVELOPMENT ENVIRONMENT</div>
-            <h1>{titles[page]}</h1>
+            <h1>{t(titles[page])}</h1>
             <p>
               {page === 'devices'
-                ? '准备好设备，让下一次验证更直接。'
+                ? t('准备好设备，让下一次验证更直接。')
                 : page === 'sdk'
-                  ? '按需准备组件，复用已有开发环境。'
+                  ? t('按需准备组件，复用已有开发环境。')
                   : page === 'tasks'
-                    ? '每个操作的目标、阶段和结果都留在这里。'
+                    ? t('每个操作的目标、阶段和结果都留在这里。')
                     : page === 'diagnostics'
-                      ? '从检测到的事实出发，定位环境与连接问题。'
-                      : '为当前工作空间选择路径和行为。'}
+                      ? t('从检测到的事实出发，定位环境与连接问题。')
+                      : t('为当前工作空间选择路径和行为。')}
             </p>
           </div>
           <div className="page-actions">
@@ -360,11 +377,11 @@ export function App() {
               <>
                 <Button onClick={() => setModal('wireless')}>
                   <Wifi size={15} />
-                  连接设备
+                  {t('连接设备')}
                 </Button>
                 <Button primary onClick={() => setModal('create')}>
                   <Plus size={16} />
-                  新建模拟器
+                  {t('新建模拟器')}
                 </Button>
               </>
             )}
@@ -375,7 +392,7 @@ export function App() {
                 loading={catalogRefresh.isPending}
               >
                 <RefreshCw size={15} className={catalogRefresh.isPending ? 'spin' : ''} />
-                刷新
+                {t('刷新')}
               </Button>
             )}
           </div>
@@ -384,10 +401,11 @@ export function App() {
           <div className="notice">
             <Monitor size={19} />
             <div>
-              <b>桌面工作台预览</b>
+              <b>{t('桌面工作台预览')}</b>
               <p>
-                运行 pnpm tauri dev 后，即可读取 E:\Android\sdk
-                并连接本机设备。浏览器预览不展示虚构设备。
+                {t(
+                  '运行 pnpm tauri dev 后，即可读取 E:\\Android\\sdk 并连接本机设备。浏览器预览不展示虚构设备。',
+                )}
               </p>
             </div>
           </div>
@@ -396,8 +414,8 @@ export function App() {
           (error && !plan && !['create', 'wireless', 'edit'].includes(modal ?? ''))) && (
           <div role="alert" className="error-banner">
             <AlertCircle size={17} />
-            <span>{query.error ? errorText(query.error) : error}</span>
-            <button aria-label="关闭错误" onClick={() => setError('')}>
+            <span>{t(query.error ? errorText(query.error) : error)}</span>
+            <button aria-label={t('关闭错误')} onClick={() => setError('')}>
               <X size={15} />
             </button>
           </div>
@@ -405,7 +423,7 @@ export function App() {
         {query.isLoading && native && (
           <div className="loading">
             <RefreshCw className="spin" size={20} />
-            正在检查 SDK、AVD 与共享 ADB 服务…
+            {t('正在检查 SDK、AVD 与共享 ADB 服务…')}
           </div>
         )}
         {page === 'devices' && (
@@ -413,16 +431,16 @@ export function App() {
             <div className="section-toolbar">
               <div className="tabs">
                 {[
-                  ['all', '全部'],
-                  ['usb', '真机'],
-                  ['emulator', '模拟器'],
+                  ['all', t('全部')],
+                  ['usb', t('真机')],
+                  ['emulator', t('模拟器')],
                 ].map(([id, label]) => (
                   <button
                     className={filter === id ? 'selected' : ''}
                     key={id}
                     onClick={() => setFilter(id)}
                   >
-                    {label}
+                    {t(label)}
                     <span>
                       {id === 'all'
                         ? (data?.avds.length ?? 0) + extraSessions.length
@@ -435,7 +453,7 @@ export function App() {
               </div>
               <button className="text-button" onClick={() => void refresh()}>
                 <RefreshCw size={14} />
-                重新扫描
+                {t('重新扫描')}
               </button>
             </div>
             <div className={`device-layout ${hasSelection ? 'has-selection' : ''}`}>
@@ -465,16 +483,16 @@ export function App() {
                       <div className="device-main">
                         <strong>
                           {d.connection === 'emulator'
-                            ? `待关联 · ${d.avdName || d.model}`
+                            ? t('待关联 \u00B7 {0}', d.avdName || d.model)
                             : d.model}
                         </strong>
                         <p>
                           {d.connection === 'wireless'
-                            ? '无线调试'
+                            ? t('无线调试')
                             : d.connection === 'network'
-                              ? '网络 ADB'
+                              ? t('网络 ADB')
                               : d.connection === 'emulator'
-                                ? '模拟器会话'
+                                ? t('模拟器会话')
                                 : 'USB'}{' '}
                           <span>·</span> {d.api ? `API ${d.api}` : d.serial}
                           <span>·</span>
@@ -491,7 +509,7 @@ export function App() {
                           void chooseApk();
                         }}
                       >
-                        安装 APK
+                        {t('安装 APK')}
                         <ChevronRight size={14} />
                       </button>
                     </div>
@@ -515,11 +533,12 @@ export function App() {
                       <div className="device-main">
                         <strong>{a.displayName}</strong>
                         <p>
-                          模拟器 <span>·</span> {a.api ? `API ${a.api}` : a.name}
+                          {t('模拟器 ')}
+                          <span>·</span> {a.api ? `API ${a.api}` : a.name}
                           <span>·</span>
-                          {a.abi || '未知架构'}
+                          {a.abi || t('未知架构')}
                         </p>
-                        {a.error && <small className="warning-text">{a.error}</small>}
+                        {a.error && <small className="warning-text">{t(a.error)}</small>}
                       </div>
                       <Badge state={a.status} />
                       <button
@@ -533,7 +552,7 @@ export function App() {
                           } else void avdAction('avd_start', a);
                         }}
                       >
-                        {a.status === 'ready' ? '安装 APK' : '启动'}
+                        {a.status === 'ready' ? t('安装 APK') : t('启动')}
                         {a.status === 'ready' ? <ChevronRight size={14} /> : <Play size={14} />}
                       </button>
                     </div>
@@ -543,36 +562,38 @@ export function App() {
                     <div className="empty-icon">
                       <Smartphone size={35} />
                     </div>
-                    <h3>为下一次验证准备设备</h3>
+                    <h3>{t('为下一次验证准备设备')}</h3>
                     <p>
-                      连接开启 USB 调试的手机，或创建一台模拟器。
+                      {t('连接开启 USB 调试的手机，或创建一台模拟器。')}
                       <br />
-                      已有 SDK 和 AVD 会在扫描后自动显示。
+                      {t('已有 SDK 和 AVD 会在扫描后自动显示。')}
                     </p>
                     <div>
-                      <Button onClick={() => void prepare('adb_start')}>启动设备服务</Button>
+                      <Button onClick={() => void prepare('adb_start')}>{t('启动设备服务')}</Button>
                       <Button onClick={() => setModal('create')}>
                         <Plus size={15} />
-                        创建模拟器
+                        {t('创建模拟器')}
                       </Button>
                     </div>
                   </div>
                 )}
                 <div className="add-device-hint">
-                  <span>拖入单个 APK 安装到所选设备</span>
+                  <span>{t('拖入单个 APK 安装到所选设备')}</span>
                   <button className="text-button" onClick={() => void chooseApk()}>
                     <FileUp size={14} />
-                    选择 APK
+                    {t('选择 APK')}
                   </button>
                 </div>
               </div>
               {hasSelection && (
                 <aside className="detail-panel">
                   <div className="detail-heading">
-                    <h3>{selectedAvd?.displayName ?? selectedDevice?.model ?? '原目标已断开'}</h3>
+                    <h3>
+                      {selectedAvd?.displayName ?? selectedDevice?.model ?? t('原目标已断开')}
+                    </h3>
                     <button
                       className="icon-button"
-                      aria-label="关闭设备详情"
+                      aria-label={t('关闭设备详情')}
                       onClick={() => select('')}
                     >
                       <X size={16} />
@@ -580,28 +601,32 @@ export function App() {
                   </div>
                   <Badge state={selectedAvd?.status ?? selectedDevice?.state ?? 'offline'} />
                   <dl>
-                    <dt>连接 / 标识</dt>
+                    <dt>{t('连接 / 标识')}</dt>
                     <dd>{target?.serial ?? selectedAvd?.name}</dd>
-                    <dt>系统 / 架构</dt>
+                    <dt>{t('系统 / 架构')}</dt>
                     <dd>
-                      API {target?.api ?? selectedAvd?.api ?? '未知'} ·{' '}
-                      {target?.abi ?? selectedAvd?.abi ?? '未知'}
+                      API {target?.api ?? selectedAvd?.api ?? t('未知')} ·{' '}
+                      {target?.abi ?? selectedAvd?.abi ?? t('未知')}
                     </dd>
                     {selectedAvd && (
                       <>
-                        <dt>数据目录</dt>
+                        <dt>{t('数据目录')}</dt>
                         <dd className="path">{selectedAvd.dataPath}</dd>
-                        <dt>系统镜像</dt>
+                        <dt>{t('系统镜像')}</dt>
                         <dd className="path">{selectedAvd.image}</dd>
-                        <dt>资源配置</dt>
+                        <dt>{t('资源配置')}</dt>
                         <dd>
-                          {selectedAvd.memory} MiB 内存 · {selectedAvd.disk}
+                          {selectedAvd.memory}
+                          {t(' MiB 内存 \u00B7 ')}
+                          {selectedAvd.disk}
                         </dd>
                       </>
                     )}
                   </dl>
                   {selectedDevice?.state === 'unauthorized' && (
-                    <p className="hint">请解锁设备并允许此电脑进行 ADB 调试；授权后将自动更新。</p>
+                    <p className="hint">
+                      {t('请解锁设备并允许此电脑进行 ADB 调试；授权后将自动更新。')}
+                    </p>
                   )}
                   <div className="detail-actions">
                     <Button
@@ -610,14 +635,14 @@ export function App() {
                       onClick={() => void chooseApk()}
                     >
                       <Download size={15} />
-                      安装 APK
+                      {t('安装 APK')}
                     </Button>
                     <Button
                       disabled={target?.state !== 'ready'}
                       onClick={() => void prepare('capture', {}, target ?? null)}
                     >
                       <Camera size={15} />
-                      截图
+                      {t('截图')}
                     </Button>
                     {target && (
                       <Button
@@ -627,7 +652,7 @@ export function App() {
                         }}
                       >
                         <Terminal size={15} />
-                        查看日志
+                        {t('查看日志')}
                       </Button>
                     )}
                     {selectedAvd && (
@@ -636,36 +661,36 @@ export function App() {
                           disabled={selectedAvd.status !== 'stopped'}
                           onClick={() => void avdAction('avd_cold', selectedAvd)}
                         >
-                          冷启动
+                          {t('冷启动')}
                         </Button>
                         <Button
                           onClick={() => void avdAction('avd_stop', selectedAvd)}
                           disabled={!['ready', 'booting', 'busy'].includes(selectedAvd.status)}
                         >
                           <Square size={13} />
-                          正常停止
+                          {t('正常停止')}
                         </Button>
                         <Button
                           disabled={selectedAvd.status !== 'stopped'}
                           onClick={() => setModal('edit')}
                         >
-                          编辑配置
+                          {t('编辑配置')}
                         </Button>
                         <Button onClick={() => void avdAction('avd_focus', selectedAvd)}>
-                          打开窗口
+                          {t('打开窗口')}
                         </Button>
                         <Button
                           danger
                           onClick={() => void avdAction('avd_force_stop', selectedAvd)}
                         >
-                          强制停止
+                          {t('强制停止')}
                         </Button>
                         <Button
                           danger
                           disabled={selectedAvd.status !== 'stopped'}
                           onClick={() => void avdAction('avd_wipe', selectedAvd)}
                         >
-                          清除数据
+                          {t('清除数据')}
                         </Button>
                         <Button
                           danger
@@ -673,7 +698,7 @@ export function App() {
                           onClick={() => void avdAction('avd_delete', selectedAvd)}
                         >
                           <Trash2 size={14} />
-                          删除 AVD
+                          {t('删除 AVD')}
                         </Button>
                       </>
                     )}
@@ -689,7 +714,7 @@ export function App() {
                             )
                           }
                         >
-                          断开网络连接
+                          {t('断开网络连接')}
                         </Button>
                       )}
                   </div>
@@ -708,11 +733,11 @@ export function App() {
             <div className="environment-note">
               <HardDrive size={17} />
               <div>
-                <b>{data?.server ?? '等待桌面环境'}</b>
-                <span>SDK 与 AVD 独立管理，退出工作台不会自动结束模拟器。</span>
+                <b>{data?.server ? t(data.server) : t('等待桌面环境')}</b>
+                <span>{t('SDK 与 AVD 独立管理，退出工作台不会自动结束模拟器。')}</span>
               </div>
               <button className="text-button" onClick={() => setPage('diagnostics')}>
-                查看诊断
+                {t('查看诊断')}
                 <ChevronRight size={14} />
               </button>
             </div>
@@ -749,7 +774,7 @@ export function App() {
             guard={guard}
             done={() => {
               void refresh();
-              notify('设置已保存');
+              notify(t('设置已保存'));
             }}
           />
         )}
@@ -760,18 +785,20 @@ export function App() {
       <footer className="statusbar">
         <span className="status-dot" />
         <span>
-          {active.length ? `${active.length} 个任务进行中 · ${active[0].message}` : '工作空间就绪'}
+          {active.length
+            ? t('{0} 个任务进行中 \u00B7 {1}', active.length, active[0].message)
+            : t('工作空间就绪')}
         </span>
         <button onClick={() => setPage('tasks')}>
-          {active.length ? '展开任务中心' : '查看任务记录'}
+          {active.length ? t('展开任务中心') : t('查看任务记录')}
           <ChevronRight size={12} />
         </button>
-        <span className="status-end">Windows · 本地环境</span>
+        <span className="status-end">{t('Windows \u00B7 本地环境')}</span>
       </footer>
       {toast && (
         <div className="toast" role="status">
           <Check size={17} />
-          {toast}
+          {t(toast)}
         </div>
       )}
       {modal === 'create' && (
@@ -780,7 +807,7 @@ export function App() {
           close={() => setModal(null)}
           prepare={prepare}
           busy={busy}
-          error={error}
+          error={t(error)}
         />
       )}
       {modal === 'wireless' && (
@@ -788,7 +815,7 @@ export function App() {
           close={() => setModal(null)}
           prepare={prepare}
           busy={busy}
-          error={error}
+          error={t(error)}
           clearError={() => setError('')}
         />
       )}
@@ -796,28 +823,29 @@ export function App() {
         <EditAvd
           avd={selectedAvd}
           busy={busy}
-          error={error}
+          error={t(error)}
           close={() => setModal(null)}
           save={(args) => void avdAction('avd_edit', selectedAvd, args)}
         />
       )}
       {modal === 'apk' && apk && (
-        <Modal title="安装 APK" onClose={() => setModal(null)}>
+        <Modal title={t('安装 APK')} onClose={() => setModal(null)}>
           <div className="file-summary">
             <Package size={28} />
             <div>
               <b>{apk.fileName}</b>
               <small>
-                {size(apk.size)} · {apk.package || '包名暂无法读取'} · {apk.version || '版本未知'}
+                {size(apk.size)} · {apk.package || t('包名暂无法读取')} ·{' '}
+                {apk.version || t('版本未知')}
               </small>
             </div>
           </div>
-          <Field label="目标设备">
+          <Field label={t('目标设备')}>
             <select
               value={target ? deviceKey(target) : ''}
               onChange={(e) => select(e.target.value)}
             >
-              <option value="">选择明确目标</option>
+              <option value="">{t('选择明确目标')}</option>
               {data?.devices
                 .filter((d) => d.state === 'ready')
                 .map((d) => (
@@ -828,18 +856,19 @@ export function App() {
             </select>
           </Field>
           <p className="hint">
-            最低 API {apk.minSdk || '未知'} · ABI {apk.abis.join(', ') || '无指定 native ABI'}
-            。默认覆盖安装并保留数据。
+            {t('最低 API ')}
+            {apk.minSdk || t('未知')} · ABI {apk.abis.join(', ') || t('无指定 native ABI')}
+            {t('。默认覆盖安装并保留数据。')}
           </p>
-          {apk.warning && <p className="warning-text">{apk.warning}</p>}
+          {apk.warning && <p className="warning-text">{t(apk.warning)}</p>}
           <div className="modal-actions">
-            <Button onClick={() => setModal(null)}>取消</Button>
+            <Button onClick={() => setModal(null)}>{t('取消')}</Button>
             <Button
               primary
               disabled={!target || target.state !== 'ready'}
               onClick={() => void prepare('apk_install', { apkId: apk.id }, target ?? null)}
             >
-              确认安装计划
+              {t('确认安装计划')}
             </Button>
           </div>
         </Modal>
@@ -858,21 +887,21 @@ export function App() {
         <Modal title={plan.title} onClose={() => setPlan(null)} wide>
           {error && (
             <p className="error-banner" role="alert">
-              {error}
+              {t(error)}
             </p>
           )}
           <div className="plan-summary">
             {plan.effects.map((effect, i) => (
               <p key={i}>
                 <Check size={14} />
-                {effect}
+                {t(effect)}
               </p>
             ))}
           </div>
           {plan.warnings.map((w, i) => (
             <p className="plan-warning" key={i}>
               <AlertCircle size={16} />
-              {w}
+              {t(w)}
             </p>
           ))}
           {plan.licenses.map((l) => (
@@ -889,12 +918,12 @@ export function App() {
                     )
                   }
                 />
-                我已查看并接受此许可
+                {t('我已查看并接受此许可')}
               </label>
             </div>
           ))}
           <div className="modal-actions">
-            <Button onClick={() => setPlan(null)}>返回修改</Button>
+            <Button onClick={() => setPlan(null)}>{t('返回修改')}</Button>
             <Button
               primary
               danger={
@@ -903,20 +932,19 @@ export function App() {
               disabled={busy || plan.licenses.some((l) => !accepted.includes(l.hash))}
               onClick={() => void submit()}
             >
-              {busy ? '正在提交…' : plan.title}
+              {busy ? t('正在提交…') : t(plan.title)}
             </Button>
           </div>
         </Modal>
       )}
       {preview && (
-        <Modal title="设备截图" onClose={() => setPreview('')} wide>
-          <img className="screenshot" src={preview} alt="设备截图预览" />
+        <Modal title={t('设备截图')} onClose={() => setPreview('')} wide>
+          <img className="screenshot" src={preview} alt={t('设备截图预览')} />
         </Modal>
       )}
     </div>
   );
 }
-
 function CreateAvd({
   data,
   close,
@@ -934,7 +962,7 @@ function CreateAvd({
     [form, setForm] = useState<AvdForm>({
       ...newAvdSettings(),
       name: 'DevKit_Phone',
-      displayName: '日常测试手机',
+      displayName: t('日常测试手机'),
       profile: 'pixel_2',
       image:
         data?.packages.find((p) => p.category === 'image' && p.installed && p.abi === 'x86_64')
@@ -946,57 +974,59 @@ function CreateAvd({
       (p) => p.category === 'image' && (p.abi === 'x86_64' || p.id.endsWith(';x86_64')),
     ) ?? [];
   return (
-    <Modal title="新建模拟器" onClose={close} wide className="avd-modal">
+    <Modal title={t('新建模拟器')} onClose={close} wide className="avd-modal">
       <div className="avd-modal-body">
         <div className="wizard-steps">
-          {['设备形态', '系统镜像', '确认配置'].map((label, i) => (
-            <span className={step === i + 1 ? 'current' : ''} key={label}>
+          {[t('设备形态'), t('系统镜像'), t('确认配置')].map((label, i) => (
+            <span className={step === i + 1 ? 'current' : ''} key={t(label)}>
               <b>{i + 1}</b>
-              {label}
+              {t(label)}
             </span>
           ))}
         </div>
         {step === 1 ? (
           <>
-            <h3>选择适合验证的设备</h3>
+            <h3>{t('选择适合验证的设备')}</h3>
             <div className="device-choices">
               <button
                 className={form.profile === 'pixel_2' ? 'selected' : ''}
                 onClick={() => {
                   set('profile', 'pixel_2');
-                  set('displayName', '日常测试手机');
+                  set('displayName', t('日常测试手机'));
                   set('screenWidth', '1080');
                   set('screenHeight', '1920');
                   set('density', '420');
                 }}
               >
                 <Smartphone size={36} />
-                <b>手机</b>
-                <small>Pixel 2 · 常用触屏设备</small>
+                <b>{t('手机')}</b>
+                <small>{t('Pixel 2 \u00B7 常用触屏设备')}</small>
               </button>
               <button
                 className={form.profile === 'Nexus 9' ? 'selected' : ''}
                 onClick={() => {
                   set('profile', 'Nexus 9');
-                  set('displayName', '平板适配测试');
+                  set('displayName', t('平板适配测试'));
                   set('screenWidth', '1536');
                   set('screenHeight', '2048');
                   set('density', '320');
                 }}
               >
                 <Monitor size={38} />
-                <b>平板</b>
-                <small>Nexus 9 · 大屏适配</small>
+                <b>{t('平板')}</b>
+                <small>{t('Nexus 9 \u00B7 大屏适配')}</small>
               </button>
             </div>
             <p className="hint">
-              使用官方硬件 profile，性能、显示、摄像头、网络和存储可在确认配置时调整。
+              {t('使用官方硬件 profile，性能、显示、摄像头、网络和存储可在确认配置时调整。')}
             </p>
           </>
         ) : step === 2 ? (
           <>
-            <h3>选择 Android 系统</h3>
-            <p className="hint">首发 Windows x64 优先选择 x86_64 镜像。缺失镜像会加入创建任务。</p>
+            <h3>{t('选择 Android 系统')}</h3>
+            <p className="hint">
+              {t('首发 Windows x64 优先选择 x86_64 镜像。缺失镜像会加入创建任务。')}
+            </p>
             <div className="image-options">
               {images.map((p) => (
                 <label key={p.id} className={form.image === p.id ? 'selected' : ''}>
@@ -1010,21 +1040,27 @@ function CreateAvd({
                     <b>{p.name || p.id}</b>
                     <small>
                       {p.id} ·{' '}
-                      {p.installed ? (hasSdkUpdate(p) ? '有可选更新' : '已安装') : size(p.size)}
+                      {p.installed
+                        ? hasSdkUpdate(p)
+                          ? t('有可选更新')
+                          : t('已安装')
+                        : size(p.size)}
                     </small>
                   </div>
                 </label>
               ))}
-              {!images.length && <p>尚无镜像目录，请先关闭向导并在 SDK 页面刷新官方仓库。</p>}
+              {!images.length && (
+                <p>{t('尚无镜像目录，请先关闭向导并在 SDK 页面刷新官方仓库。')}</p>
+              )}
             </div>
           </>
         ) : (
           <>
             <div className="form-grid">
-              <Field label="内部名称">
+              <Field label={t('内部名称')}>
                 <input value={form.name} onChange={(e) => set('name', e.target.value)} />
               </Field>
-              <Field label="显示名称">
+              <Field label={t('显示名称')}>
                 <input
                   value={form.displayName}
                   onChange={(e) => set('displayName', e.target.value)}
@@ -1041,21 +1077,23 @@ function CreateAvd({
               />
             </div>
             <p className="hint">
-              数据目录：{data?.settings.avdRoots.at(-1)}
+              {t('数据目录：')}
+              {data?.settings.avdRoots.at(-1)}
               <br />
-              系统镜像：{form.image}
+              {t('系统镜像：')}
+              {form.image}
             </p>
           </>
         )}
         {error && (
           <p className="error-banner" role="alert">
-            {error}
+            {t(error)}
           </p>
         )}
       </div>
       <div className="modal-actions">
         <Button onClick={step === 1 ? close : () => setStep((s) => s - 1)}>
-          {step === 1 ? '取消' : '上一步'}
+          {step === 1 ? t('取消') : t('上一步')}
         </Button>
         {step < 3 ? (
           <Button
@@ -1063,12 +1101,12 @@ function CreateAvd({
             disabled={step === 2 && !form.image}
             onClick={() => setStep((s) => s + 1)}
           >
-            下一步
+            {t('下一步')}
             <ChevronRight size={14} />
           </Button>
         ) : (
           <Button primary disabled={busy} onClick={() => void prepare('avd_create', form)}>
-            查看创建计划
+            {t('查看创建计划')}
           </Button>
         )}
       </div>
@@ -1100,13 +1138,13 @@ function ConnectDevice({
   const addressHost = host.trim();
   const address = `${addressHost.includes(':') && !addressHost.startsWith('[') ? `[${addressHost}]` : addressHost}:${port.trim()}`;
   return (
-    <Modal title="连接设备" onClose={close}>
-      <div className="tabs" aria-label="设备连接方式">
+    <Modal title={t('连接设备')} onClose={close}>
+      <div className="tabs" aria-label={t('设备连接方式')}>
         {(
           [
-            ['pair', '1. 无线配对'],
-            ['connect', '2. 已配对连接'],
-            ['network', '网络 ADB'],
+            ['pair', t('1. 无线配对')],
+            ['connect', t('2. 已配对连接')],
+            ['network', t('网络 ADB')],
           ] as const
         ).map(([value, label]) => (
           <button
@@ -1120,16 +1158,16 @@ function ConnectDevice({
               clearError();
             }}
           >
-            {label}
+            {t(label)}
           </button>
         ))}
       </div>
       <p className="hint">
         {mode === 'network'
-          ? '直接连接设备已开启的 ADB TCP/IP 端口，无需配对码。电脑需能访问设备所在网络。'
-          : '手机开启开发者选项 → 无线调试。电脑和手机应在可互通的同一网络。'}
+          ? t('直接连接设备已开启的 ADB TCP/IP 端口，无需配对码。电脑需能访问设备所在网络。')
+          : t('手机开启开发者选项 → 无线调试。电脑和手机应在可互通的同一网络。')}
       </p>
-      <Field label="设备 IP 地址">
+      <Field label={t('设备 IP 地址')}>
         <input
           placeholder="192.168.1.10"
           value={host}
@@ -1138,11 +1176,11 @@ function ConnectDevice({
         />
       </Field>
       <Field
-        label={mode === 'pair' ? '配对端口' : '连接端口'}
+        label={mode === 'pair' ? t('配对端口') : t('连接端口')}
         hint={
           mode === 'network'
-            ? '默认 5555，可改为设备实际监听的端口。支持 IPv4 / IPv6 地址。'
-            : '配对端口与连接端口通常不同，请以手机当前页面为准。'
+            ? t('默认 5555，可改为设备实际监听的端口。支持 IPv4 / IPv6 地址。')
+            : t('配对端口与连接端口通常不同，请以手机当前页面为准。')
         }
       >
         <input
@@ -1153,7 +1191,7 @@ function ConnectDevice({
         />
       </Field>
       {mode === 'pair' && (
-        <Field label="6 位配对码">
+        <Field label={t('6 位配对码')}>
           <input
             autoComplete="off"
             maxLength={6}
@@ -1166,20 +1204,22 @@ function ConnectDevice({
       )}
       {mode === 'network' ? (
         <p className="hint">
-          首次开启：先通过 USB 连接并允许调试，再执行{' '}
-          <code>adb -s &lt;USB 序列号&gt; tcpip 5555</code>，然后使用设备 IP 连接。
-          已开启网络调试的设备可直接连接，建议仅在可信网络使用。
+          {t('首次开启：先通过 USB 连接并允许调试，再执行')}{' '}
+          <code>{t('adb -s <USB 序列号> tcpip 5555')}</code>
+          {t('，然后使用设备 IP 连接。 已开启网络调试的设备可直接连接，建议仅在可信网络使用。')}
         </p>
       ) : (
-        <p className="hint">配对成功不代表已连接。取消配对需在手机的无线调试设置中选择“忘记”。</p>
+        <p className="hint">
+          {t('配对成功不代表已连接。取消配对需在手机的无线调试设置中选择“忘记”。')}
+        </p>
       )}
       {error && (
         <p className="plan-warning" role="alert">
-          {error}
+          {t(error)}
         </p>
       )}
       <div className="modal-actions">
-        <Button onClick={close}>取消</Button>
+        <Button onClick={close}>{t('取消')}</Button>
         <Button
           primary
           disabled={busy}
@@ -1197,7 +1237,7 @@ function ConnectDevice({
             )
           }
         >
-          {busy ? '正在检查…' : mode === 'pair' ? '配对' : '连接并验证'}
+          {busy ? t('正在检查…') : mode === 'pair' ? t('配对') : t('连接并验证')}
         </Button>
       </div>
     </Modal>
@@ -1212,6 +1252,7 @@ function SettingsPanel({
   guard: <T>(f: () => Promise<T>) => Promise<T | undefined>;
   done: () => void;
 }) {
+  const locale = useLocale();
   const [form, setForm] = useState<Settings>(
     initial ?? {
       sdkRoot: 'E:\\Android\\sdk',
@@ -1238,23 +1279,32 @@ function SettingsPanel({
   return (
     <div className="settings-panel">
       <section>
-        <h3>工具与数据路径</h3>
+        <h3>{t('界面偏好')}</h3>
+        <Field label={t('界面语言')} hint={t('立即生效并自动保存')}>
+          <select value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
+            <option value="zh-CN">简体中文</option>
+            <option value="en-US">English</option>
+          </select>
+        </Field>
+      </section>
+      <section>
+        <h3>{t('工具与数据路径')}</h3>
         <p className="hint">
-          只影响本应用子进程，不修改系统 PATH、JAVA_HOME 或 Android Studio 配置。
+          {t('只影响本应用子进程，不修改系统 PATH、JAVA_HOME 或 Android Studio 配置。')}
         </p>
-        <Field label="当前 SDK 根目录">
+        <Field label={t('当前 SDK 根目录')}>
           <div className="input-action">
             <input value={form.sdkRoot} onChange={(e) => set('sdkRoot', e.target.value)} />
-            <Button onClick={() => void guard(() => choose('sdkRoot'))}>选择目录</Button>
+            <Button onClick={() => void guard(() => choose('sdkRoot'))}>{t('选择目录')}</Button>
           </div>
         </Field>
-        <Field label="Java 运行时（java.exe）">
+        <Field label={t('Java 运行时（java.exe）')}>
           <div className="input-action">
             <input value={form.javaPath} onChange={(e) => set('javaPath', e.target.value)} />
-            <Button onClick={() => void guard(() => choose('javaPath'))}>选择</Button>
+            <Button onClick={() => void guard(() => choose('javaPath'))}>{t('选择')}</Button>
           </div>
         </Field>
-        <Field label="AVD 根目录（一行一个，最后一个用于新建）">
+        <Field label={t('AVD 根目录（一行一个，最后一个用于新建）')}>
           <textarea
             rows={3}
             value={form.avdRoots.join('\n')}
@@ -1263,26 +1313,28 @@ function SettingsPanel({
         </Field>
       </section>
       <section>
-        <h3>窗口与退出</h3>
+        <h3>{t('窗口与退出')}</h3>
         <label className="check-row">
           <input
             type="checkbox"
             checked={form.trayEnabled}
             onChange={(e) => set('trayEnabled', e.target.checked)}
           />
-          启用托盘：关闭窗口后隐藏并继续任务
+          {t('启用托盘：关闭窗口后隐藏并继续任务')}
         </label>
         <p className="hint">
-          默认关闭。启用后，可通过托盘打开工作台或选择退出；退出仍检查任务、文件采集与未保存产物。
+          {t(
+            '默认关闭。启用后，可通过托盘打开工作台或选择退出；退出仍检查任务、文件采集与未保存产物。',
+          )}
         </p>
-        <h3>网络与启动</h3>
+        <h3>{t('网络与启动')}</h3>
         <Field
-          label="手动代理"
-          hint="示例 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080；留空直连。"
+          label={t('手动代理')}
+          hint={t('示例 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080；留空直连。')}
         >
           <input value={form.proxy} onChange={(e) => set('proxy', e.target.value)} />
         </Field>
-        <Field label="模拟器启动提醒阈值（秒）">
+        <Field label={t('模拟器启动提醒阈值（秒）')}>
           <input
             type="number"
             min={30}
@@ -1301,7 +1353,7 @@ function SettingsPanel({
           })
         }
       >
-        保存设置
+        {t('保存设置')}
       </Button>
     </div>
   );
@@ -1325,25 +1377,25 @@ function Diagnostics({
       <div className="notice">
         <SlidersHorizontal size={22} />
         <div>
-          <b>检查实际工具链与连接事实</b>
-          <p>不会自动重启共享 ADB、修改系统虚拟化功能或清除设备数据。</p>
+          <b>{t('检查实际工具链与连接事实')}</b>
+          <p>{t('不会自动重启共享 ADB、修改系统虚拟化功能或清除设备数据。')}</p>
         </div>
       </div>
       <div className="detail-actions">
         <Button onClick={() => void guard(async () => setReport(await call('diagnostics')))}>
           <RefreshCw size={14} />
-          重新检测
+          {t('重新检测')}
         </Button>
         <label>
           <input type="checkbox" checked={raw} onChange={(e) => setRaw(e.target.checked)} />
-          包含原始标识
+          {t('包含原始标识')}
         </label>
         <Button onClick={() => onExport({ kind: 'diagnostics', redacted: !raw })}>
-          预览诊断导出
+          {t('预览诊断导出')}
         </Button>
-        <Button onClick={() => void prepare('adb_start')}>启动 ADB</Button>
+        <Button onClick={() => void prepare('adb_start')}>{t('启动 ADB')}</Button>
         <Button danger onClick={() => void prepare('adb_restart')}>
-          重启共享 ADB
+          {t('重启共享 ADB')}
         </Button>
       </div>
       {report &&
@@ -1352,12 +1404,12 @@ function Diagnostics({
             <h3>
               {(
                 {
-                  acceleration: '硬件加速',
-                  java: 'Java 运行时',
-                  mdns: '无线设备发现',
-                  sdkRoot: '当前 SDK',
-                  environment: '环境能力',
-                  serverEpoch: 'ADB 会话代次',
+                  acceleration: t('硬件加速'),
+                  java: t('Java 运行时'),
+                  mdns: t('无线设备发现'),
+                  sdkRoot: t('当前 SDK'),
+                  environment: t('环境能力'),
+                  serverEpoch: t('ADB 会话代次'),
                 } as Record<string, string>
               )[key] ?? key}
             </h3>
