@@ -83,6 +83,8 @@ pnpm tauri build
 
 ## CI 与发布
 
+版本发布流程维护在 [android-devkit-release skill](.agents/skills/android-devkit-release/SKILL.md)，包含版本同步、检查打包、CI 跟踪和发布产物校验。未指定版本号时，先展示自上次发布以来的主要修改点和兼容性影响，再给出推荐版本及理由，询问用户确认后继续。
+
 [GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 在推送 `main` / `codex/**` 分支、Pull Request、`v*` 标签或手动触发时运行。Windows x64 流程使用固定版本的 Node.js、pnpm 和 Rust，安装锁定依赖，检查版本一致性、Rust 格式、TypeScript / Vite、Clippy、Rust 测试与生成的 IPC 类型；随后使用隔离 Chromium 测试网络 ADB、设备选择与 APK 安装交互、任务中心、SDK / AVD、中英文及主题界面，构建 NSIS 安装包并核对安装器内容。界面测试使用独立端口 `19328` 和模拟 IPC，不访问真实设备或 SDK。
 
 成功后可在 Actions 中下载安装包、便携 ZIP、第三方许可、构建信息和 `SHA256SUMS.txt`；失败时保留界面截图。推送与应用版本一致的 `vX.Y.Z` 标签会在全部检查通过后自动创建正式 GitHub Release，发布同一批经过校验的构建产物。日常 CI 仅有读取权限，只有发布任务获得仓库内容写入权限；无需配置额外令牌。

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Android DevKit 版本发布"
+  short_description: "管理 Android DevKit 版本检查、Windows 打包与 GitHub 发布"
+  default_prompt: "使用 $android-devkit-release 检查 Android DevKit 的发布准备情况，并按我的要求完成版本发布。"
