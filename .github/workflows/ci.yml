@@ -85,6 +85,7 @@ jobs:
         with:
           name: ui-evidence-${{ github.sha }}
           path: .qa/app/
+          include-hidden-files: true
           if-no-files-found: ignore
           retention-days: 7
 

@@ -1,0 +1,2 @@
+# Keep generated IPC contracts byte-identical to the Rust generator on Windows.
+src/bindings.ts text eol=lf
