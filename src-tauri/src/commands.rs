@@ -245,6 +245,8 @@ pub fn window_action(window: tauri::WebviewWindow, action: String) -> Result<()>
             }
         }
         "drag" => window.start_dragging(),
+        "theme_light" => window.set_theme(Some(tauri::Theme::Light)),
+        "theme_dark" => window.set_theme(Some(tauri::Theme::Dark)),
         "close" => window.close(),
         _ => return Err(AppError::new("INVALID_ACTION", "窗口动作无效")),
     };

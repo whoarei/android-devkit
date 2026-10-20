@@ -1,4 +1,5 @@
 import { t, useLocale, setLocale, type Locale } from './i18n';
+import { useTheme, setTheme, type Theme } from './theme';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
@@ -33,6 +34,8 @@ import {
   SlidersHorizontal,
   ExternalLink,
   Layers,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
 import type { ExportPreview } from './bindings';
@@ -65,6 +68,7 @@ const titles: Record<Page, string> = {
 type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
 export function App() {
   const locale = useLocale();
+  const theme = useTheme();
   const { page, setPage, selected, select } = useUi();
   const client = useQueryClient();
   const query = useQuery({
@@ -121,6 +125,12 @@ export function App() {
   useEffect(() => {
     if (native) void call('ui_locale_set', { locale }).catch((error) => setError(errorText(error)));
   }, [locale]);
+  useEffect(() => {
+    if (native)
+      void call('window_action', { action: theme === 'dark' ? 'theme_dark' : 'theme_light' }).catch(
+        (error) => setError(errorText(error)),
+      );
+  }, [theme]);
   const prepare = async (
     kind: string,
     args: Record<string, string> = {},
@@ -266,6 +276,14 @@ export function App() {
           {t('本机环境 ')}
           <span>·</span> {data?.environment.adb ? t('已连接 SDK') : t('环境准备')}
         </span>
+        <button
+          className="locale-switch"
+          aria-label={theme === 'light' ? t('切换为暗色主题') : t('切换为亮色主题')}
+          title={theme === 'light' ? t('切换为暗色主题') : t('切换为亮色主题')}
+          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+        >
+          {theme === 'light' ? <Moon size={13} /> : <Sun size={13} />}
+        </button>
         <button
           className="locale-switch"
           aria-label={t('切换界面语言')}
@@ -1253,6 +1271,7 @@ function SettingsPanel({
   done: () => void;
 }) {
   const locale = useLocale();
+  const theme = useTheme();
   const [form, setForm] = useState<Settings>(
     initial ?? {
       sdkRoot: 'E:\\Android\\sdk',
@@ -1280,6 +1299,12 @@ function SettingsPanel({
     <div className="settings-panel">
       <section>
         <h3>{t('界面偏好')}</h3>
+        <Field label={t('界面主题')} hint={t('立即生效并自动保存')}>
+          <select value={theme} onChange={(event) => setTheme(event.target.value as Theme)}>
+            <option value="light">{t('亮色')}</option>
+            <option value="dark">{t('暗色')}</option>
+          </select>
+        </Field>
         <Field label={t('界面语言')} hint={t('立即生效并自动保存')}>
           <select value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
             <option value="zh-CN">简体中文</option>

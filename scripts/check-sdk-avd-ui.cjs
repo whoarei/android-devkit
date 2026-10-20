@@ -550,9 +550,87 @@ const path = require('node:path');
     await page.screenshot({ path: path.join(output, 'language-settings-english.png') });
     await page.getByLabel('Interface language', { exact: true }).selectOption('zh-CN');
     await page.getByRole('heading', { name: '设置', exact: true }).waitFor();
+    await page.getByLabel('界面主题', { exact: true }).selectOption('dark');
+    assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
+    const palette = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      const panel = getComputedStyle(document.querySelector('.settings-panel section'));
+      const button = getComputedStyle(document.querySelector('.button.primary'));
+      return {
+        page: root.backgroundColor,
+        surface: panel.backgroundColor,
+        text: root.color,
+        buttonText: button.color,
+        buttonFill: button.backgroundColor,
+        scheme: root.colorScheme,
+      };
+    });
+    assert.equal(palette.page, 'rgb(17, 24, 20)');
+    assert.equal(palette.surface, 'rgb(26, 38, 30)');
+    assert.equal(palette.scheme, 'dark');
+    const contrast = (a, b) => {
+      const light = (color) => {
+        const rgb = color
+          .match(/[\d.]+/g)
+          .slice(0, 3)
+          .map(Number)
+          .map((v) => v / 255)
+          .map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+        return rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+      };
+      const [x, y] = [light(a), light(b)];
+      return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+    };
+    assert(contrast(palette.text, palette.surface) >= 4.5);
+    assert(contrast(palette.buttonText, palette.buttonFill) >= 4.5);
+    await page.getByLabel('当前 SDK 根目录', { exact: true }).fill('E:\\Unsaved-theme-input');
+    await page.getByRole('button', { name: '切换为亮色主题', exact: true }).click();
+    assert.equal(
+      await page.getByLabel('当前 SDK 根目录', { exact: true }).inputValue(),
+      'E:\\Unsaved-theme-input',
+    );
+    await page.getByRole('button', { name: '切换为暗色主题', exact: true }).click();
+    await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    assert.equal(await page.getByLabel('Interface theme', { exact: true }).inputValue(), 'dark');
+    await page.screenshot({ path: path.join(output, 'theme-dark-settings.png') });
+    await page.getByRole('button', { name: 'SDK Manager', exact: true }).click();
+    await page
+      .getByRole('textbox', { name: 'Search components', exact: true })
+      .fill('Google Play arm64');
+    await page.screenshot({ path: path.join(output, 'theme-dark-sdk.png') });
+    await page.getByRole('button', { name: 'Device Workbench', exact: true }).click();
+    await page.locator('.device-row').filter({ hasText: 'Fixture phone' }).click();
+    await page.getByRole('button', { name: 'Edit configuration', exact: true }).click();
+    dialog = page.getByRole('dialog', { name: 'Edit emulator configuration', exact: true });
+    await dialog.getByLabel('Display name', { exact: true }).fill('theme keeps 自定义 input');
+    await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click();
+    assert.equal(
+      await dialog.getByLabel('Display name', { exact: true }).inputValue(),
+      'theme keeps 自定义 input',
+    );
+    await page.getByRole('button', { name: 'Switch to dark theme', exact: true }).click();
+    await page.screenshot({ path: path.join(output, 'theme-dark-editor.png') });
+    await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
+    await page.reload();
+    await page.getByRole('heading', { name: 'Device Workbench', exact: true }).waitFor();
+    assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
+    assert.equal(
+      await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme),
+      'dark',
+    );
+    await page.setViewportSize({ width: 480, height: 640 });
+    assert.equal(
+      await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
+      false,
+    );
+    await page.screenshot({ path: path.join(output, 'theme-dark-compact.png') });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click();
+    assert.equal(await page.evaluate(() => localStorage.getItem('android-devkit.theme')), 'light');
+    await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
     assert.deepEqual(errors, []);
     console.log(
-      'SDK/AVD UI: shared refresh animation, navigation, failures, warnings, preview/site refresh, hierarchy, filters, updates, cross-tab plans, site CRUD, settings diff, storage units, frozen config, creation and compact layout passed.',
+      'SDK/AVD UI: refresh lifecycle, hierarchy, site CRUD, configuration, language/theme switching and persistence, input preservation, contrast and compact layout passed.',
     );
   } finally {
     await browser.close();

@@ -1,6 +1,6 @@
 /* Windows Snap needs a small minimum width; the normal workspace stays 1280px. */
 .window-buttons button.native-hover {
-  background: #dce6d7;
+  background: var(--hover);
 }
 .hint,
 .file-summary b,
@@ -87,7 +87,7 @@
     overflow: auto;
     width: 280px;
     z-index: 35;
-    box-shadow: 0 10px 50px #1d351b26;
+    box-shadow: 0 10px 50px var(--shadow);
   }
   .device-row {
     gap: 10px;
