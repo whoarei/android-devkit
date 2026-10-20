@@ -43,27 +43,11 @@ import {
   ExternalLink,
   Layers,
 } from 'lucide-react';
-import {
-  LogPanel,
-  ExportDialog,
-  ArtifactsPanel,
-  RecordingExport,
-  CloseDialog,
-  type ExportRequest,
-} from './Observability';
+import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
 import type { ExportPreview } from './bindings';
+import { TaskCenter } from './TaskCenter';
 import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
-import type {
-  Settings,
-  Workspace,
-  Device,
-  Avd,
-  Plan,
-  Operation,
-  Task,
-  ApkInfo,
-  Target,
-} from './types';
+import type { Settings, Workspace, Device, Avd, Plan, Operation, ApkInfo, Target } from './types';
 
 type Page = 'devices' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
 const useUi = create<{
@@ -212,7 +196,12 @@ export function App() {
     setToast(message);
     setTimeout(() => setToast(''), 5000);
   };
-  const refresh = () => client.invalidateQueries({ queryKey: ['workspace'] });
+  const refresh = async () => {
+    await Promise.all([
+      client.invalidateQueries({ queryKey: ['workspace'] }),
+      client.invalidateQueries({ queryKey: ['task-list'] }),
+    ]);
+  };
   const guard = async <T,>(work: () => Promise<T>): Promise<T | undefined> => {
     setError('');
     try {
@@ -841,50 +830,18 @@ export function App() {
           />
         )}
         {page === 'tasks' && (
-          <div className="task-list">
-            <ArtifactsPanel guard={guard} onExport={setExportPreview} />
-            {data?.tasks.length ? (
-              data.tasks.map((t) => (
-                <TaskCard
-                  key={t.id}
-                  task={t}
-                  guard={guard}
-                  onExport={requestExport}
-                  act={async (command, args) => {
-                    await guard(() => call(command, args));
-                    await refresh();
-                  }}
-                  retry={async () => {
-                    await guard(async () => {
-                      const p = await call<Plan>('task_retry', { taskId: t.id });
-                      setPlan(p);
-                      setAccepted([]);
-                    });
-                  }}
-                  launch={() =>
-                    void prepare(
-                      'app_launch',
-                      { package: t.operation.args.package ?? '' },
-                      t.operation.target,
-                    )
-                  }
-                  preview={async () => {
-                    await guard(async () =>
-                      setPreview(
-                        await call<string>('artifact_copy', { taskId: t.id, preview: true }),
-                      ),
-                    );
-                  }}
-                />
-              ))
-            ) : (
-              <div className="empty-state">
-                <Activity size={32} />
-                <h3>任务会留在这里</h3>
-                <p>安装、下载、创建和导出的结果均可回看。</p>
-              </div>
-            )}
-          </div>
+          <TaskCenter
+            guard={guard}
+            prepare={prepare}
+            refresh={refresh}
+            showPlan={(value) => {
+              setPlan(value);
+              setAccepted([]);
+            }}
+            showPreview={setPreview}
+            onExport={requestExport}
+            onExportPreview={setExportPreview}
+          />
         )}
         {page === 'settings' && (
           <SettingsPanel
@@ -1550,98 +1507,6 @@ function EditAvd({
         </Button>
       </div>
     </Modal>
-  );
-}
-function TaskCard({
-  guard,
-  onExport,
-  task,
-  act,
-  retry,
-  preview,
-  launch,
-}: {
-  guard: <T>(fn: () => Promise<T>) => Promise<T | undefined>;
-  onExport: (request: ExportRequest) => void;
-  task: Task;
-  act: (c: string, a: Record<string, unknown>) => Promise<void>;
-  retry: () => void;
-  preview: () => void;
-  launch: () => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <article className="task-card">
-      <div className="task-top">
-        <div className="task-symbol">
-          <Activity size={19} />
-        </div>
-        <div className="task-title">
-          <strong>{task.title}</strong>
-          <small>
-            {new Date(task.createdAt * 1000).toLocaleString()} ·{' '}
-            {task.operation.target?.serial ??
-              task.operation.args.avdId?.split('\\').at(-1) ??
-              '本机环境'}
-          </small>
-        </div>
-        <Badge state={task.state} />
-      </div>
-      <p>{task.message}</p>
-      {task.progress !== null && taskActive(task.state) && (
-        <progress value={task.progress} max={100} />
-      )}
-      <div className="task-actions">
-        {task.state === 'succeeded' &&
-          ['apk_install', 'app_reinstall'].includes(task.operation.kind) &&
-          task.operation.args.package && (
-            <Button onClick={launch}>
-              <Play size={13} />
-              启动应用
-            </Button>
-          )}
-        {taskActive(task.state) && (
-          <Button onClick={() => void act('task_cancel', { taskId: task.id })}>
-            {task.cancellable ? '取消' : '此步骤完成后取消'}
-          </Button>
-        )}
-        {['failed', 'needs_review', 'cancelled'].includes(task.state) && (
-          <Button onClick={retry}>重新检查并重试</Button>
-        )}
-        {task.artifact && task.operation.kind === 'capture' && (
-          <>
-            <Button onClick={preview}>预览截图</Button>
-            <Button onClick={() => void act('artifact_save', { taskId: task.id })}>保存</Button>
-            <Button onClick={() => void act('artifact_copy', { taskId: task.id, preview: false })}>
-              <Copy size={13} />
-              复制
-            </Button>
-          </>
-        )}
-        <button className="text-button" onClick={() => setExpanded((v) => !v)}>
-          {expanded ? '收起诊断' : '查看诊断'}
-        </button>
-      </div>
-      {task.operation.kind === 'log_record' && !taskActive(task.state) && task.artifact && (
-        <RecordingExport taskId={task.id} guard={guard} onExport={onExport} />
-      )}
-      {expanded && <pre className="task-log">{task.log.join('\n') || '暂无额外诊断输出'}</pre>}
-      {task.licensePrompt && (
-        <div className="license">
-          <b>官方工具正在等待许可确认</b>
-          <pre>{task.licensePrompt}</pre>
-          <Button onClick={() => void act('license_respond', { taskId: task.id, accept: false })}>
-            拒绝
-          </Button>
-          <Button
-            primary
-            onClick={() => void act('license_respond', { taskId: task.id, accept: true })}
-          >
-            接受当前许可
-          </Button>
-        </div>
-      )}
-    </article>
   );
 }
 function SettingsPanel({

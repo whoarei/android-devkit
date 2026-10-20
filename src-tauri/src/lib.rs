@@ -43,6 +43,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::workspace_snapshot,
+            commands::task_list,
             commands::environment_scan,
             commands::settings_save,
             commands::catalog_refresh,

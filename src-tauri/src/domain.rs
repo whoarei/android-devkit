@@ -270,6 +270,24 @@ impl Task {
 }
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct TaskQuery {
+    pub keyword: String,
+    pub state: String,
+    pub offset: u32,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskPage {
+    pub tasks: Vec<Task>,
+    pub total: u32,
+    pub counts: std::collections::BTreeMap<String, u32>,
+    pub offset: u32,
+    pub page_size: u32,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ApkInfo {
     pub id: String,

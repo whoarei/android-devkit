@@ -6,6 +6,7 @@
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "allow-workspace-snapshot",
+    "allow-task-list",
     "allow-environment-scan",
     "allow-settings-save",
     "allow-catalog-refresh",

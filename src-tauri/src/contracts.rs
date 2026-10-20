@@ -13,6 +13,8 @@ fn source() -> String {
         License::decl(),
         Plan::decl(),
         Task::decl(),
+        TaskQuery::decl(),
+        TaskPage::decl(),
         ApkInfo::decl(),
         Workspace::decl(),
         LogFilter::decl(),

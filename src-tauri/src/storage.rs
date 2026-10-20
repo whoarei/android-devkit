@@ -55,6 +55,79 @@ impl Store {
     pub fn tasks(&self) -> Result<Vec<Task>> {
         self.query_tasks("SELECT json FROM tasks ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT 200")
     }
+    pub fn task_page(&self, query: &TaskQuery) -> Result<TaskPage> {
+        let state = query.state.as_str();
+        if !matches!(
+            state,
+            "" | "all"
+                | "active"
+                | "queued"
+                | "running"
+                | "waiting_confirmation"
+                | "succeeded"
+                | "failed"
+                | "cancelled"
+                | "needs_review"
+        ) {
+            return Err(AppError::new("INVALID_TASK_STATE", "未知的任务筛选状态"));
+        }
+        let keyword = query.keyword.trim();
+        // instr treats '%' and '_' literally and all input remains parameterized.
+        let search = "(?1 = '' OR instr(lower(
+            coalesce(json_extract(json,'$.title'),'') || char(10) ||
+            coalesce(json_extract(json,'$.message'),'') || char(10) || id || char(10) ||
+            coalesce(json_extract(json,'$.operation.kind'),'') || char(10) ||
+            coalesce(json_extract(json,'$.operation.target.serial'),'') || char(10) ||
+            coalesce(json_extract(json,'$.operation.args.address'),'') || char(10) ||
+            coalesce(json_extract(json,'$.operation.args.avdId'),'') || char(10) ||
+            coalesce(json_extract(json,'$.operation.args.package'),'') || char(10) ||
+            coalesce(json_extract(json,'$.operation.args.packages'),'')), lower(?1)) > 0)";
+        let connection = self.connection.lock().unwrap();
+        let mut counts = std::collections::BTreeMap::<String, u32>::new();
+        let mut statement = connection.prepare(&format!(
+            "SELECT json_extract(json,'$.state'), count(*) FROM tasks WHERE {search} GROUP BY json_extract(json,'$.state')"
+        ))?;
+        for row in statement.query_map([keyword], |r| {
+            Ok((r.get::<_, String>(0)?, r.get::<_, u32>(1)?))
+        })? {
+            let (state, count) = row?;
+            counts.insert(state, count);
+        }
+        let total = counts
+            .iter()
+            .filter(|(s, _)| match state {
+                "" | "all" => true,
+                "active" => matches!(s.as_str(), "queued" | "running" | "waiting_confirmation"),
+                _ => s.as_str() == state,
+            })
+            .map(|(_, count)| count)
+            .sum::<u32>();
+        let page_size = 30;
+        // A background status change may remove the last row on the last page.
+        let offset = query
+            .offset
+            .min(total.saturating_sub(1) / page_size * page_size);
+        let mut statement = connection.prepare(&format!(
+            "SELECT json FROM tasks WHERE {search} AND (
+                ?2 IN ('','all') OR json_extract(json,'$.state') = ?2 OR
+                (?2 = 'active' AND json_extract(json,'$.state') IN ('queued','running','waiting_confirmation'))
+            ) ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT ?3 OFFSET ?4"
+        ))?;
+        let rows = statement.query_map(params![keyword, state, page_size, offset], |r| {
+            r.get::<_, String>(0)
+        })?;
+        let mut tasks = Vec::new();
+        for row in rows {
+            tasks.push(serde_json::from_str(&row?)?);
+        }
+        Ok(TaskPage {
+            tasks,
+            total,
+            counts,
+            offset,
+            page_size,
+        })
+    }
     fn query_tasks(&self, sql: &str) -> Result<Vec<Task>> {
         let connection = self.connection.lock().unwrap();
         let mut statement = connection.prepare(sql)?;
@@ -172,6 +245,141 @@ impl Store {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn task_search_reaches_older_history_and_treats_patterns_literally() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(&dir.path().join("db")).unwrap();
+        let mut old = crate::regression_tests::task("old-adb-failure", "failed");
+        old.title = "下载 SDK 100%_done".into();
+        old.message = "ADB CONNECTION REFUSED".into();
+        old.operation
+            .args
+            .insert("address".into(), "192.168.1.20:5555".into());
+        store.save_task(&old).unwrap();
+        for index in 0..220 {
+            store
+                .save_task(&crate::regression_tests::task(
+                    &format!("recent-{index}"),
+                    "succeeded",
+                ))
+                .unwrap();
+        }
+        assert!(!store.tasks().unwrap().iter().any(|task| task.id == old.id));
+        for keyword in [
+            " adb connection ",
+            "100%_done",
+            "192.168.1.20",
+            "old-adb-failure",
+        ] {
+            let page = store
+                .task_page(&TaskQuery {
+                    keyword: keyword.into(),
+                    state: "failed".into(),
+                    offset: 90,
+                })
+                .unwrap();
+            assert_eq!(page.total, 1, "{keyword}");
+            assert_eq!(page.offset, 0);
+            assert_eq!(page.tasks[0].id, old.id);
+        }
+        for keyword in ["100%Xdone", "' OR 1=1 --"] {
+            assert_eq!(
+                store
+                    .task_page(&TaskQuery {
+                        keyword: keyword.into(),
+                        ..Default::default()
+                    })
+                    .unwrap()
+                    .total,
+                0
+            );
+        }
+    }
+    #[test]
+    fn task_pages_keep_status_counts_and_active_work_consistent() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(&dir.path().join("db")).unwrap();
+        for state in [
+            "queued",
+            "running",
+            "waiting_confirmation",
+            "failed",
+            "needs_review",
+            "cancelled",
+        ] {
+            store
+                .save_task(&crate::regression_tests::task(state, state))
+                .unwrap();
+        }
+        for index in 0..65 {
+            store
+                .save_task(&crate::regression_tests::task(
+                    &format!("done-{index}"),
+                    "succeeded",
+                ))
+                .unwrap();
+        }
+        let first = store.task_page(&TaskQuery::default()).unwrap();
+        assert_eq!(first.total, 71);
+        assert_eq!(first.tasks.len(), 30);
+        assert!(first.tasks[..3].iter().all(Task::active));
+        assert_eq!(first.counts["succeeded"], 65);
+        let second = store
+            .task_page(&TaskQuery {
+                offset: 30,
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(second.tasks.len(), 30);
+        assert!(!second
+            .tasks
+            .iter()
+            .any(|task| first.tasks.iter().any(|previous| previous.id == task.id)));
+        let active = store
+            .task_page(&TaskQuery {
+                state: "active".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(active.total, 3);
+        assert!(active.tasks.iter().all(Task::active));
+        let last = store
+            .task_page(&TaskQuery {
+                state: "succeeded".into(),
+                offset: u32::MAX,
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(last.offset, 60);
+        assert_eq!(last.tasks.len(), 5);
+        assert!(last.tasks.iter().all(|task| task.state == "succeeded"));
+        for state in [
+            "failed",
+            "needs_review",
+            "cancelled",
+            "waiting_confirmation",
+        ] {
+            let page = store
+                .task_page(&TaskQuery {
+                    state: state.into(),
+                    ..Default::default()
+                })
+                .unwrap();
+            assert_eq!(page.total, 1);
+            assert_eq!(page.tasks[0].state, state);
+            assert_eq!(page.counts["succeeded"], 65);
+        }
+        assert_eq!(
+            store
+                .task_page(&TaskQuery {
+                    state: "invalid".into(),
+                    ..Default::default()
+                })
+                .unwrap_err()
+                .code,
+            "INVALID_TASK_STATE"
+        );
+    }
     #[test]
     fn persistence_and_interrupted_task_recovery() {
         let dir = tempfile::tempdir().unwrap();

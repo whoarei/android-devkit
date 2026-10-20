@@ -112,6 +112,7 @@ const assert = require('assert/strict');
     assert(recordedBytes > 0, 'recording must contain real log bytes before stop');
     await p.locator('nav').getByRole('button', { name: '任务中心', exact: true }).click();
     const card = p.locator('.task-card').filter({ hasText: '开始文件采集' }).first();
+    await card.getByRole('button', { name: '展开详情', exact: true }).click();
     await card.getByRole('button', { name: '取消', exact: true }).click();
     await finish(recording.id);
     await card.getByRole('button', { name: '选择采集段导出', exact: true }).click();

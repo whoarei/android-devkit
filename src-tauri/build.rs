@@ -5,6 +5,7 @@ fn main() {
     }
     const COMMANDS: &[&str] = &[
         "workspace_snapshot",
+        "task_list",
         "environment_scan",
         "settings_save",
         "catalog_refresh",

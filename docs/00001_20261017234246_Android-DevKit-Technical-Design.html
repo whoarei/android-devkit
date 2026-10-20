@@ -344,6 +344,7 @@ android --sdk=&lt;SDK&gt; sdk install &lt;packageId&gt;</code></pre>
       <section id="tasks">
         <h2><span class="n">12 / TASK ENGINE</span>任务调度与异常恢复</h2>
         <h3>状态与取消语义</h3>
+        <p>任务中心通过只读 <code>task_list(TaskQuery)</code> 查询完整 SQLite 历史，关键词匹配任务名、结果、任务 ID、设备 / 地址及相关组件，输入按参数绑定且通配字符按字面量处理。状态支持全部、进行中或明确状态；返回当前关键词下的状态计数、筛选总数与每页 30 条记录，在途优先、同组按创建顺序倒序。查询在线程池执行，末页因后台状态变化变空时回退到有效页；任务事件同时使工作空间快照与任务查询失效。前端以两行摘要呈现，展开才挂载诊断与采集导出，许可确认保持直接可见。</p>
         <div class="state-path">draft → awaiting_confirmation → queued → running<br>running → succeeded | partially_succeeded | failed | cancelled<br>异常中断 → needs_reconcile → 实际复查 → 已确认结果或 needs_review</div>
         <p>设备状态、任务状态和任务阶段分别建模。running.phase 可为 preparing、downloading、verifying、installing、waiting_device、checking_boot 等，记录已知百分比或未知进度、最后更新时间和是否可取消。<code>needs_reconcile</code> / <code>needs_review</code> 在界面显示“结果待检查”，不是成功状态。</p>
         <p>取消策略由步骤声明为 immediate、after_step 或 not_cancellable。点击“取消”只写入请求；只有执行器确认没有继续产生副作用才转为 cancelled。写入提交中显示“此阶段完成后取消”；若当前最后一步已成功完成，则报告完成并说明取消请求到达较晚，不伪造取消成功。</p>

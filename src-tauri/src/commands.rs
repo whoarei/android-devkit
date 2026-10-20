@@ -12,6 +12,15 @@ pub async fn workspace_snapshot(app: Service<'_>) -> Result<Workspace> {
     app.snapshot().await
 }
 #[tauri::command]
+pub async fn task_list(app: Service<'_>, query: TaskQuery) -> Result<TaskPage> {
+    let app = app.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || app.store.task_page(&query))
+        .await
+        .map_err(|error| {
+            AppError::new("TASK_QUERY_FAILED", "读取任务失败").detail(error.to_string())
+        })?
+}
+#[tauri::command]
 pub fn environment_scan(app: Service<'_>) -> Vec<Environment> {
     android::scan(&app.store.settings())
 }
