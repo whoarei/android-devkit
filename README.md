@@ -166,7 +166,7 @@ powershell -NoProfile -File scripts/package-release.ps1
 
 完整构建会生成第三方许可清单和 NSIS 安装包，打包后可在 `artifacts/windows/` 找到本地程序，在 `artifacts/release/` 找到安装包、便携 ZIP、许可文件、构建信息和校验和。
 
-[GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 自动运行检查、测试和 Windows 打包。维护者的版本确认、标签发布与产物核验步骤见 [版本发布 skill](.agents/skills/android-devkit-release/SKILL.md)。
+[GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 仅在推送 `v*` 标签或在 Actions 页面手动运行时执行检查、测试和 Windows 打包。标签推送在检查通过后自动发布对应版本；手动运行用于检查和打包。维护者的版本确认、标签发布与产物核验步骤见 [版本发布 skill](.agents/skills/android-devkit-release/SKILL.md)。
 
 ## 更多资料
 

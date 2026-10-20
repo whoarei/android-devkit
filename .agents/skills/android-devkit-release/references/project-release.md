@@ -6,7 +6,7 @@
 
 - 项目：`package.json` 的 `name` 为 `android-devkit`，Tauri identifier 为 `dev.android-devkit.desktop`。
 - 当前已配置的公共仓库：`whoarei/android-devkit`。每次先核对 `git remote get-url origin`，从实际远端确定 `gh --repo`，不把这个名称用于其他项目。
-- 发布分支目前为 `main`；`main` / `codex/**` 推送、PR 和手动运行均执行检查，只有 `push` 到 `v*` 标签才执行 Release 发布。
+- 发布分支目前为 `main`。CI 仅在推送 `v*` 标签或 Actions 页面手动运行时执行检查和打包；普通分支推送与 PR 不触发。只有 `push` 到 `v*` 标签才执行 Release 发布，手动运行不会发布版本。
 - `scripts/check-version.cjs` 核对四个版本文件；传入标签可额外核对版本匹配。它目前只接受稳定的三段数字版本。
 - `pnpm-lock.yaml` 当前不保存根项目版本；不要因改版本而重解全部依赖。Cargo.lock 只更新根项目条目，并检查差异。
 - Release 正文目前内嵌在 `.github/workflows/ci.yml` 的 `Publish verified assets` 步骤。后续发版应把正文更新为从上次发布到这次候选提交的实际变更，保留仍适用的安装要求和限制，不沿用初版功能清单冒充更新日志。
@@ -53,12 +53,12 @@ node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
 
 当前产物关系：
 
-| 路径 | 内容 |
-| --- | --- |
-| `src-tauri/target/release/android-devkit.exe` | 原始 release 程序 |
-| `src-tauri/target/release/bundle/nsis/*-setup.exe` | NSIS 安装包 |
-| `artifacts/windows/` | 本地易运行程序、安装包、许可和构建信息 |
-| `artifacts/release/` | CI 上传与 Release 使用的发行文件 |
+| 路径                                               | 内容                                   |
+| -------------------------------------------------- | -------------------------------------- |
+| `src-tauri/target/release/android-devkit.exe`      | 原始 release 程序                      |
+| `src-tauri/target/release/bundle/nsis/*-setup.exe` | NSIS 安装包                            |
+| `artifacts/windows/`                               | 本地易运行程序、安装包、许可和构建信息 |
+| `artifacts/release/`                               | CI 上传与 Release 使用的发行文件       |
 
 `artifacts/release/` 只应包含：
 
@@ -93,7 +93,7 @@ git ls-remote origin "refs/tags/$releaseTag" "refs/tags/$releaseTag^{}"
 
 不要未经核对直接运行这段：先确认当前分支与 `main`、候选 SHA 的关系，以及标签未被其他提交占用。`$releaseRunId` 应取 `headBranch` 等于目标标签、`headSha` 等于候选 SHA 的标签 push 运行；有多个重跑时核对 attempt。注解标签比较解引用的 `^{}` SHA，不能把 tag object 的 SHA 当作代码提交。
 
-当前 CI 的 `windows` job 成功后，`release` job 下载同一 SHA 的 `windows-x64-*` 资产、检查 SHA256SUMS，再通过 `gh release create --verify-tag --latest` 发布。只有标签工作流含发布 job；不以普通 main 构建代替。无需额外调用创建 Release 命令。
+标签推送触发的 CI 在 `windows` job 成功后，由 `release` job 下载同一 SHA 的 `windows-x64-*` 资产、检查 SHA256SUMS，再通过 `gh release create --verify-tag --latest` 发布。手动运行只检查和打包，发布 job 会跳过；不能据此宣称版本已经发布。无需额外调用创建 Release 命令。
 
 下载核验时在系统临时目录创建两个全新目录，使用确定的版本和资产名：
 
