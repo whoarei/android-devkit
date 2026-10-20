@@ -181,9 +181,13 @@ impl App {
             ));
         }
         if discard {
-            for a in status.unsaved {
-                self.store.acknowledge(&a.id)?;
-            }
+            self.discard_artifacts(
+                &status
+                    .unsaved
+                    .iter()
+                    .map(|a| a.id.clone())
+                    .collect::<Vec<_>>(),
+            )?;
         }
         self.draining.store(true, Ordering::SeqCst);
         for t in status.tasks {
@@ -267,6 +271,12 @@ mod tests {
         );
         app.resolve_close("exit", true, false, std::slice::from_ref(&p.artifact.id))
             .unwrap();
-        assert!(app.store.artifact(&p.artifact.id).unwrap().0.acknowledged);
+        assert!(app.store.artifact(&p.artifact.id).is_err());
+        assert!(!app
+            .data
+            .join("exports")
+            .join(format!("{}.txt", p.artifact.id))
+            .exists());
+        assert!(app.close_status().unwrap().unsaved.is_empty());
     }
 }

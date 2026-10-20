@@ -53,23 +53,27 @@ export function Modal({
   onClose,
   wide = false,
   className = '',
+  hidden = false,
 }: {
   title: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
   className?: string;
+  hidden?: boolean;
 }) {
   useEffect(() => {
+    if (hidden) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onClose, hidden]);
   return (
     <div
       className="modal-backdrop"
+      hidden={hidden}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

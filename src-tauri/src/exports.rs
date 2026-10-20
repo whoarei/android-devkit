@@ -42,6 +42,91 @@ pub fn atomic_copy_verified(source: &Path, destination: &Path, expected: &str) -
     result
 }
 impl App {
+    pub fn discard_artifacts(&self, ids: &[String]) -> Result<()> {
+        // Resolve the full reviewed set before deleting anything. Only immutable
+        // screenshot/export copies belong here; recordings and user saves do not.
+        let mut pending = Vec::new();
+        for id in ids.iter().collect::<std::collections::BTreeSet<_>>() {
+            let (artifact, path) = self.store.artifact(id)?;
+            if !artifact.task_id.is_empty() && self.store.task(&artifact.task_id)?.active() {
+                return Err(AppError::new(
+                    "ARTIFACT_IN_USE",
+                    "截图任务仍在收尾，请稍后清理",
+                ));
+            }
+            if id.is_empty()
+                || id.len() > 128
+                || !id
+                    .bytes()
+                    .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_')
+            {
+                return Err(AppError::new(
+                    "UNSAFE_ARTIFACT",
+                    "产物缓存路径不安全，未清理",
+                ));
+            }
+            let (directory, extension) = match artifact.kind.as_str() {
+                "screenshot" => ("artifacts", "png"),
+                "export" => ("exports", "txt"),
+                _ => {
+                    return Err(AppError::new(
+                        "UNSAFE_ARTIFACT",
+                        "只能清理截图或导出副本缓存",
+                    ))
+                }
+            };
+            let root = self.data.join(directory);
+            if path != root.join(format!("{id}.{extension}")) {
+                return Err(AppError::new(
+                    "UNSAFE_ARTIFACT",
+                    "产物缓存路径不安全，未清理",
+                ));
+            }
+            let mut files = vec![path.clone()];
+            if artifact.kind == "export" {
+                files.push(path.with_extension("meta.json"));
+            }
+            // Missing files are already clean. Links/reparse points and directories
+            // must never redirect deletion outside the application's cache.
+            for candidate in std::iter::once(&root).chain(files.iter()) {
+                match std::fs::symlink_metadata(candidate) {
+                    Ok(metadata) => {
+                        let mut link = metadata.file_type().is_symlink();
+                        #[cfg(windows)]
+                        {
+                            use std::os::windows::fs::MetadataExt;
+                            link |= metadata.file_attributes() & 0x400 != 0;
+                        }
+                        if link || (candidate != &root && !metadata.is_file()) {
+                            return Err(AppError::new(
+                                "UNSAFE_ARTIFACT",
+                                "产物缓存路径不安全，未清理",
+                            ));
+                        }
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                    Err(error) => return Err(error.into()),
+                }
+            }
+            pending.push((id, path, files));
+        }
+        let result = (|| {
+            for (id, path, files) in pending {
+                for file in files {
+                    match std::fs::remove_file(file) {
+                        Ok(()) => {}
+                        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                        Err(error) => return Err(AppError::from(error)),
+                    }
+                }
+                // A failed deletion retains the registry entry so the user can retry.
+                self.store.forget_artifact(id, &path)?;
+            }
+            Ok(())
+        })();
+        self.notify();
+        result
+    }
     pub fn prepare_text_export(
         &self,
         title: &str,
@@ -185,6 +270,128 @@ impl App {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn discard_removes_only_reviewed_copies_and_preserves_task_history() {
+        let d = tempfile::tempdir().unwrap();
+        let app = App::new(d.path().join("app")).unwrap();
+        let first = app
+            .prepare_text_export("first", vec!["one".into()], false, vec![])
+            .unwrap();
+        let other = app
+            .prepare_text_export("other", vec!["two".into()], false, vec![])
+            .unwrap();
+        let (_, source) = app.store.artifact(&first.artifact.id).unwrap();
+        let saved = d.path().join("saved.txt");
+        atomic_copy(&source, &saved).unwrap();
+        let recording = app.data.join("recordings/original.log");
+        std::fs::create_dir_all(recording.parent().unwrap()).unwrap();
+        std::fs::write(&recording, "raw recording").unwrap();
+        let screenshot = app.data.join("artifacts/capture.png");
+        std::fs::create_dir_all(screenshot.parent().unwrap()).unwrap();
+        std::fs::write(&screenshot, b"screenshot").unwrap();
+        let mut task = crate::regression_tests::task("capture", "succeeded");
+        task.operation.kind = "capture".into();
+        task.artifact = screenshot.to_string_lossy().into();
+        app.store.save_task(&task).unwrap();
+        app.store
+            .register_artifact("capture", &screenshot, "screenshot", "设备截图", "capture")
+            .unwrap();
+        app.discard_artifacts(&[first.artifact.id.clone(), "capture".into()])
+            .unwrap();
+        assert!(!source.exists());
+        assert!(!source.with_extension("meta.json").exists());
+        assert!(!screenshot.exists());
+        assert_eq!(std::fs::read_to_string(saved).unwrap(), "one\n");
+        assert_eq!(std::fs::read_to_string(recording).unwrap(), "raw recording");
+        assert!(app.store.task("capture").unwrap().artifact.is_empty());
+        assert_eq!(app.store.task("capture").unwrap().state, "succeeded");
+        assert_eq!(app.close_status().unwrap().unsaved.len(), 1);
+        assert_eq!(app.close_status().unwrap().unsaved[0].id, other.artifact.id);
+    }
+    #[test]
+    fn discard_prevalidates_paths_and_handles_already_missing_files() {
+        let d = tempfile::tempdir().unwrap();
+        let app = App::new(d.path().join("app")).unwrap();
+        let p = app
+            .prepare_text_export("test", vec!["cache".into()], false, vec![])
+            .unwrap();
+        let (_, source) = app.store.artifact(&p.artifact.id).unwrap();
+        let outside = d.path().join("saved.txt");
+        std::fs::write(&outside, "saved").unwrap();
+        app.store
+            .register_artifact("outside", &outside, "export", "outside", "")
+            .unwrap();
+        assert_eq!(
+            app.discard_artifacts(&[p.artifact.id.clone(), "outside".into()])
+                .unwrap_err()
+                .code,
+            "UNSAFE_ARTIFACT"
+        );
+        assert!(source.exists());
+        assert_eq!(std::fs::read_to_string(&outside).unwrap(), "saved");
+        std::fs::remove_file(&source).unwrap();
+        app.discard_artifacts(std::slice::from_ref(&p.artifact.id))
+            .unwrap();
+        assert!(!source.with_extension("meta.json").exists());
+        assert!(app.store.artifact(&p.artifact.id).is_err());
+    }
+    #[cfg(windows)]
+    #[test]
+    fn discard_failure_remains_pending_and_retry_finishes_metadata_cleanup() {
+        use std::os::windows::fs::OpenOptionsExt;
+        let d = tempfile::tempdir().unwrap();
+        let app = App::new(d.path().into()).unwrap();
+        let p = app
+            .prepare_text_export("test", vec!["cache".into()], false, vec![])
+            .unwrap();
+        let (_, source) = app.store.artifact(&p.artifact.id).unwrap();
+        let metadata = source.with_extension("meta.json");
+        let locked = std::fs::OpenOptions::new()
+            .read(true)
+            .share_mode(1)
+            .open(&metadata)
+            .unwrap();
+        let result = app.discard_artifacts(std::slice::from_ref(&p.artifact.id));
+        drop(locked);
+        assert!(result.is_err());
+        assert!(!source.exists());
+        assert!(metadata.exists());
+        assert!(!app.store.artifact(&p.artifact.id).unwrap().0.acknowledged);
+        app.discard_artifacts(std::slice::from_ref(&p.artifact.id))
+            .unwrap();
+        assert!(!metadata.exists());
+        assert!(app.close_status().unwrap().unsaved.is_empty());
+    }
+    #[cfg(windows)]
+    #[test]
+    fn discard_rejects_cache_junctions() {
+        use std::os::windows::process::CommandExt;
+        let d = tempfile::tempdir().unwrap();
+        let app = App::new(d.path().join("app")).unwrap();
+        let outside = d.path().join("outside");
+        std::fs::create_dir_all(&outside).unwrap();
+        let cache = app.data.join("exports");
+        assert!(std::process::Command::new("cmd.exe")
+            .args(["/d", "/c", "mklink", "/J"])
+            .arg(&cache)
+            .arg(&outside)
+            .creation_flags(0x08000000)
+            .output()
+            .unwrap()
+            .status
+            .success());
+        std::fs::write(outside.join("linked.txt"), "keep").unwrap();
+        app.store
+            .register_artifact("linked", &cache.join("linked.txt"), "export", "linked", "")
+            .unwrap();
+        let result = app.discard_artifacts(&["linked".into()]);
+        std::fs::remove_dir(&cache).unwrap();
+        assert_eq!(result.unwrap_err().code, "UNSAFE_ARTIFACT");
+        assert_eq!(
+            std::fs::read_to_string(outside.join("linked.txt")).unwrap(),
+            "keep"
+        );
+    }
     #[test]
     fn failed_save_does_not_acknowledge_or_lose_source() {
         let d = tempfile::tempdir().unwrap();

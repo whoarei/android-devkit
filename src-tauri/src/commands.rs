@@ -276,6 +276,15 @@ pub fn artifacts_list(app: Service<'_>) -> Result<Vec<Artifact>> {
     app.store.artifacts()
 }
 #[tauri::command]
+pub async fn artifacts_discard(app: Service<'_>, artifact_ids: Vec<String>) -> Result<()> {
+    let app = app.inner().clone();
+    tokio::task::spawn_blocking(move || app.discard_artifacts(&artifact_ids))
+        .await
+        .map_err(|e| {
+            AppError::new("CACHE_CLEANUP_FAILED", "清理缓存失败，请重试").detail(e.to_string())
+        })?
+}
+#[tauri::command]
 pub async fn export_prepare(
     app: Service<'_>,
     kind: String,

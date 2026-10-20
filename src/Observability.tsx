@@ -1,8 +1,15 @@
 import { t as tr, getLocale } from './i18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { call, deviceKey, native, size } from './api';
-const artifactSize = (bytes: number) => (bytes < 1024 ? `${bytes} B` : size(bytes));
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FileDown, FileText, Image, Trash2 } from 'lucide-react';
+import { Modal } from './ui';
+import { call, deviceKey, errorText, native, size } from './api';
+const artifactSize = (bytes: number) =>
+  bytes < 1024
+    ? `${bytes} B`
+    : bytes < 1024 * 1024
+      ? `${(bytes / 1024).toFixed(1)} KiB`
+      : size(bytes);
 import type {
   Artifact,
   CloseStatus,
@@ -56,7 +63,12 @@ function Dialog({
     return () => document.removeEventListener('keydown', fn);
   }, [close]);
   return (
-    <div className="modal-backdrop">
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) close();
+      }}
+    >
       <section className="modal wide" role="dialog" aria-modal="true" aria-label={tr(title)}>
         <div className="modal-heading">
           <h2>{tr(title)}</h2>
@@ -425,54 +437,181 @@ export function RecordingExport({
 export function ArtifactsPanel({
   guard,
   onExport,
+  onScreenshot,
+  previewOpen,
 }: {
   guard: Guard;
   onExport: (p: ExportPreview) => void;
+  onScreenshot: (src: string) => void;
+  previewOpen: boolean;
 }) {
+  const client = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const previewTrigger = useRef<HTMLElement | null>(null);
+  const wasPreviewing = useRef(false);
   const query = useQuery({
     queryKey: ['artifacts'],
     queryFn: () => call<Artifact[]>('artifacts_list'),
     enabled: native,
     refetchInterval: 3000,
   });
+  useEffect(() => {
+    const returning = wasPreviewing.current && !previewOpen;
+    wasPreviewing.current = previewOpen;
+    if (!open || previewOpen) return;
+    let cancelled = false;
+    void query.refetch().then(() => {
+      if (returning && !cancelled)
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          const target = previewTrigger.current?.isConnected
+            ? previewTrigger.current
+            : document.querySelector<HTMLElement>('.artifact-modal .icon-button');
+          target?.focus({ preventScroll: true });
+        });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, previewOpen, query.refetch]);
   const pending = query.data?.filter((a) => !a.acknowledged) ?? [];
-  return pending.length ? (
-    <section className="artifact-list">
-      <h3>
-        {tr('未另存产物 \u00B7 ')}
-        {pending.length}
-      </h3>
-      <p className="hint">{tr('退出前可保存，或在退出面板明确放弃未保存状态。')}</p>
-      {pending.map((a) => (
-        <div key={a.id}>
-          <span>
-            {tr(a.title)} · {artifactSize(a.bytes)}
+  const run = (work: () => Promise<void>) =>
+    void guard(async () => {
+      if (busy) return;
+      setBusy(true);
+      setError('');
+      try {
+        await work();
+      } catch (e) {
+        setError(errorText(e));
+        throw e;
+      } finally {
+        await Promise.all([
+          client.invalidateQueries({ queryKey: ['artifacts'] }),
+          client.invalidateQueries({ queryKey: ['task-list'] }),
+          client.invalidateQueries({ queryKey: ['workspace'] }),
+          client.invalidateQueries({ queryKey: ['close-status'] }),
+        ]);
+        setBusy(false);
+      }
+    });
+  const discard = (ids: string[]) => run(() => call('artifacts_discard', { artifactIds: ids }));
+  const preview = (a: Artifact) =>
+    run(async () => {
+      previewTrigger.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      if (a.kind === 'screenshot') {
+        onScreenshot(await call('artifact_copy', { taskId: a.taskId, preview: true }));
+      } else {
+        onExport(await call('export_page', { artifactId: a.id, offset: 0 }));
+      }
+    });
+  return (
+    <>
+      <button
+        className="artifact-inbox icon-button"
+        aria-label={tr('待保存文件：{0} 项', pending.length)}
+        title={tr('待保存文件')}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        disabled={!native}
+        onClick={() => {
+          setOpen(true);
+          setError('');
+        }}
+      >
+        <FileDown size={18} aria-hidden="true" />
+        {pending.length > 0 && (
+          <span className="artifact-count" aria-hidden="true">
+            {pending.length > 99 ? '99+' : pending.length}
           </span>
-          {a.kind === 'export' && (
-            <Btn
-              onClick={() =>
-                void guard(async () =>
-                  onExport(await call('export_page', { artifactId: a.id, offset: 0 })),
-                )
-              }
+        )}
+      </button>
+      {open && (
+        <Modal
+          title={tr('待保存文件')}
+          onClose={() => setOpen(false)}
+          wide
+          className="artifact-modal"
+          hidden={previewOpen}
+        >
+          <div className="artifact-summary">
+            <span>
+              {tr(
+                '{0} 项 · {1}',
+                pending.length,
+                artifactSize(pending.reduce((sum, a) => sum + a.bytes, 0)),
+              )}
+            </span>
+            <button
+              className="text-button danger"
+              disabled={busy || !pending.length}
+              onClick={() => discard(pending.map((a) => a.id))}
             >
-              {tr('预览')}
-            </Btn>
+              <Trash2 size={13} />
+              {tr('全部忽略并清理')}
+            </button>
+          </div>
+          <p className="hint">
+            {tr('忽略会删除对应的本地缓存；已另存文件、原始采集段和任务记录保留。')}
+          </p>
+          {(error || query.error) && (
+            <p className="error-banner" role="alert">
+              {tr(error || errorText(query.error))}
+            </p>
           )}
-          <Btn
-            onClick={() =>
-              void guard(async () => {
-                await call('export_save', { artifactId: a.id });
-                await query.refetch();
-              })
-            }
-          >
-            {tr('保存…')}
-          </Btn>
-        </div>
-      ))}
-    </section>
-  ) : null;
+          <div className="artifact-items" aria-busy={busy || query.isFetching}>
+            {pending.map((a) => (
+              <article className="artifact-item" key={a.id} data-artifact-id={a.id}>
+                <div className="artifact-symbol">
+                  {a.kind === 'screenshot' ? <Image size={18} /> : <FileText size={18} />}
+                </div>
+                <div className="artifact-info">
+                  <strong>{tr(a.title)}</strong>
+                  <small>
+                    <time dateTime={new Date(a.createdAt * 1000).toISOString()}>
+                      {new Date(a.createdAt * 1000).toLocaleString(getLocale(), { hour12: false })}
+                    </time>{' '}
+                    · {artifactSize(a.bytes)}
+                  </small>
+                </div>
+                <div className="artifact-actions">
+                  <Btn disabled={busy} onClick={() => preview(a)}>
+                    {tr('预览')}
+                  </Btn>
+                  <Btn
+                    disabled={busy}
+                    onClick={() =>
+                      run(async () => {
+                        await call('export_save', { artifactId: a.id });
+                      })
+                    }
+                  >
+                    {tr('保存…')}
+                  </Btn>
+                  <button
+                    className="text-button danger"
+                    disabled={busy}
+                    onClick={() => discard([a.id])}
+                  >
+                    {tr('忽略并清理')}
+                  </button>
+                </div>
+              </article>
+            ))}
+            {!pending.length && !query.isPending && !query.error && (
+              <div className="artifact-empty">
+                <FileDown size={24} />
+                <p>{tr('没有待保存的文件')}</p>
+              </div>
+            )}
+          </div>
+        </Modal>
+      )}
+    </>
+  );
 }
 export function CloseDialog({ guard, close }: { guard: Guard; close: () => void }) {
   const [discard, setDiscard] = useState(false);
@@ -538,7 +677,7 @@ export function CloseDialog({ guard, close }: { guard: Guard; close: () => void 
               checked={discard}
               onChange={(e) => setDiscard(e.target.checked)}
             />
-            {tr('我明确放弃上述产物的未保存状态，仍保留本地缓存')}
+            {tr('忽略上述未保存文件并清理对应本地缓存')}
           </label>
         </>
       ) : null}

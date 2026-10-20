@@ -360,5 +360,10 @@
   "数据库来自较新版本，保留原库，请使用匹配的应用版本": "Database was created by a newer app version. Original database preserved; use a matching version",
   "应用中断，正在复查实际状态；不会自动重放写操作": "App interrupted. Verifying actual state; write operations are not replayed automatically",
   "未知的任务筛选状态": "Unknown task status filter",
-  "不支持的界面语言": "Unsupported interface language"
+  "不支持的界面语言": "Unsupported interface language",
+  "截图缓存已清理，任务记录已保留": "Screenshot cache cleared; task history kept",
+  "产物缓存路径不安全，未清理": "Unsafe artifact cache path; nothing was cleared",
+  "只能清理截图或导出副本缓存": "Only cached screenshots and export copies can be cleared",
+  "清理缓存失败，请重试": "Cache cleanup failed; please retry",
+  "截图任务仍在收尾，请稍后清理": "The screenshot task is finishing; please try cleanup shortly"
 }

@@ -27,6 +27,7 @@
     "allow-close-resolve",
     "allow-close-status",
     "allow-artifacts-list",
+    "allow-artifacts-discard",
     "allow-export-prepare",
     "allow-export-page",
     "allow-export-save",

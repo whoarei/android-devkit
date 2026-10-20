@@ -45,6 +45,7 @@ export function TaskCenter({
   showPreview,
   onExport,
   onExportPreview,
+  previewOpen,
   refresh,
 }: {
   guard: Guard;
@@ -53,6 +54,7 @@ export function TaskCenter({
   showPreview: (src: string) => void;
   onExport: (request: ExportRequest) => void;
   onExportPreview: (preview: ExportPreview) => void;
+  previewOpen: boolean;
   refresh: () => Promise<unknown>;
 }) {
   const [search, setSearch] = useState('');
@@ -96,7 +98,6 @@ export function TaskCenter({
   };
   return (
     <div className="task-center">
-      <ArtifactsPanel guard={guard} onExport={onExportPreview} />
       <div className="task-toolbar">
         <label className="task-search">
           <Search size={15} aria-hidden="true" />
@@ -130,6 +131,12 @@ export function TaskCenter({
           <RefreshCw size={13} className={query.isFetching ? 'spin' : ''} />
           {t('刷新')}
         </button>
+        <ArtifactsPanel
+          guard={guard}
+          onExport={onExportPreview}
+          onScreenshot={showPreview}
+          previewOpen={previewOpen}
+        />
       </div>
       <div className="task-filters" role="group" aria-label={t('任务状态筛选')}>
         {filters.map(([value, label]) => (

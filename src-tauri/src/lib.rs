@@ -66,6 +66,7 @@ pub fn run() {
             commands::close_resolve,
             commands::close_status,
             commands::artifacts_list,
+            commands::artifacts_discard,
             commands::export_prepare,
             commands::export_page,
             commands::export_save,

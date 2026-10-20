@@ -64,6 +64,18 @@ const path = require('node:path');
           task(`history-${i}`, 'succeeded', `历史任务 ${i + 1}`),
         ),
       ];
+      window.__artifacts = Array.from({ length: 7 }, (_, i) => ({
+        id: i === 0 ? 'capture' : `export-${i}`,
+        kind: i === 0 ? 'screenshot' : 'export',
+        title: i === 0 ? '设备截图' : i < 3 ? '所选采集段' : '当前日志视图',
+        taskId: i === 0 ? 'capture' : '',
+        bytes: i === 0 ? 40000 : 3 * 1024 * 1024,
+        sha256: 'fixture',
+        createdAt: 1792483200 + i * 60,
+        acknowledged: false,
+      }));
+      window.__saveSucceeds = false;
+      window.__rejectDiscard = false;
       window.__calls = [];
       window.isTauri = true;
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
@@ -86,7 +98,34 @@ const path = require('node:path');
               freeBytes: 1024 ** 3,
             };
           if (command === 'window_state') return { maximized: false };
-          if (command === 'artifacts_list') return [];
+          if (command === 'artifacts_list') return structuredClone(window.__artifacts);
+          if (command === 'export_page')
+            return {
+              artifact: structuredClone(window.__artifacts.find((a) => a.id === args.artifactId)),
+              text: 'Fixture export content',
+              offset: 0,
+              nextOffset: null,
+              rows: 1,
+              redacted: true,
+              truncated: false,
+              warning: '',
+            };
+          if (command === 'export_save') {
+            if (!window.__saveSucceeds) return null;
+            window.__artifacts.find((a) => a.id === args.artifactId).acknowledged = true;
+            return 'C:\\saved-export.txt';
+          }
+          if (command === 'artifacts_discard') {
+            await new Promise((resolve) => setTimeout(resolve, 25));
+            if (window.__rejectDiscard)
+              throw { code: 'IO_ERROR', message: 'Fixture cache file is locked' };
+            window.__artifacts = window.__artifacts.filter((a) => !args.artifactIds.includes(a.id));
+            if (args.artifactIds.includes('capture'))
+              window.__tasks.find((t) => t.id === 'capture').artifact = '';
+            return null;
+          }
+          if (command === 'artifact_copy')
+            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1sAAAAASUVORK5CYII=';
           if (command === 'task_list') {
             const { keyword, state, offset } = args.query;
             const active = (state) => ['running', 'queued', 'waiting_confirmation'].includes(state);
@@ -158,6 +197,9 @@ const path = require('node:path');
       await waitForTasks(ids);
     };
     await page.locator('[data-task-id="run"]').waitFor();
+    await page.getByRole('button', { name: '待保存文件：7 项', exact: true }).waitFor();
+    assert.equal(await page.locator('.artifact-list').count(), 0);
+    assert.equal(await page.locator('.artifact-item').count(), 0);
     assert.equal(await rows.count(), 30);
     const failed = page.locator('[data-task-id="fail"]');
     const collapsedHeight = (await failed.boundingBox()).height;
@@ -240,6 +282,10 @@ const path = require('node:path');
       ),
     );
     await capture.getByRole('button', { name: '收起详情', exact: true }).click();
+    await capture.getByRole('button', { name: '预览截图', exact: true }).click();
+    await page.locator('.screenshot').waitFor();
+    await page.getByRole('dialog').getByRole('button', { name: '关闭面板', exact: true }).click();
+    assert.equal(await page.getByRole('dialog').count(), 0);
     await select('全部', [
       'run',
       'queue',
@@ -260,9 +306,144 @@ const path = require('node:path');
       false,
     );
     await page.screenshot({ path: path.join(output, 'task-center-narrow.png') });
+    const inbox = () => page.locator('.artifact-inbox');
+    await inbox().click();
+    let files = page.getByRole('dialog', { name: '待保存文件', exact: true });
+    await files.locator('.artifact-item').first().waitFor();
+    assert.equal(await files.locator('.artifact-item').count(), 7);
+    assert.equal(await files.locator('time').count(), 7);
+    await files.getByText('39.1 KiB', { exact: false }).waitFor();
+    assert.equal(await files.evaluate((el) => el.scrollWidth > el.clientWidth), false);
+    await page.screenshot({ path: path.join(output, 'artifact-inbox-narrow.png') });
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.getByRole('button', { name: '切换为暗色主题', exact: true }).click();
+    await page.screenshot({ path: path.join(output, 'artifact-inbox-dark.png') });
+    await page.getByRole('button', { name: '切换为亮色主题', exact: true }).click();
+    await files
+      .locator('[data-artifact-id="export-1"]')
+      .getByRole('button', { name: '预览', exact: true })
+      .click();
+    const exportDialog = page.getByRole('dialog', { name: '导出内容预览', exact: true });
+    await exportDialog.getByText('Fixture export content').waitFor();
+    await exportDialog.getByRole('button', { name: '保存到本地…', exact: true }).click();
+    await exportDialog.getByRole('button', { name: '关闭面板', exact: true }).click();
+    await page.getByRole('button', { name: '待保存文件：7 项', exact: true }).waitFor();
+    files = page.getByRole('dialog', { name: '待保存文件', exact: true });
+    await files.waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    // The list remains mounted and keeps its scroll position behind the preview.
+    await page.setViewportSize({ width: 480, height: 640 });
+    const lastPreview = files
+      .locator('[data-artifact-id="export-6"]')
+      .getByRole('button', { name: '预览', exact: true });
+    await lastPreview.scrollIntoViewIfNeeded();
+    const scrollBeforePreview = await files.evaluate((el) => el.scrollTop);
+    assert(scrollBeforePreview > 0);
+    await lastPreview.click();
+    await exportDialog.waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    await page.keyboard.press('Escape');
+    await files.waitFor();
+    assert.equal(await files.evaluate((el) => el.scrollTop), scrollBeforePreview);
+    await page.waitForFunction(
+      () =>
+        document.activeElement?.closest('[data-artifact-id]')?.getAttribute('data-artifact-id') ===
+        'export-6',
+    );
+    await page.keyboard.press('Escape');
+    await files.waitFor({ state: 'hidden' });
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await inbox().click();
+    await page.evaluate(() => {
+      window.__saveSucceeds = true;
+    });
+    await files
+      .locator('[data-artifact-id="export-1"]')
+      .getByRole('button', { name: '保存…', exact: true })
+      .click();
+    await files.locator('[data-artifact-id="export-1"]').waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: '待保存文件：6 项', exact: true }).waitFor();
+    await files
+      .locator('[data-artifact-id="export-2"]')
+      .getByRole('button', { name: '忽略并清理', exact: true })
+      .click();
+    await files.locator('[data-artifact-id="export-2"]').waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: '待保存文件：5 项', exact: true }).waitFor();
+    const single = await page.evaluate(() =>
+      window.__calls.filter((c) => c.command === 'artifacts_discard').at(-1),
+    );
+    assert.deepEqual(single.args.artifactIds, ['export-2']);
+    await files
+      .locator('[data-artifact-id="capture"]')
+      .getByRole('button', { name: '预览', exact: true })
+      .click();
+    await page.locator('.screenshot').waitFor();
+    await page.getByRole('dialog').getByRole('button', { name: '关闭面板', exact: true }).click();
+    files = page.getByRole('dialog', { name: '待保存文件', exact: true });
+    await files.waitFor();
+    for (const closeWith of ['escape', 'backdrop']) {
+      await files
+        .locator('[data-artifact-id="capture"]')
+        .getByRole('button', { name: '预览', exact: true })
+        .click();
+      const imageDialog = page.getByRole('dialog', { name: '设备截图', exact: true });
+      await imageDialog.waitFor();
+      assert.equal(await page.getByRole('dialog').count(), 1);
+      if (closeWith === 'escape') await page.keyboard.press('Escape');
+      else await imageDialog.locator('..').click({ position: { x: 4, y: 4 } });
+      await files.waitFor();
+      assert.equal(await page.getByRole('dialog').count(), 1);
+      assert.equal(await files.locator('.artifact-item').count(), 5);
+    }
+    await files
+      .locator('[data-artifact-id="export-3"]')
+      .getByRole('button', { name: '预览', exact: true })
+      .click();
+    await exportDialog.getByRole('button', { name: '保存到本地…', exact: true }).click();
+    await exportDialog.getByRole('status').waitFor();
+    await exportDialog.locator('..').click({ position: { x: 4, y: 4 } });
+    await files.waitFor();
+    await files.locator('[data-artifact-id="export-3"]').waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: '待保存文件：4 项', exact: true }).waitFor();
+    await page.evaluate(() => {
+      window.__rejectDiscard = true;
+    });
+    await files.getByRole('button', { name: '全部忽略并清理', exact: true }).click();
+    await files.getByRole('alert').filter({ hasText: 'Fixture cache file is locked' }).waitFor();
+    assert.equal(await files.locator('.artifact-item').count(), 4);
+    await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    files = page.getByRole('dialog', { name: 'Pending files', exact: true });
+    await files.getByRole('button', { name: 'Discard all and clear cache', exact: true }).waitFor();
+    await page.evaluate(() => {
+      window.__rejectDiscard = false;
+    });
+    await files.getByRole('button', { name: 'Discard all and clear cache', exact: true }).click();
+    await files.getByText('No pending files', { exact: true }).waitFor();
+    await page.getByRole('button', { name: 'Pending files: 0', exact: true }).waitFor();
+    assert.equal(await page.locator('.artifact-count').count(), 0);
+    assert.equal(await files.locator('.artifact-item').count(), 0);
+    const batch = await page.evaluate(() =>
+      window.__calls.filter((c) => c.command === 'artifacts_discard').at(-1),
+    );
+    assert.deepEqual(batch.args.artifactIds, ['capture', 'export-4', 'export-5', 'export-6']);
+    await files.getByRole('button', { name: 'Close panel', exact: true }).click();
+    await page.locator('[data-task-id="capture"]').waitFor();
+    assert.equal(
+      await page
+        .locator('[data-task-id="capture"]')
+        .getByRole('button', { name: 'Preview screenshot', exact: true })
+        .count(),
+      0,
+    );
+    await inbox().click();
+    await page
+      .getByRole('dialog', { name: 'Pending files', exact: true })
+      .getByText('No pending files', { exact: true })
+      .waitFor();
     assert.deepEqual(errors, []);
     console.log(
-      `Task center: ${collapsedHeight}px desktop rows; filters, combined search, pagination reset, details, cancellation, retry, license, capture and recording actions, narrow layout passed.`,
+      `Task center: ${collapsedHeight}px desktop rows; filters, actions, artifact cleanup, preview return via close/Escape/backdrop, scroll/focus preservation and narrow layout passed.`,
     );
   } finally {
     await browser.close();

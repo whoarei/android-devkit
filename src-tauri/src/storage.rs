@@ -195,6 +195,30 @@ impl Store {
         )?;
         Ok(())
     }
+    pub fn forget_artifact(&self, id: &str, path: &Path) -> Result<()> {
+        let mut connection = self.connection.lock().unwrap();
+        let transaction = connection.transaction()?;
+        let tasks = {
+            let mut statement = transaction
+                .prepare("SELECT json FROM tasks WHERE json_extract(json,'$.artifact')=?1")?;
+            let rows = statement
+                .query_map([path.to_string_lossy().as_ref()], |r| r.get::<_, String>(0))?;
+            rows.collect::<std::result::Result<Vec<_>, _>>()?
+        };
+        for json in tasks {
+            let mut task: Task = serde_json::from_str(&json)?;
+            task.artifact.clear();
+            task.updated_at = now();
+            task.message = "截图缓存已清理，任务记录已保留".into();
+            transaction.execute(
+                "UPDATE tasks SET json=?1 WHERE id=?2",
+                params![serde_json::to_string(&task)?, task.id],
+            )?;
+        }
+        transaction.execute("DELETE FROM artifacts WHERE id=?1", [id])?;
+        transaction.commit()?;
+        Ok(())
+    }
     pub fn task(&self, id: &str) -> Result<Task> {
         let raw: String = self.connection.lock().unwrap().query_row(
             "SELECT json FROM tasks WHERE id=?1",

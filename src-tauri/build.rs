@@ -26,6 +26,7 @@ fn main() {
         "close_resolve",
         "close_status",
         "artifacts_list",
+        "artifacts_discard",
         "export_prepare",
         "export_page",
         "export_save",

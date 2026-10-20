@@ -785,6 +785,7 @@ export function App() {
             showPreview={setPreview}
             onExport={requestExport}
             onExportPreview={setExportPreview}
+            previewOpen={Boolean(exportPreview || preview)}
           />
         )}
         {page === 'settings' && (

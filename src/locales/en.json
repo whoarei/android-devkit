@@ -432,5 +432,13 @@
   "安装 / 更新 {0}": "Install / update {0}",
   "卸载 {0}": "Remove {0}",
   "准备 真机 最小环境；SDK {0}": "Prepare minimum physical-device tools; SDK {0}",
-  "准备 模拟器 最小环境；SDK {0}": "Prepare minimum emulator tools; SDK {0}"
+  "准备 模拟器 最小环境；SDK {0}": "Prepare minimum emulator tools; SDK {0}",
+  "待保存文件": "Pending files",
+  "待保存文件：{0} 项": "Pending files: {0}",
+  "{0} 项 · {1}": "{0} files · {1}",
+  "全部忽略并清理": "Discard all and clear cache",
+  "忽略并清理": "Discard and clear cache",
+  "忽略会删除对应的本地缓存；已另存文件、原始采集段和任务记录保留。": "Discarding deletes the corresponding cached copies. Saved files, original recordings and task history are kept.",
+  "没有待保存的文件": "No pending files",
+  "忽略上述未保存文件并清理对应本地缓存": "Discard these unsaved files and delete their cached copies"
 }
