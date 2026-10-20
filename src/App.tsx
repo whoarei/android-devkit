@@ -347,9 +347,7 @@ export function App() {
     <div className="app-shell">
       <header className="titlebar">
         <div className="titlebar-brand">
-          <span className="brand-mark">
-            <Terminal size={15} />
-          </span>
+          <img className="brand-mark" src="/android-devkit.png" alt="" aria-hidden="true" />
           Android DevKit
         </div>
         <div

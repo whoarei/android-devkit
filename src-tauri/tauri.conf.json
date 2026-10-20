@@ -31,7 +31,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
-    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "icon": ["icons/android-devkit/icon.png", "icons/android-devkit/icon.ico"],
     "resources": {
       "resources/THIRD_PARTY_NOTICES.txt": "THIRD_PARTY_NOTICES.txt",
       "resources/third-party-manifest.json": "third-party-manifest.json"
@@ -46,7 +46,7 @@
         "installMode": "currentUser",
         "languages": ["SimpChinese", "English"],
         "displayLanguageSelector": false,
-        "installerIcon": "icons/icon.ico"
+        "installerIcon": "icons/android-devkit/icon.ico"
       }
     }
   }
