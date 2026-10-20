@@ -111,6 +111,8 @@ const path = require('node:path');
             };
           }
           if (command === 'task_cancel') {
+            // Model asynchronous native IPC so the test waits for the rendered refresh.
+            await new Promise((resolve) => setTimeout(resolve, 25));
             window.__tasks.find((task) => task.id === args.taskId).state = 'cancelled';
             return null;
           }
@@ -140,9 +142,20 @@ const path = require('node:path');
     await page.locator('nav').getByRole('button', { name: '任务中心', exact: true }).click();
     const rows = page.locator('.task-card');
     const filters = page.getByRole('group', { name: '任务状态筛选' });
-    const select = async (name) => {
+    const waitForTasks = (ids) =>
+      page.waitForFunction((expected) => {
+        const list = document.querySelector('.task-list');
+        const actual = [...document.querySelectorAll('.task-card')].map(
+          (row) => row.dataset.taskId,
+        );
+        return (
+          list?.getAttribute('aria-busy') === 'false' &&
+          JSON.stringify(actual) === JSON.stringify(expected)
+        );
+      }, ids);
+    const select = async (name, ids) => {
       await filters.getByRole('button', { name: new RegExp(`^${name}`) }).click();
-      await page.locator('.task-list[aria-busy="false"], .task-empty').first().waitFor();
+      await waitForTasks(ids);
     };
     await page.locator('[data-task-id="run"]').waitFor();
     assert.equal(await rows.count(), 30);
@@ -167,7 +180,7 @@ const path = require('node:path');
     await license.getByRole('button', { name: '接受当前许可', exact: true }).click();
     await page.getByRole('button', { name: '下一页', exact: true }).click();
     await page.locator('[data-task-id="history-22"]').waitFor();
-    await select('失败');
+    await select('失败', ['fail']);
     assert.equal(await rows.count(), 1);
     assert.equal(await rows.first().getAttribute('data-task-id'), 'fail');
     const search = page.getByRole('textbox', { name: '搜索任务', exact: true });
@@ -183,7 +196,7 @@ const path = require('node:path');
     await page.getByRole('heading', { name: '没有匹配的任务', exact: true }).waitFor();
     await page.getByRole('button', { name: '清除筛选', exact: true }).click();
     await page.locator('[data-task-id="run"]').waitFor();
-    await select('进行中');
+    await select('进行中', ['run', 'queue', 'license']);
     assert.equal(await rows.count(), 3);
     await page
       .locator('[data-task-id="run"]')
@@ -192,17 +205,21 @@ const path = require('node:path');
     await page.waitForFunction(() =>
       window.__calls.some((call) => call.command === 'task_cancel' && call.args.taskId === 'run'),
     );
-    await page.locator('.task-list[aria-busy="false"]').waitFor();
+    await waitForTasks(['queue', 'license']);
     assert.equal(await rows.count(), 2);
     for (const [name, expected] of [
-      ['待确认', 1],
-      ['待检查', 1],
-      ['已取消', 2],
+      ['待确认', ['license']],
+      ['待检查', ['review']],
+      ['已取消', ['run', 'cancel']],
     ]) {
-      await select(name);
-      assert.equal(await rows.count(), expected);
+      await select(name, expected);
+      assert.equal(await rows.count(), expected.length);
     }
-    await select('已完成');
+    await select('已完成', [
+      'capture',
+      'recording',
+      ...Array.from({ length: 28 }, (_, i) => `history-${i}`),
+    ]);
     const recording = page.locator('[data-task-id="recording"]');
     assert.equal(
       await recording.getByRole('button', { name: '选择采集段导出', exact: true }).count(),
@@ -223,7 +240,17 @@ const path = require('node:path');
       ),
     );
     await capture.getByRole('button', { name: '收起详情', exact: true }).click();
-    await select('全部');
+    await select('全部', [
+      'run',
+      'queue',
+      'license',
+      'fail',
+      'review',
+      'cancel',
+      'capture',
+      'recording',
+      ...Array.from({ length: 22 }, (_, i) => `history-${i}`),
+    ]);
     const output = path.resolve(__dirname, '../.qa/app');
     fs.mkdirSync(output, { recursive: true });
     await page.screenshot({ path: path.join(output, 'task-center-compact-list.png') });
