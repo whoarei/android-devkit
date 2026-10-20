@@ -1,2 +1,8 @@
+# Use the same text bytes on developer machines and clean Windows CI runners.
+* text=auto eol=lf
+
 # Keep generated IPC contracts byte-identical to the Rust generator on Windows.
 src/bindings.ts text eol=lf
+
+# Upstream license files have recorded SHA-256 hashes; preserve their original bytes.
+src-tauri/resources/licenses/*.txt -text

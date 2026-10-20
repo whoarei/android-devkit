@@ -68,7 +68,7 @@ function add(name, version, license, repository, directory, extra) {
       const file = path.join(root, 'src-tauri/resources/licenses', fallback.file);
       const bytes = fs.readFileSync(file);
       if (crypto.createHash('sha256').update(bytes).digest('hex') !== fallback.sha256)
-        throw Error('License checksum mismatch');
+        throw Error(`License checksum mismatch: ${fallback.file}`);
       texts.push(`[Upstream license: ${fallback.url}]\n${bytes.toString('utf8')}`);
     }
   }
