@@ -2,154 +2,177 @@
 
 [![CI](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml/badge.svg)](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml)
 
-基于 Tauri 2、React / TypeScript 和 Rust 的 Windows Android 开发工作台，当前发布版本 `0.1.0`。支持 SDK、模拟器、真机连接、APK、日志与任务管理，以及中英文和亮暗主题切换。完整 P0 / 发布验收仍有待补充项。
+Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-默认使用 **`E:\Android\sdk`**。在设置中可以明确切换 SDK；发现其他 SDK 不会自动替换当前选择。模拟器使用 Android 官方独立窗口。
+[下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
-## 启动
+## 产品特性
 
-从 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 下载 `AndroidDevKit-0.1.0-setup.exe`，按当前用户安装；或解压 `AndroidDevKit-0.1.0-windows-x64.zip` 后运行 `AndroidDevKit.exe`。本机编译产物位于 `artifacts/windows/`。需要 Windows 11 x64 和 WebView2 Runtime；安装器在缺少 Runtime 时下载官方引导程序。当前发布包未签名，未进行干净 Windows 机器的安装 / 卸载验收。
+- **复用现有开发环境**：接入已有 Android SDK 和模拟器，统一查看和管理设备，减少重复配置。
+- **更容易找到需要的 SDK 组件**：按 Android 版本、镜像类型和架构分类查找，结合搜索与安装状态筛选，按需安装或更新组件。
+- **为不同测试场景准备模拟器**：选择手机或平板，调整内存、屏幕、摄像头、网络和存储配置，用不同的设备环境验证应用表现。
+- **灵活连接真机**：支持 USB、无线调试配对和网络 ADB，根据设备与网络条件选择连接方式，并查看连接与授权状态。
+- **明确每次 APK 安装的目标**：选择或拖入 APK，核对目标设备和应用信息后安装；默认保留应用数据，设备断线后不会自动改投其他设备。
+- **集中排查设备与应用问题**：过滤实时日志、采集问题发生时的日志片段、截取设备画面，预览并导出排查资料。
+- **查进度、找结果、保存文件**：在任务中心搜索历史操作，按状态筛选任务、查看失败原因；通过带角标的待保存文件入口预览、另存或清理缓存副本。
+- **按自己的习惯使用界面**：随时切换中英文和亮暗主题，偏好自动保存，下次启动继续使用。
 
-首次打开可以直接查看现有 AVD 和设备。新 AVD 默认保存在 `%LOCALAPPDATA%\AndroidDevKit\avd`，另只读发现用户 `.android\avd`。SDK 下载、升级、删除及其他写操作先生成具体计划，确认作用范围后执行。使用 Google / Android 组件时需要查看并接受对应许可。
+以下使用说明对应当前源码，发行版的具体功能与变更以对应 Release 说明为准。
 
-应用状态、任务数据库、下载缓存和截图位于 `%LOCALAPPDATA%\AndroidDevKit`。测试可通过 `ANDROID_DEVKIT_DATA_DIR` 隔离应用数据；该变量不改变所选 SDK。
+## 下载安装
 
-## 已实现
+运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-界面支持简体中文 / English，可在标题栏快捷切换或在设置的“界面偏好”中选择；立即生效并自动保存，重启后恢复。切换保留表单输入、SDK 选择和在途任务，托盘菜单同步更新。SDK 包名、用户自定义名称、路径、原始日志与官方许可保留原文；任务状态、操作计划和应用错误提示按当前语言显示。
+- **安装包** `AndroidDevKit-X.Y.Z-setup.exe`：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** `AndroidDevKit-X.Y.Z-windows-x64.zip`：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
-支持亮色 / 暗色主题，设置页与标题栏快捷按钮保持同步，立即生效并自动保存。主要页面、弹窗、表单、SDK 树、任务、日志和导出预览共用语义色变量；启动时先读取主题偏好，原生窗口和表单控件也同步切换。
+当前发行包未签名。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
-- M0：Tauri 原生窗口桥接，Windows 11 最大化按钮悬停贴靠，DPI 感知；工具链兼容验证，参数数组进程执行和输出限流。
-- M1：Rust 生成 TypeScript IPC 类型，SQLite 任务与审计记录，资源锁，SDK / AVD / USB / 无线会话发现；冻结设备目标安装单 APK、启动应用、截图预览 / 保存 / 复制和基础 Logcat。
-- 设备卡片支持点击、Enter 或空格选中，再次操作同一卡片会取消选中并关闭详情与日志视图。卡片上的“安装 APK”直接选择文件并打开安装面板，取消选文件不会打开设备详情；安装目标独立选择，设备断开或连接身份变化时须重新确认目标，不会自动转移安装。
-- M2：用途最小化环境引导；官方仓库目录、许可、缺失 Java 私有运行时；SDK 组件安装 / 卸载、依赖最低版本检查、占用拦截、网络代理和逐项状态复查。
-- M3：手机 / 平板 AVD 创建、配置编辑、就绪探测、打开窗口、冷启动、正常 / 强制停止、清数据和删除；无线配对、手动连接及断开。设备工作台另提供「网络 ADB」，按设备 IP 与端口直接连接已开启的 TCP/IP 调试服务（默认端口 5555，支持 IPv4 / IPv6），无需配对码；连接后验证实际可用性，可单独断开该端点。首次启用传统 TCP/IP 调试需先通过 USB 授权并执行 `adb -s <USB序列号> tcpip 5555`，应用不会自动开启设备端监听。配对成功与连接可用分开显示，配对码不写入任务数据库。
-- M4 本轮：Logcat 级别 / Tag / 关键词 / PID / 应用过滤，应用进程集合刷新；暂停、清空游标；独立文件采集与配额 / 时限 / 轮转、缺口记录、崩溃后文件封口；默认脱敏、实际内容分页预览与范围选择；未保存产物退出保护、默认关闭的可选托盘；数据库 v1 → v2 备份迁移、全部在途任务恢复；NSIS 内部验收安装包与第三方许可清单。
-- 任务中心：紧凑的两行任务摘要，详情、诊断与采集导出按需展开；按名称、设备 / 地址、结果或任务 ID 搜索全部历史，并与进行中、已完成、失败、待确认、待检查、已取消筛选组合。每页 30 项，进行中包含排队、运行和等待确认，许可确认始终直接可见。
-- 待保存文件收进任务中心工具栏的文件保存图标，角标显示数量；点击弹窗查看全部文件的生成时间和大小，支持截图 / 文本预览、另存、逐项或全部“忽略并清理”。关闭预览后返回原列表并保留滚动位置，关闭按钮、Esc 和点击遮罩只关闭当前预览；预览中成功保存的文件在返回时移出待保存列表。忽略会删除对应截图 / 导出副本及导出元数据，并清除已失效的截图任务入口；已另存文件、原始日志采集段和任务历史保留。删除失败保留条目供重试；缺失文件可继续清理登记，不跟随链接或目录重定向。
-- SDK 管理：SDK Platforms 按 API 展开平台和源码，系统镜像继续按 AOSP / Google APIs / Google Play → ABI → 具体组件分层；16 KB 等变体归入对应类型，未知厂商镜像单独保留。SDK Tools 按工具系列展开各版本。支持搜索、安装状态 / 更新 / 待变更筛选、过时与预览组件开关，跨分类和折叠保留变更选择；关键词与状态筛选展开匹配分支，“展开全部 / 收起全部”作用于全部层级。SDK Update Sites 展示四个官方源状态，并支持添加、编辑、停用和删除自定义 HTTPS 仓库（repository / remotePackage XML）；自定义组件安装使用应用私有 repositories.cfg，不修改 Android Studio 的源配置，重复组件 ID 的自定义源不加载。
-- 模拟器配置：新建与编辑共用分组面板和屏幕预览，支持 CPU、内存、VM Heap、GPU、分辨率 / 密度 / 方向、前后摄像头、网络速度 / 延迟、快速 / 冷启动、内部容量、扩展存储、皮肤 / 边框、键盘、麦克风、电池和 GPS。仅提交改动字段，打开编辑后外部配置变化会阻止保存。内部容量修改不自动清数据，已有分区扩容由模拟器处理；新扩展存储由 mksdcard 创建，旧镜像保留，清数据会重置应用管理的镜像及覆盖层，外部镜像保留；检测到其他已登记 AVD 引用目标目录内的存储时阻止清理 / 删除。
+## 使用方法
 
-每个会话的日志内存缓冲上限 10,000 行 / 8 MiB 原始文本，视图最多渲染 500 行。已停止且无消费者的会话仅缓存当前 ADB epoch 内最近访问的 4 个，上限合计 32 MiB 原始文本；失效会话在查看或采集结束后回收。仍在查看、采集或等待文件采集收尾的缓冲保留。应用过滤每 2 秒刷新包名主进程与冒号子进程；无法可靠归属的隔离进程不纳入。进程集合变化会记录缺口，刷新间隔可能遗漏新进程的初始日志。
+### 1. 配置 Android SDK
 
-文件采集每段最多 100 MiB，需选择总配额与时限；切页不停止采集，在任务中心停止并封口。断流、进程查询失败、用户停止或时限到达后固定结束序号和最后确认的进程集合，在配额内排空可归属的缓冲再封口；收尾不查询替换后的设备，查询失败记录缺口。导出可选择当前过滤范围或采集段，默认替换用户目录、设备标识、IP 和常见秘密字段；规则不能覆盖所有自由文本，保存前应检查实际预览。单次导出上限 64 MiB，超限显式截断，可分批选择采集段。
+打开“设置”，选择“当前 SDK 根目录”并保存。已有 Android Studio 环境时，可以选择同一个 SDK 目录；应用的路径配置不修改系统 `PATH`、`JAVA_HOME` 或 Android Studio 设置。
 
-关闭时，无任务和未保存产物可直接退出；否则提供保存、忽略并清理对应缓存、等待 / 取消收尾。退出清理只作用于当前面板已展示的文件，新生成的文件仍需再次处理。托盘须在设置显式启用，启用后关闭窗口隐藏；托盘退出仍遵守检查。数据库首次升级到 v2 时，在原目录生成 `devkit.pre-v2-*.db` 备份，旧任务、设置保持可读。
+当前默认 SDK 路径是 `E:\Android\sdk`。如果你的 SDK 位于其他位置，或电脑没有 E 盘，请先选择适合的目录。下载遇到网络问题时，可以在设置中配置手动代理。
 
-设备写操作绑定 ADB Server epoch、transport ID 和 serial；断线后失败，不会改投其他设备。AVD 删除 / 重置绑定确认时的路径与配置，检查占用、共享数据和重解析点；共享系统镜像保留。中断任务先复查实际状态，不自动重放命令。
+进入“SDK 管理”并点击“刷新”，按需要选择组件：
 
-AVD 提交日志和索引均以临时文件同步落盘后原子提交，创建索引不覆盖已有文件。恢复时，能确认的自有截断索引会先备份为原目录中的 `*.ini.devkit-interrupted-*` 再修复；其他冲突保留原索引和提交日志供检查。未解决的提交记录阻止任务被复查为成功；复查同时验证索引 API 目标、路径和归属。启动恢复逐条处理；损坏的提交日志或采集清单隔离到应用数据目录的 `recovery` 子目录并保留诊断，单条错误不会阻止其余恢复。日志段已封口但清单尚未更新时，会补全暂存段的大小与摘要；已有封口摘要先校验，内容不符时保留原清单和文件供检查。
+- **SDK Platforms**：按 Android API 查找平台与源码；系统镜像按 AOSP、Google APIs、Google Play，再按 ABI 展开。
+- **SDK Tools**：查找 Platform-Tools、Emulator、Build-Tools 等工具及其版本。
+- **SDK Update Sites**：查看仓库状态，管理自定义更新站点。
 
-APK Manifest 输入最多 8 MiB，字符串解码与属性复制合计使用 16 MiB 内容预算；重复字符串偏移共享解析结果。任务关键状态保存失败会向界面反馈，执行前持久化失败不继续执行新步骤；取消请求写入失败不会报告取消成功。
+使用搜索与状态筛选缩小范围，选择变更后查看计划，确认许可和操作内容再执行。工具或 Java 缺失时，按应用提供的环境准备提示处理；“环境诊断”可检查实际工具链和硬件加速情况。
 
-工具进程的输入、执行、输出读取和最终退出等待共用一个截止时间；超时关闭本次调用持有的管道并结束直接子进程，写操作结果仍需复查。
+### 2. 准备模拟器或连接真机
 
-默认窗口 1280 × 800，最小 480 × 640；小于 960 宽时使用紧凑导航和详情抽屉。此处根据 Windows Snap 实测将方案建议的 960 最小宽度调整为 480，以允许常见贴靠布局。
+**使用模拟器**：在“设备工作台”点击“新建模拟器”，依次选择设备形态、系统镜像并确认配置。创建后点击“启动”，等待状态变为“可用”。已有 AVD 也会显示在工作台中；模拟器使用 Android 官方独立窗口。
 
-## 开发
+运行模拟器需要可用的硬件虚拟化与加速环境，Windows 配置可参考 [Android Emulator 硬件加速说明](https://developer.android.com/studio/run/emulator-acceleration)。
 
-本机已验证 Node.js 24.14.0、pnpm 11.25.0、Rust 1.95.0、MSVC / Windows SDK。依赖精确解析结果保存在 `pnpm-lock.yaml` 和 `src-tauri/Cargo.lock`，Rust 版本由 `rust-toolchain.toml` 固定。
+**使用真机**：
+
+| 连接方式 | 操作方法                                                                                      |
+| -------- | --------------------------------------------------------------------------------------------- |
+| USB      | 在手机开发者选项中开启 USB 调试，连接数据线，并在手机上允许此电脑调试                         |
+| 无线调试 | 点击“连接设备”，填写手机无线调试页面提供的 IP、配对端口和配对码；配对后再使用调试连接端口连接 |
+| 网络 ADB | 在“连接设备”中选择“网络 ADB”，输入已开启 TCP/IP 调试服务的设备 IP 和端口，默认端口为 `5555`   |
+
+无线配对端口与调试连接端口可能不同。传统网络 ADB 需要设备已开启 TCP/IP 调试服务；首次开启通常先通过 USB 授权，再使用 SDK 中的 ADB 执行 `adb -s <USB序列号> tcpip 5555`，然后按设备 IP 连接。
+
+设备状态显示“可用”后即可操作。显示“未授权”时，请解锁手机确认授权。点击设备卡片查看详情，再次点击同一卡片取消选中并关闭详情。
+
+### 3. 安装 APK
+
+点击目标设备卡片上的“安装 APK”并选择文件，或将单个 APK 拖到该设备行。在安装面板核对设备名称、序列号和 APK 信息，点击“确认安装计划”，确认后提交任务。
+
+默认覆盖安装并保留应用数据。安装目标会绑定到本次选定的设备连接；设备断开后不会自动改投其他设备。当前支持单个完整 `.apk`，不支持直接安装 AAB 或分包 APK。
+
+安装进度和结果保留在“任务中心”，可按任务名称、设备或状态检索。
+
+### 4. 查看日志、截图与保存文件
+
+选中设备后，在 Logcat 区域点击“开始查看”，按日志级别、Tag、关键词、PID 或应用包名过滤。需要保留一段日志时可启动文件采集；切换页面后采集仍继续，在任务中心停止采集并导出。
+
+在设备详情中点击“截图”，完成后查看或保存截图。任务中心工具栏的“待保存文件”图标通过角标显示数量，点击后可以预览、另存或“忽略并清理”。忽略会删除对应的本地缓存副本，已另存文件、原始采集段和任务记录保留。日志导出默认脱敏，保存前仍可检查预览内容。
+
+标题栏和“设置 → 界面偏好”均可切换语言与主题，选择会自动保存。
+
+### 数据存放位置
+
+| 内容                           | 默认位置                                           |
+| ------------------------------ | -------------------------------------------------- |
+| Android SDK                    | 设置中选择的目录，初始值为 `E:\Android\sdk`        |
+| 新建 AVD                       | `%LOCALAPPDATA%\AndroidDevKit\avd`，可在设置中调整 |
+| 应用状态、任务、下载缓存与截图 | `%LOCALAPPDATA%\AndroidDevKit`                     |
+
+应用也会发现用户 `.android\avd` 下的已有模拟器。退出工作台与停止模拟器分开；有任务或待保存文件时，按退出面板提示处理。需要关闭窗口后继续在后台运行，可在设置中启用托盘。
+
+## 开发入门
+
+项目使用 **Tauri 2 + React / TypeScript + Rust**：前端负责交互，Rust 通过本机 Android 工具执行 SDK、设备及任务操作。
+
+### 准备开发环境
+
+在 Windows x64 上安装：
+
+- Git 与 Node.js **24.14.0**。
+- pnpm **11.25.0**，与 `package.json` 的 `packageManager` 一致。
+- Rustup；仓库通过 [rust-toolchain.toml](rust-toolchain.toml) 选择 Rust **1.95.0** 和 Windows MSVC 目标。
+- Microsoft C++ Build Tools，勾选“使用 C++ 的桌面开发”并安装 Windows SDK；以及 WebView2 Runtime。安装步骤见 [Tauri Windows 开发前置条件](https://v2.tauri.app/start/prerequisites/#windows)。
+
+编译应用本身不要求先连接真机或准备已有 SDK；调试设备功能时，再按上面的使用方法配置 Android 环境。
+
+### 获取代码并启动
+
+以下命令在 PowerShell 中执行，使用 `pnpm.cmd` 避免 PowerShell 脚本 shim 的执行策略限制。
 
 ```powershell
-pnpm install --frozen-lockfile
-pnpm tauri dev
-
-# TypeScript + Vite + Rust Clippy（warnings 作为错误）
-pnpm check
-pnpm test
-
-# 先运行 pnpm dev；隔离浏览器中的网络 ADB 表单回归，不访问真实设备
-pnpm test:network-ui
-pnpm test:device-ui
-pnpm test:tasks-ui
-pnpm test:sdk-avd-ui
-
-# 修改 Rust DTO 后重新生成前端类型
-pnpm bindings
-
-# Windows 可执行程序，不生成安装器
-pnpm tauri build --no-bundle
-# 输出 src-tauri/target/release/android-devkit.exe
-powershell -NoProfile -File scripts/package-portable.ps1
-# 输出 artifacts/windows/AndroidDevKit.exe 与 build-info.json
-
-# 构建当前用户 NSIS 安装包，并生成锁定依赖许可清单
-pnpm tauri build
-# 输出 src-tauri/target/release/bundle/nsis/*-setup.exe
+git clone https://github.com/whoarei/android-devkit.git
+cd android-devkit
+npm install --global pnpm@11.25.0
+pnpm.cmd install --frozen-lockfile
+pnpm.cmd tauri dev
 ```
 
-`pnpm dev` 使用 `http://127.0.0.1:19327` 仅预览界面；端口已被占用时明确报错，不自动切换。实际设备功能需要通过 `pnpm tauri dev` 或编译后的桌面程序运行。
+`tauri dev` 会启动 Vite 和桌面窗口，支持开发时重新加载。首次构建需要下载 Rust 依赖并编译，耗时会较长。
 
-## CI 与发布
+只调整界面时，也可以运行 `pnpm.cmd dev`，在浏览器打开 `http://127.0.0.1:19327`。浏览器预览不执行本机 SDK 或设备操作；验证这些功能请使用桌面窗口。开发端口固定为 `19327`，占用时会报错。
 
-版本发布流程维护在 [android-devkit-release skill](.agents/skills/android-devkit-release/SKILL.md)，包含版本同步、检查打包、CI 跟踪和发布产物校验。未指定版本号时，先展示自上次发布以来的主要修改点和兼容性影响，再给出推荐版本及理由，询问用户确认后继续。
+### 从哪里开始修改
 
-[GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 在推送 `main` / `codex/**` 分支、Pull Request、`v*` 标签或手动触发时运行。Windows x64 流程使用固定版本的 Node.js、pnpm 和 Rust，安装锁定依赖，检查版本一致性、Rust 格式、TypeScript / Vite、Clippy、Rust 测试与生成的 IPC 类型；随后使用隔离 Chromium 测试网络 ADB、设备选择与 APK 安装交互、任务中心、SDK / AVD、中英文及主题界面，构建 NSIS 安装包并核对安装器内容。界面测试使用独立端口 `19328` 和模拟 IPC，不访问真实设备或 SDK。
+| 路径                   | 内容                                                                 |
+| ---------------------- | -------------------------------------------------------------------- |
+| `src/`                 | React 页面、组件、样式、语言与主题；界面入口为 `App.tsx`             |
+| `src-tauri/src/`       | Rust 原生逻辑；`commands.rs` 定义 IPC 命令，`domain.rs` 定义数据类型 |
+| `src-tauri/resources/` | 工具链与引导下载配置、第三方许可资源                                 |
+| `scripts/`             | 构建、打包及验证脚本                                                 |
+| `docs/`                | 产品需求、技术方案和历史验证报告                                     |
+| `.github/workflows/`   | GitHub CI 与发布流程                                                 |
+| `.agents/skills/`      | 项目维护用 skill，包括版本发布流程                                   |
 
-成功后可在 Actions 中下载安装包、便携 ZIP、第三方许可、构建信息和 `SHA256SUMS.txt`；失败时保留界面截图。推送与应用版本一致的 `vX.Y.Z` 标签会在全部检查通过后自动创建正式 GitHub Release，发布同一批经过校验的构建产物。日常 CI 仅有读取权限，只有发布任务获得仓库内容写入权限；无需配置额外令牌。
+前端通过 `src/api.ts` 调用原生命令。修改 Rust 数据类型后运行 `pnpm.cmd bindings`，更新自动生成的 `src/bindings.ts`，不要直接编辑生成文件。
 
-后续发布先同步修改 `package.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 中本项目的版本与 `src-tauri/tauri.conf.json`，界面版本从 `package.json` 读取。检查、提交并推送后创建对应标签：
+### 检查与测试
 
 ```powershell
-pnpm check:version
-git tag -a v0.1.0 -m "Android DevKit v0.1.0"
-git push origin main
-git push origin v0.1.0
+# TypeScript、前端构建与 Rust Clippy
+pnpm.cmd check
+
+# Rust 测试
+pnpm.cmd test
+
+# 检查 Rust 格式
+cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
 ```
 
-本地可用 `pnpm build && pnpm test:ui-fixtures` 运行相同的界面回归（默认使用 Edge；设置 `PLAYWRIGHT_CHANNEL=chromium` 时先运行 `pnpm exec playwright install chromium`）。完整 `pnpm tauri build` 后运行 `powershell -NoProfile -File scripts/package-release.ps1`，输出 `artifacts/release/`。发布版本从早期内部里程碑编号重新以 `0.1.0` 起算；更高内部版本的安装器会阻止降级，测试用户可继续使用便携包。
-
-## 验证
-
-默认 `pnpm test` 运行不下载组件、不操作用户 AVD 的测试，另有 7 个显式忽略项目：类型生成、4 类集成验收、SDK 目录只读联网验证与吞吐基准。下列命令按需执行：
+界面回归使用模拟 IPC，不访问真实设备或 SDK。先构建前端，再运行隔离 Chromium 测试：
 
 ```powershell
-# 仅在 .qa/runtime 下创建一次性 AVD；使用现有 E:\Android\sdk
-pnpm verify:m3
-
-# 只读获取四个官方源，验证稳定与预览目录，不安装组件
-cargo test --manifest-path src-tauri/Cargo.toml --lib sdk_repository_catalog -- --ignored --nocapture
-
-# 在 M3 生命周期上追加真实应用 PID 重启、文件采集与脱敏导出
-pnpm verify:m4
-# 纯解析与环形缓冲吞吐，不等同于 UI / 磁盘全链路性能
-pnpm verify:perf
-
-# 在 .qa/runtime 下创建空 SDK，下载官方工具与私有 Java，不改 E:\Android\sdk
-pnpm verify:m2
-
-# 真实 adb 的失败路径及配对码持久化检查，只访问 localhost:9
-pnpm verify:wireless
-
-# 启动独立数据目录的本机 UI 验证实例，临时开放 CDP9224
-powershell -NoProfile -File scripts/start-preview.ps1 -BuildProfile release
-pnpm test:ui
-node scripts/check-m4-ui.cjs
-node scripts/check-live-log-ui.cjs
-node scripts/check-compact.cjs
-node scripts/window-dom.cjs
-node scripts/stop-preview.cjs
-# 仅对测试产生的未另存产物，显式确认放弃后结束 QA 实例
-node scripts/stop-preview.cjs --discard
+pnpm.cmd build
+pnpm.cmd exec playwright install chromium
+$env:PLAYWRIGHT_CHANNEL = 'chromium'
+pnpm.cmd test:ui-fixtures
 ```
 
-`scripts/check-window.py` 使用 Windows 原生 API 与 Pillow 检查命中区域并截图；贴靠浮层的截图需要人工视觉复核。测试截图及 JSON 证据位于 `.qa/app`，真实 SDK 测试记录位于 `.qa/runtime/m2-*` 和 `m3-*`。集成测试只删除自行创建的测试 AVD，保留共享镜像。
+真实 SDK / AVD 集成测试按需运行，入口见 [package.json](package.json) 中的 `verify:*` 命令；运行前检查脚本使用的 SDK 和测试目录。测试应用数据可通过 `ANDROID_DEVKIT_DATA_DIR` 隔离，该变量不改变所选 SDK。
 
-本机已通过空 SDK 引导、真实 AVD 生命周期、APK 安装启动和截图；无线配对失败 / 连接未就绪不会误报成功。**尚无手机参与成功配对验收**。多物理设备、跨显示器混合 DPI、全新普通 Windows 用户环境仍需补充硬件验收；模拟器验收不能代替这些证据。
+### 构建发行文件
 
-## 待补充验收与发布
+```powershell
+pnpm.cmd tauri build -- --locked
+powershell -NoProfile -File scripts/package-release.ps1
+```
 
-实体手机成功配对、USB 授权与双物理设备；跨显示器混合 DPI；干净普通 Windows 用户的引导 / 安装 / 卸载；磁盘满、网络中断、进程强杀的完整故障注入矩阵；长时间真实高吞吐 UI / 磁盘压力；签名安装包与发布更新。当前不声称已通过 PRD 全部 P0 验收。
+完整构建会生成第三方许可清单和 NSIS 安装包，打包后可在 `artifacts/windows/` 找到本地程序，在 `artifacts/release/` 找到安装包、便携 ZIP、许可文件、构建信息和校验和。
 
-随包的 `THIRD_PARTY_NOTICES.txt` 与 `third-party-manifest.json` 从锁定依赖生成，包含生产 npm、Windows Rust 普通 / 构建依赖和准确版本源码链接。此前 M3 的 0.3.0 可执行程序保留为 `artifacts/windows/AndroidDevKit-0.3.0.exe`。
+[GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 自动运行检查、测试和 Windows 打包。维护者的版本确认、标签发布与产物核验步骤见 [版本发布 skill](.agents/skills/android-devkit-release/SKILL.md)。
 
-## 设计依据
+## 更多资料
 
-- [产品需求](docs/00000_20261017232447_Android-DevKit-PRD.html)
+- [产品需求与交互方案](docs/00000_20261017232447_Android-DevKit-PRD.html)
 - [Tauri 技术方案](docs/00001_20261017234246_Android-DevKit-Technical-Design.html)
 - [M3 实现与验证报告](docs/00002_20261018011008_Android-DevKit-M3-Implementation-Report.html)
 - [M4 核心功能与内部验收报告](docs/00003_20261018063845_Android-DevKit-M4-Progress-Report.html)
-- `src-tauri/resources/toolchain.json`：已验证版本组合；引导下载校验值见同目录 `bootstrap.json`，私有 Java 许可见 `java-license.txt`。
 
-Windows 工具链当前冻结在已验证的 Command-line Tools 22.0；后续 Android CLI 迁移需另做兼容验收。参考 [Android sdkmanager](https://developer.android.com/tools/sdkmanager)、[模拟器命令行](https://developer.android.com/studio/run/emulator-commandline)、[Windows Snap 自定义标题栏要求](https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-snap-layout-menu)。
+历史报告记录对应阶段的验证范围。提交问题时，请附上应用版本、Windows 版本、连接方式和复现步骤；需要时可从“环境诊断”预览并导出诊断信息。
