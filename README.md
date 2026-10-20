@@ -1,12 +1,14 @@
 # Android DevKit
 
-基于 Tauri 2、React / TypeScript 和 Rust 的 Windows Android 开发工作台，当前版本 `0.4.0`。M0—M3 基础功能已实现，本轮继续完成 M4 的日志、导出、退出与托盘核心功能；完整 P0 / 发布验收仍有待补充项。
+[![CI](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml/badge.svg)](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml)
+
+基于 Tauri 2、React / TypeScript 和 Rust 的 Windows Android 开发工作台，当前发布版本 `0.1.0`。支持 SDK、模拟器、真机连接、APK、日志与任务管理，以及中英文和亮暗主题切换。完整 P0 / 发布验收仍有待补充项。
 
 默认使用 **`E:\Android\sdk`**。在设置中可以明确切换 SDK；发现其他 SDK 不会自动替换当前选择。模拟器使用 Android 官方独立窗口。
 
 ## 启动
 
-本机编译产物：`artifacts/windows/AndroidDevKit.exe`，双击运行；另有 `AndroidDevKit-0.4.0-setup.exe`，按当前用户安装。需要 Windows 11 x64 和 WebView2 Runtime；安装器在缺少 Runtime 时下载官方引导程序。当前为未签名内部验收版，未进行干净 Windows 机器的安装 / 卸载验收。
+从 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 下载 `AndroidDevKit-0.1.0-setup.exe`，按当前用户安装；或解压 `AndroidDevKit-0.1.0-windows-x64.zip` 后运行 `AndroidDevKit.exe`。本机编译产物位于 `artifacts/windows/`。需要 Windows 11 x64 和 WebView2 Runtime；安装器在缺少 Runtime 时下载官方引导程序。当前发布包未签名，未进行干净 Windows 机器的安装 / 卸载验收。
 
 首次打开可以直接查看现有 AVD 和设备。新 AVD 默认保存在 `%LOCALAPPDATA%\AndroidDevKit\avd`，另只读发现用户 `.android\avd`。SDK 下载、升级、删除及其他写操作先生成具体计划，确认作用范围后执行。使用 Google / Android 组件时需要查看并接受对应许可。
 
@@ -75,6 +77,23 @@ pnpm tauri build
 ```
 
 `pnpm dev` 使用 `http://127.0.0.1:19327` 仅预览界面；端口已被占用时明确报错，不自动切换。实际设备功能需要通过 `pnpm tauri dev` 或编译后的桌面程序运行。
+
+## CI 与发布
+
+[GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 在推送 `main` / `codex/**` 分支、Pull Request、`v*` 标签或手动触发时运行。Windows x64 流程使用固定版本的 Node.js、pnpm 和 Rust，安装锁定依赖，检查版本一致性、Rust 格式、TypeScript / Vite、Clippy、Rust 测试与生成的 IPC 类型；随后使用隔离 Chromium 测试网络 ADB、任务中心、SDK / AVD、中英文及主题界面，构建 NSIS 安装包并核对安装器内容。界面测试使用独立端口 `19328` 和模拟 IPC，不访问真实设备或 SDK。
+
+成功后可在 Actions 中下载安装包、便携 ZIP、第三方许可、构建信息和 `SHA256SUMS.txt`；失败时保留界面截图。推送与应用版本一致的 `vX.Y.Z` 标签会在全部检查通过后自动创建正式 GitHub Release，发布同一批经过校验的构建产物。日常 CI 仅有读取权限，只有发布任务获得仓库内容写入权限；无需配置额外令牌。
+
+后续发布先同步修改 `package.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 中本项目的版本与 `src-tauri/tauri.conf.json`，界面版本从 `package.json` 读取。检查、提交并推送后创建对应标签：
+
+```powershell
+pnpm check:version
+git tag -a v0.1.0 -m "Android DevKit v0.1.0"
+git push origin main
+git push origin v0.1.0
+```
+
+本地可用 `pnpm build && pnpm test:ui-fixtures` 运行相同的界面回归（默认使用 Edge；设置 `PLAYWRIGHT_CHANNEL=chromium` 时先运行 `pnpm exec playwright install chromium`）。完整 `pnpm tauri build` 后运行 `powershell -NoProfile -File scripts/package-release.ps1`，输出 `artifacts/release/`。发布版本从早期内部里程碑编号重新以 `0.1.0` 起算；更高内部版本的安装器会阻止降级，测试用户可继续使用便携包。
 
 ## 验证
 

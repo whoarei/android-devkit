@@ -1,5 +1,6 @@
 import { t, useLocale, setLocale, type Locale } from './i18n';
 import { useTheme, setTheme, type Theme } from './theme';
+import { version } from '../package.json';
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
@@ -369,7 +370,7 @@ export function App() {
             </div>
           </div>
           <small className="build-label">
-            ANDROID DEVKIT <span>0.4.0</span>
+            ANDROID DEVKIT <span>{version}</span>
           </small>
         </div>
       </aside>

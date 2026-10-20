@@ -5,7 +5,10 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 (async () => {
-  const browser = await chromium.launch({ channel: 'msedge', headless: true });
+  const browser = await chromium.launch({
+    channel: process.env.PLAYWRIGHT_CHANNEL || 'msedge',
+    headless: true,
+  });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     const errors = [];

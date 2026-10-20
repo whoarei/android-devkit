@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'codex/**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    name: Windows x64 checks and build
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24.14.0'
+          package-manager-cache: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          cache: true
+      - name: Install pinned Rust toolchain
+        run: rustup show active-toolchain
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: src-tauri -> target
+          cache-on-failure: true
+      - name: Install locked dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo fetch --locked --manifest-path src-tauri/Cargo.toml
+      - name: Verify release version
+        run: pnpm check:version
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
+      - name: TypeScript, frontend build and Clippy
+        run: pnpm check
+      - name: Rust tests
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml
+      - name: Verify generated IPC contracts
+        run: |
+          pnpm bindings
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          git diff --exit-code -- src/bindings.ts
+      - name: Install fixture browser
+        run: pnpm exec playwright install chromium
+      - name: Production frontend regression tests
+        env:
+          PLAYWRIGHT_CHANNEL: chromium
+        run: pnpm test:ui-fixtures
+      - name: Build Windows executable and NSIS installer
+        run: pnpm tauri build -- --locked
+      - name: Package portable archive and checksums
+        run: ./scripts/package-release.ps1
+      - name: Verify installer contents
+        run: node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
+      - name: Upload Windows packages
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: windows-x64-${{ github.sha }}
+          path: artifacts/release/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload UI evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: ui-evidence-${{ github.sha }}
+          path: .qa/app/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  release:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: windows-x64-${{ github.sha }}
+          path: release
+      - name: Verify downloaded assets
+        working-directory: release
+        run: sha256sum --check SHA256SUMS.txt
+      - name: Publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > release-notes.md <<'NOTES'
+          Android DevKit for Windows x64.
+
+          - Android SDK management with categorized packages and update sites.
+          - Emulator creation, advanced configuration and lifecycle management.
+          - USB, wireless pairing and network ADB connections; APK installation and Logcat.
+          - Searchable task history, Chinese / English UI, and light / dark themes.
+
+          Download the setup executable to install, or extract the portable ZIP. Requires Windows 11 x64 and WebView2 Runtime; the installer offers the official runtime bootstrapper when needed. Android SDK components are downloaded separately under their own licenses.
+
+          This release is unsigned. Clean-machine installation / uninstallation, mixed-DPI displays and the complete physical-device matrix remain pending validation. SHA-256 checksums and third-party notices are attached.
+          NOTES
+          gh release create "$RELEASE_TAG" release/* --verify-tag --title "Android DevKit $RELEASE_TAG" --notes-file release-notes.md --latest
