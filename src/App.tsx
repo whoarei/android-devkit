@@ -42,6 +42,7 @@ import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Obser
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
 import { SdkManager } from './SdkManager';
+import { useSoftwareUpdate, SoftwareUpdateSection, SoftwareUpdateDialog } from './SoftwareUpdate';
 import { AvdSettingsFields, AvdPreview, EditAvd, newAvdSettings, type AvdForm } from './AvdEditor';
 import { hasSdkUpdate } from './sdk';
 import { Button, Badge, Modal, Field } from './ui';
@@ -70,6 +71,7 @@ type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
 export function App() {
   const locale = useLocale();
   const theme = useTheme();
+  const updater = useSoftwareUpdate();
   const { page, setPage, selected, select } = useUi();
   const toggleSelection = (key: string) => select(selected === key ? '' : key);
   const client = useQueryClient();
@@ -399,6 +401,12 @@ export function App() {
             </div>
           </div>
           <small className="build-label">
+            {updater.info && (
+              <button className="text-button update-shortcut" onClick={() => setPage('settings')}>
+                <Download size={13} />
+                {t('发现新版本：{0}', updater.info.latestVersion)}
+              </button>
+            )}
             ANDROID DEVKIT <span>{version}</span>
           </small>
         </div>
@@ -829,6 +837,7 @@ export function App() {
         )}
         {page === 'settings' && (
           <SettingsPanel
+            updater={updater}
             initial={data?.settings}
             guard={guard}
             done={() => {
@@ -869,6 +878,7 @@ export function App() {
           error={t(error)}
         />
       )}
+      <SoftwareUpdateDialog updater={updater} />
       {modal === 'wireless' && (
         <ConnectDevice
           close={() => setModal(null)}
@@ -1317,10 +1327,12 @@ function ConnectDevice({
 }
 function SettingsPanel({
   initial,
+  updater,
   guard,
   done,
 }: {
   initial?: Settings;
+  updater: ReturnType<typeof useSoftwareUpdate>;
   guard: <T>(f: () => Promise<T>) => Promise<T | undefined>;
   done: () => void;
 }) {
@@ -1351,6 +1363,7 @@ function SettingsPanel({
   };
   return (
     <div className="settings-panel">
+      <SoftwareUpdateSection updater={updater} />
       <section>
         <h3>{t('界面偏好')}</h3>
         <Field label={t('界面主题')} hint={t('立即生效并自动保存')}>

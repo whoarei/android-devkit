@@ -54,6 +54,7 @@ export function Modal({
   wide = false,
   className = '',
   hidden = false,
+  dismissible = true,
 }: {
   title: string;
   children: ReactNode;
@@ -61,21 +62,22 @@ export function Modal({
   wide?: boolean;
   className?: string;
   hidden?: boolean;
+  dismissible?: boolean;
 }) {
   useEffect(() => {
-    if (hidden) return;
+    if (hidden || !dismissible) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
-  }, [onClose, hidden]);
+  }, [onClose, hidden, dismissible]);
   return (
     <div
       className="modal-backdrop"
       hidden={hidden}
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (dismissible && e.target === e.currentTarget) onClose();
       }}
     >
       <section
@@ -86,9 +88,11 @@ export function Modal({
       >
         <div className="modal-heading">
           <h2>{t(title)}</h2>
-          <button className="icon-button" aria-label={t('关闭面板')} onClick={onClose}>
-            <X size={18} />
-          </button>
+          {dismissible && (
+            <button className="icon-button" aria-label={t('关闭面板')} onClick={onClose}>
+              <X size={18} />
+            </button>
+          )}
         </div>
         {children}
       </section>

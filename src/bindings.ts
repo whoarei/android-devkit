@@ -22,3 +22,5 @@ export type LogSnapshot = { rows: Array<LogEntry>, latest: number, oldest: numbe
 export type Artifact = { id: string, kind: string, title: string, taskId: string, bytes: number, sha256: string, createdAt: number, acknowledged: boolean, };
 export type ExportPreview = { artifact: Artifact, text: string, offset: number, nextOffset: number | null, rows: number, redacted: boolean, truncated: boolean, warning: string, };
 export type CloseStatus = { tasks: Array<Task>, unsaved: Array<Artifact>, draining: boolean, trayEnabled: boolean, };
+export type AppUpdateInfo = { updateId: string, currentVersion: string, latestVersion: string, notes: string, publishedAt: string | null, canAutoInstall: boolean, };
+export type AppUpdateProgress = { phase: string, downloaded: number, total: number | null, };

@@ -33,6 +33,9 @@
     "allow-export-save",
     "allow-recording-segments",
     "allow-diagnostics",
-    "allow-license-respond"
+    "allow-license-respond",
+    "allow-check-app-update",
+    "allow-install-app-update",
+    "allow-open-app-download"
   ]
 }

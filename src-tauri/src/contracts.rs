@@ -25,6 +25,8 @@ fn source() -> String {
         Artifact::decl(),
         ExportPreview::decl(),
         CloseStatus::decl(),
+        crate::updater::AppUpdateInfo::decl(),
+        crate::updater::AppUpdateProgress::decl(),
     ];
     format!(
         "// Generated from Rust DTOs. Run pnpm bindings to update.\n{}\n",

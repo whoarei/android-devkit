@@ -294,6 +294,7 @@ pub async fn export_prepare(
     segments: Option<Vec<usize>>,
     redacted: Option<bool>,
 ) -> Result<ExportPreview> {
+    let _update_guard = app.allow_update_sensitive_work()?;
     if app.draining.load(Ordering::SeqCst) {
         return Err(AppError::new("APP_CLOSING", "正在退出，不能生成新导出"));
     }

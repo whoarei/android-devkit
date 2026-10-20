@@ -1113,6 +1113,14 @@
       "fullTextLocated": true
     },
     {
+      "name": "Rust: minisign-verify",
+      "version": "0.3.0",
+      "license": "MIT",
+      "repository": "https://github.com/jedisct1/rust-minisign-verify",
+      "sourcePackage": "https://crates.io/api/v1/crates/minisign-verify/0.3.0/download",
+      "fullTextLocated": true
+    },
+    {
       "name": "Rust: miniz_oxide",
       "version": "0.8.9",
       "license": "MIT OR Zlib OR Apache-2.0",
@@ -1465,6 +1473,14 @@
       "fullTextLocated": true
     },
     {
+      "name": "Rust: reqwest",
+      "version": "0.13.5",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/seanmonstar/reqwest",
+      "sourcePackage": "https://crates.io/api/v1/crates/reqwest/0.13.5/download",
+      "fullTextLocated": true
+    },
+    {
       "name": "Rust: rfd",
       "version": "0.15.4",
       "license": "MIT",
@@ -1526,6 +1542,14 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/rustls/pki-types",
       "sourcePackage": "https://crates.io/api/v1/crates/rustls-pki-types/1.15.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: rustls-platform-verifier",
+      "version": "0.7.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rustls/rustls-platform-verifier",
+      "sourcePackage": "https://crates.io/api/v1/crates/rustls-platform-verifier/0.7.1/download",
       "fullTextLocated": true
     },
     {
@@ -1913,11 +1937,27 @@
       "fullTextLocated": true
     },
     {
+      "name": "Rust: tauri-plugin",
+      "version": "2.7.2",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/tauri",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-plugin/2.7.2/download",
+      "fullTextLocated": true
+    },
+    {
       "name": "Rust: tauri-plugin-single-instance",
       "version": "2.5.4",
       "license": "Apache-2.0 OR MIT",
       "repository": "https://github.com/tauri-apps/plugins-workspace",
       "sourcePackage": "https://crates.io/api/v1/crates/tauri-plugin-single-instance/2.5.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tauri-plugin-updater",
+      "version": "2.14.0",
+      "license": "Apache-2.0 OR MIT",
+      "repository": "https://github.com/tauri-apps/plugins-workspace",
+      "sourcePackage": "https://crates.io/api/v1/crates/tauri-plugin-updater/2.14.0/download",
       "fullTextLocated": true
     },
     {
@@ -1950,6 +1990,14 @@
       "license": "MIT",
       "repository": "https://github.com/tauri-apps/winres",
       "sourcePackage": "https://crates.io/api/v1/crates/tauri-winres/0.3.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: tempfile",
+      "version": "3.27.0",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/Stebalien/tempfile",
+      "sourcePackage": "https://crates.io/api/v1/crates/tempfile/3.27.0/download",
       "fullTextLocated": true
     },
     {
@@ -2433,6 +2481,14 @@
       "fullTextLocated": true
     },
     {
+      "name": "Rust: windows-registry",
+      "version": "0.6.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/microsoft/windows-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/windows-registry/0.6.1/download",
+      "fullTextLocated": true
+    },
+    {
       "name": "Rust: windows-result",
       "version": "0.4.1",
       "license": "MIT OR Apache-2.0",
@@ -2494,6 +2550,14 @@
       "license": "MIT",
       "repository": "https://github.com/winnow-rs/winnow",
       "sourcePackage": "https://crates.io/api/v1/crates/winnow/1.0.4/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: winreg",
+      "version": "0.55.0",
+      "license": "MIT",
+      "repository": "https://github.com/gentoo90/winreg-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/winreg/0.55.0/download",
       "fullTextLocated": true
     },
     {
@@ -2606,6 +2670,14 @@
       "license": "MIT",
       "repository": "https://github.com/zip-rs/zip2.git",
       "sourcePackage": "https://crates.io/api/v1/crates/zip/2.6.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: zip",
+      "version": "4.6.1",
+      "license": "MIT",
+      "repository": "https://github.com/zip-rs/zip2.git",
+      "sourcePackage": "https://crates.io/api/v1/crates/zip/4.6.1/download",
       "fullTextLocated": true
     },
     {

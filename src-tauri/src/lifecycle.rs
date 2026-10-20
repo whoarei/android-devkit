@@ -104,6 +104,9 @@ impl App {
         })
     }
     pub fn request_close(&self, force_exit: bool) {
+        if self.updating.load(Ordering::SeqCst) {
+            return;
+        }
         let Some(h) = self.handle.lock().unwrap().clone() else {
             return;
         };
@@ -137,6 +140,7 @@ impl App {
         stop_recordings: bool,
         discard_ids: &[String],
     ) -> Result<()> {
+        let _update_guard = self.allow_update_sensitive_work()?;
         if mode == "return" {
             self.draining.store(false, Ordering::SeqCst);
             return Ok(());

@@ -33,6 +33,9 @@ fn main() {
         "recording_segments",
         "diagnostics",
         "license_respond",
+        "check_app_update",
+        "install_app_update",
+        "open_app_download",
     ];
     tauri_build::try_build(
         tauri_build::Attributes::new()

@@ -36,6 +36,7 @@ server.on('error', (error) => {
     for (const script of [
       'check-network-ui.cjs',
       'check-device-ui.cjs',
+      'check-updater-ui.cjs',
       'check-task-center-ui.cjs',
       'check-sdk-avd-ui.cjs',
     ]) {

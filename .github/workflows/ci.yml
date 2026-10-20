@@ -14,6 +14,26 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  RELEASE_NOTES: |
+    Android DevKit v0.2.0 for Windows x64 — changes since v0.1.0.
+
+    新增
+    - 软件更新：启动时静默检查，也可在设置中手动检查并查看更新说明。
+    - 安装版支持下载进度、更新包签名校验和安装后重新打开；便携版提供手动下载入口。
+    - 安装更新前检查运行中任务、日志采集和待保存文件，避免中断工作或丢失文件。
+
+    改进与修复
+    - 待保存文件收纳为带角标的图标入口，弹框中统一预览、另存和忽略并清理缓存。
+    - 修复关闭文件预览后未返回待保存文件列表的问题。
+    - 修复设备卡片快捷安装 APK 的交互，支持再次点击取消选中设备并关闭详情。
+    - README 重写为产品介绍、用户指南和开发入门；补充版本发布与签名产物核验流程。
+    - CI 仅在推送 v* 标签或 Actions 页面手动运行时触发。
+
+    Installation and compatibility
+    - Download the setup executable to install, or extract the portable ZIP. Requires Windows 11 x64 and WebView2 Runtime. Android SDK components are downloaded separately under their own licenses.
+    - Existing v0.1.0 installations need one manual installation of this version to gain the in-app update feature. Portable builds continue to use manual replacement.
+    - No known breaking changes. Updater packages are signature-verified; Windows Authenticode code signing is not configured.
+    - Clean-machine installation / uninstallation, mixed-DPI displays, the complete physical-device matrix and an installed end-to-end upgrade remain pending validation.
 
 jobs:
   windows:
@@ -64,12 +84,30 @@ jobs:
         env:
           PLAYWRIGHT_CHANNEL: chromium
         run: pnpm test:ui-fixtures
+      - name: Test updater release metadata
+        run: node scripts/check-updater-release.cjs
+      - name: Require updater signing key
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw 'TAURI_SIGNING_PRIVATE_KEY is required to produce verified update artifacts.'
+          }
       - name: Build Windows executable and NSIS installer
-        run: pnpm tauri build -- --locked
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: pnpm tauri build --config src-tauri/tauri.release.conf.json -- --locked
       - name: Package portable archive and checksums
-        run: ./scripts/package-release.ps1
+        run: ./scripts/package-release.ps1 -WithUpdater
+      - name: Verify updater manifest and release checksums
+        run: node .agents/skills/android-devkit-release/scripts/verify-release-assets.cjs artifacts/release (Get-Content package.json -Raw | ConvertFrom-Json).version --require-updater
       - name: Verify installer contents
         run: node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
+      - name: Verify updater signature with the embedded public key
+        env:
+          ANDROID_DEVKIT_UPDATE_VERIFY_DIR: ${{ github.workspace }}/artifacts/release
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib signed_release_verifies_with_embedded_public_key -- --ignored
       - name: Upload Windows packages
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
@@ -111,16 +149,5 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > release-notes.md <<'NOTES'
-          Android DevKit for Windows x64.
-
-          - Android SDK management with categorized packages and update sites.
-          - Emulator creation, advanced configuration and lifecycle management.
-          - USB, wireless pairing and network ADB connections; APK installation and Logcat.
-          - Searchable task history, Chinese / English UI, and light / dark themes.
-
-          Download the setup executable to install, or extract the portable ZIP. Requires Windows 11 x64 and WebView2 Runtime; the installer offers the official runtime bootstrapper when needed. Android SDK components are downloaded separately under their own licenses.
-
-          This release is unsigned. Clean-machine installation / uninstallation, mixed-DPI displays and the complete physical-device matrix remain pending validation. SHA-256 checksums and third-party notices are attached.
-          NOTES
+          printf '%s\n' "$RELEASE_NOTES" > release-notes.md
           gh release create "$RELEASE_TAG" release/* --verify-tag --title "Android DevKit $RELEASE_TAG" --notes-file release-notes.md --latest

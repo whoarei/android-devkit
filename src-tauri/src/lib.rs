@@ -25,6 +25,7 @@ mod recovery;
 mod regression_tests;
 mod repository;
 mod storage;
+mod updater;
 use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
@@ -34,6 +35,7 @@ pub fn run() {
                 let _ = w.set_focus();
             }
         }))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(commands::setup)
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -72,7 +74,10 @@ pub fn run() {
             commands::export_save,
             commands::recording_segments,
             commands::diagnostics,
-            commands::license_respond
+            commands::license_respond,
+            updater::check_app_update,
+            updater::install_app_update,
+            updater::open_app_download
         ])
         .run(tauri::generate_context!())
         .expect("Android DevKit failed to run");

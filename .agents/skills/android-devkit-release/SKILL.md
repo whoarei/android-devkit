@@ -1,6 +1,6 @@
 ---
 name: android-devkit-release
-description: "辅助 Android DevKit 的版本发布：检查发布准备、同步版本号、构建 Windows 安装包和便携包、通过现有 GitHub Actions 发布并校验下载产物。用于本项目的发版、发布检查或失败排查；普通代码提交不需要此 skill。"
+description: '辅助 Android DevKit 的版本发布：检查发布准备、同步版本号、构建 Windows 安装包和便携包、通过现有 GitHub Actions 发布并校验下载产物。用于本项目的发版、发布检查或失败排查；普通代码提交不需要此 skill。'
 ---
 
 # Android DevKit 版本发布
@@ -29,8 +29,8 @@ description: "辅助 Android DevKit 的版本发布：检查发布准备、同�
 1. 确认仓库身份、`origin`、当前分支和工作区；查看本地未推送提交、远端标签和最近正式发布。以最近已发布标签到候选提交的差异编写说明，不能只看最后一个提交。网络或认证失败不能当成“标签不存在”。
 2. 将目标稳定版本同步到 `package.json`、`src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 的项目条目，以及 `src-tauri/Cargo.lock` 中 `android-devkit` 自身条目。只改本项目版本，不全局替换依赖版本，不顺带升级工具链。同步 README 的版本、下载文件名和本次发布说明。
 3. 运行仓库现有版本检查，包含将发布的 `vX.Y.Z` 标签。按当前 CI 执行格式、前端、Clippy、Rust、IPC 类型和隔离浏览器检查；已在同一候选代码上成功完成的检查可复用证据。忽略的真实 SDK / AVD 测试按变更和授权决定，不把本地真机当成默认测试目标。
-4. 完整构建 release EXE 和 NSIS 安装器，再运行发布打包脚本及安装器内容核验。仅 `--no-bundle` 不足以生成当前发布要求的安装包。确保生成的许可清单与声明一致，必要的源码变更进入发布提交；二进制、截图、缓存不加入 Git。
-5. 检查发布目录只包含本版本预期的六个资产，防止仓库打包脚本保留的旧版本文件被 `release/*` 上传。目录有旧文件时先核对路径，再移到项目内明确的临时位置，或重新选择干净目录；不要盲目递归清理。
+4. 完整构建 release EXE 和 NSIS 安装器，再运行发布打包脚本及安装器内容核验。仅 `--no-bundle` 不足以生成当前发布要求的安装包。本地普通构建用于功能验证；正式签名构建在 CI 使用 `tauri.release.conf.json`、已有 GitHub Secrets 和 `package-release.ps1 -WithUpdater` 完成，不为本地构建读取或导出签名私钥。确保生成的许可清单与声明一致，必要的源码变更进入发布提交；二进制、截图、缓存不加入 Git。
+5. 检查正式发布目录只包含本版本预期的八个资产，包含安装包签名和更新清单，防止仓库打包脚本保留的旧版本文件被 `release/*` 上传。本地未签名的六文件包只用于开发验证。目录有旧文件时先核对路径，再移到项目内明确的临时位置，或重新选择干净目录；不要盲目递归清理。
 
 默认交付两种形式：当前用户安装的 `setup.exe` 和包含程序、许可、构建信息的便携 ZIP。裸 EXE 可作为本地运行入口，不能替代既定便携发行包。
 
@@ -48,10 +48,10 @@ description: "辅助 Android DevKit 的版本发布：检查发布准备、同�
 
 - 确认远端标签解析到记录的候选 SHA，相关 CI 构建与发布任务成功。
 - 读取指定版本 Release，核对 `tagName`、公开 / 草稿状态、预发布状态、实际说明及资产名称与大小。不能只检查命令退出码或 Release URL 是否存在。
-- 下载这个 Release 的六个资产到新的临时目录，运行下面的只读校验器；将其中便携 ZIP 解压到另一新目录，再带 `--portable` 校验内部 EXE、许可和构建信息。它验证字节和版本一致性，不证明来源可信、代码签名有效或干净机器安装成功。
+- 下载这个 Release 的八个资产到新的临时目录，运行下面的只读校验器；将其中便携 ZIP 解压到另一新目录，再带 `--portable` 校验内部 EXE、许可和构建信息。通过 `--require-updater` 检查本版本安装器地址、`.sig` 与 `latest.json` 一致；该脚本验证字节和清单关系，不等同于运行时 minisign 验签、Windows 代码签名或干净机器安装验收。核查历史无更新功能的版本时可以省略 `--require-updater`。
 
 ```powershell
-node /absolute/path/to/android-devkit-release/scripts/verify-release-assets.cjs <download-directory> <version> --portable <extracted-zip-directory>
+node /absolute/path/to/android-devkit-release/scripts/verify-release-assets.cjs <download-directory> <version> --portable <extracted-zip-directory> --require-updater
 ```
 
 命令中的 skill 路径使用当前 `SKILL.md` 所在目录展开；项目和校验脚本都不依赖固定盘符。具体命令见 [项目发布约定](references/project-release.md)。

@@ -9,7 +9,7 @@
 - 发布分支目前为 `main`。CI 仅在推送 `v*` 标签或 Actions 页面手动运行时执行检查和打包；普通分支推送与 PR 不触发。只有 `push` 到 `v*` 标签才执行 Release 发布，手动运行不会发布版本。
 - `scripts/check-version.cjs` 核对四个版本文件；传入标签可额外核对版本匹配。它目前只接受稳定的三段数字版本。
 - `pnpm-lock.yaml` 当前不保存根项目版本；不要因改版本而重解全部依赖。Cargo.lock 只更新根项目条目，并检查差异。
-- Release 正文目前内嵌在 `.github/workflows/ci.yml` 的 `Publish verified assets` 步骤。后续发版应把正文更新为从上次发布到这次候选提交的实际变更，保留仍适用的安装要求和限制，不沿用初版功能清单冒充更新日志。
+- Release 正文维护在 `.github/workflows/ci.yml` 的 `env.RELEASE_NOTES`，同时用于 Release 正文和更新清单。后续发版应更新为从上次发布到本次候选提交的实际变更，保留仍适用的安装要求和限制，不沿用初版功能清单冒充更新日志。
 - README 当前版本、下载文件名必须同步；命令历史示例是否保留按上下文判断，不能全局替换旧版本文本。
 - 项目正式新文档遵守 AGENTS 的五位序号和北京时间命名规则；修改已有正式文档保留文件名。临时发布说明可用临时文件，传给 `--notes-file`，不需要创建额外交付文档。
 
@@ -45,11 +45,15 @@ pnpm.cmd test:ui-fixtures
 
 ## 构建、资产和核验
 
+本地普通构建无需签名私钥，可用于功能验证：
+
 ```powershell
 pnpm.cmd tauri build -- --locked
 & './scripts/package-release.ps1'
 node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
 ```
+
+正式 CI 使用 `pnpm.cmd tauri build --config src-tauri/tauri.release.conf.json -- --locked` 和 `package-release.ps1 -WithUpdater`，生成 minisign 安装器签名及 `latest.json`。`TAURI_SIGNING_PRIVATE_KEY` 仅保存在本仓库 Actions Secrets，与 remote-runner 复用同一签名身份；如果有密码，则通过 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 提供。缺少签名私钥必须使签名构建失败；不要生成新密钥替换现有公钥，也不要将私钥导出到本地或提交源码。本地未签名包不作为正式更新资产发布。
 
 当前产物关系：
 
@@ -68,8 +72,10 @@ node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
 4. `third-party-manifest.json`
 5. `build-info.json`
 6. `SHA256SUMS.txt`
+7. `AndroidDevKit-X.Y.Z-setup.exe.sig`
+8. `latest.json`
 
-ZIP 内恰好为 `AndroidDevKit.exe`、两份许可文件和 `build-info.json`。`SHA256SUMS.txt` 对除自身之外的五个 Release 文件求摘要；build-info 另外记录 ZIP 内原始 EXE 的大小和摘要，以及安装器摘要。校验器同时核对这些关系。
+ZIP 内恰好为 `AndroidDevKit.exe`、两份许可文件和 `build-info.json`。`SHA256SUMS.txt` 对除自身之外的七个 Release 文件求摘要；build-info 另外记录 ZIP 内原始 EXE 的大小和摘要，以及安装器摘要。校验器同时核对这些关系，并检查 `latest.json` 版本、Windows x64 平台、安装器地址及签名与独立 `.sig` 文件一致。历史无更新清单的六文件包仍可验证，但新的正式发布必须包含全部八个文件。
 
 打包脚本会保留输出目录旧文件，并且可能复制同版本的旧安装器，所以必须先成功完成本次 NSIS 构建，不能拿历史 `artifacts/` 目录证明候选提交已打包。CI 的干净检出可避免此问题。`scripts/check-installer.cjs` 解包检查安装器与便携程序的 payload；Tauri 会将内嵌 bundle marker 从 `UNK` 改成 `NSS`，归一化后应一致。不要用安装器内 EXE 的原始摘要直接要求等于便携 EXE 摘要。
 
@@ -102,7 +108,7 @@ $downloadDirectory = Join-Path ([IO.Path]::GetTempPath()) ("android-devkit-relea
 $portableDirectory = Join-Path ([IO.Path]::GetTempPath()) ("android-devkit-portable-" + [guid]::NewGuid())
 gh release download $releaseTag --repo $releaseRepo --dir $downloadDirectory
 Expand-Archive -LiteralPath (Join-Path $downloadDirectory "AndroidDevKit-$releaseVersion-windows-x64.zip") -DestinationPath $portableDirectory
-node $assetVerifier $downloadDirectory $releaseVersion --portable $portableDirectory
+node $assetVerifier $downloadDirectory $releaseVersion --portable $portableDirectory --require-updater
 ```
 
 `$assetVerifier` 指向本 skill 的 `scripts/verify-release-assets.cjs`。该脚本不访问网络、不上传、不删除文件。临时目录使用完按需要清理，先核对绝对路径后再删除。

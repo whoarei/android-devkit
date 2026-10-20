@@ -436,6 +436,9 @@ type AppError = {
           <tr><td>应用更新与工具下载</td><td>下载经 HTTPS 和固定发行校验；更新包签名独立校验。Android 工具升级需用户显式触发，不能随应用升级静默改写用户 SDK</td></tr>
         </tbody></table></div>
         <p>Rust 本身拥有本地系统能力，Tauri ACL 不能约束有缺陷的 Rust 代码。因此安全检查放在领域服务与基础设施写入入口，不能只靠隐藏按钮或关闭前端插件。Android CLI 若后续启用，默认使用官方的 <code>--no-metrics</code> 选项，并不更改用户全局配置。<a href="https://developer.android.com/tools/agents/android-cli#data-collected">Android CLI 数据收集设置</a>。</p>
+        <h3>软件更新</h3>
+        <p>通过 Tauri updater 从本项目 GitHub Releases 的固定 <code>latest.json</code> 地址检查稳定版本，支持启动时静默检查与设置页手动检查。Rust 固定用户看到的更新候选 ID，只接受该版本在本项目下的 NSIS 安装包地址；下载后使用内置 minisign 公钥验证签名，校验成功才启动安装器。更新公钥与 remote-runner 复用，私钥仅在 GitHub Secrets 中管理；该签名不等于 Windows Authenticode 代码签名。</p>
+        <p>仅在当前执行文件与 HKCU 中 NSIS 登记的程序和卸载器真实路径一致时允许自动安装；便携版、开发版或身份检查失败时提供下载页面。安装全过程持有更新写锁，提交任务和生成导出持有读锁；安装前复查活动任务、日志采集、退出状态及未保存文件，避免并发任务或新导出绕过检查。下载、签名校验与安装进度发送到主窗口，失败后释放锁并允许重试；不更改 Android SDK 或已保存文件。</p>
       </section>
 
       <section id="delivery">

@@ -4,7 +4,7 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-[下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.2.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
 ## 产品特性
 
@@ -16,6 +16,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **集中排查设备与应用问题**：过滤实时日志、采集问题发生时的日志片段、截取设备画面，预览并导出排查资料。
 - **查进度、找结果、保存文件**：在任务中心搜索历史操作，按状态筛选任务、查看失败原因；通过带角标的待保存文件入口预览、另存或清理缓存副本。
 - **按自己的习惯使用界面**：随时切换中英文和亮暗主题，偏好自动保存，下次启动继续使用。
+- **在应用内检查更新**：启动时静默检查新版本，也可手动查看更新说明；安装版支持验证更新签名后安装并重新打开，便携版提供下载入口。
 
 以下使用说明对应当前源码，发行版的具体功能与变更以对应 Release 说明为准。
 
@@ -26,7 +27,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **安装包** `AndroidDevKit-X.Y.Z-setup.exe`：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
 - **便携包** `AndroidDevKit-X.Y.Z-windows-x64.zip`：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
-当前发行包未签名。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
+当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
 ## 使用方法
 
@@ -77,6 +78,12 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 在设备详情中点击“截图”，完成后查看或保存截图。任务中心工具栏的“待保存文件”图标通过角标显示数量，点击后可以预览、另存或“忽略并清理”。忽略会删除对应的本地缓存副本，已另存文件、原始采集段和任务记录保留。日志导出默认脱敏，保存前仍可检查预览内容。
 
 标题栏和“设置 → 界面偏好”均可切换语言与主题，选择会自动保存。
+
+### 5. 软件更新
+
+在“设置 → 软件更新”中查看当前版本并点击“检查更新”。发现新版本后可查看更新说明，安装版点击“下载并安装更新”，确认后显示下载、签名校验和安装进度，完成后重新打开应用。安装前需要先完成或停止运行中的任务、结束日志采集，并保存或清理待保存文件。
+
+默认启动时静默检查；可以取消“启动时自动检查更新”，手动检查仍然可用。检查失败时可重试或前往下载页面，更新请求使用设置中的手动代理。便携版和开发版通过下载页手动更新。没有更新入口的旧版本，需要先手动安装包含此功能的新版本。
 
 ### 数据存放位置
 
@@ -165,6 +172,8 @@ powershell -NoProfile -File scripts/package-release.ps1
 ```
 
 完整构建会生成第三方许可清单和 NSIS 安装包，打包后可在 `artifacts/windows/` 找到本地程序，在 `artifacts/release/` 找到安装包、便携 ZIP、许可文件、构建信息和校验和。
+
+以上本地构建不要求更新签名私钥。正式 CI 使用 `tauri.release.conf.json` 和 GitHub Secrets 签名，并通过 `package-release.ps1 -WithUpdater` 额外生成安装器 `.sig` 与 `latest.json` 更新清单；私钥不进入源码或本地构建目录。
 
 [GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 仅在推送 `v*` 标签或在 Actions 页面手动运行时执行检查、测试和 Windows 打包。标签推送在检查通过后自动发布对应版本；手动运行用于检查和打包。维护者的版本确认、标签发布与产物核验步骤见 [版本发布 skill](.agents/skills/android-devkit-release/SKILL.md)。
 

@@ -37,6 +37,7 @@ impl App {
         token: &str,
         accepted: &[String],
     ) -> Result<Task> {
+        let _update_guard = self.allow_update_sensitive_work()?;
         if let Some(t) = self.store.request(request_id) {
             return Ok(t);
         }

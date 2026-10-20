@@ -1894,6 +1894,53 @@ h1 {
 .segment-picker input {
   width: auto;
 }
+.update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 14px 0;
+}
+.update-details {
+  margin-top: 16px;
+  color: var(--text-body);
+}
+.update-details p,
+.software-update > [role='alert'] {
+  margin-top: 10px;
+  line-height: 1.7;
+}
+.update-notes {
+  max-height: 220px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-family: inherit;
+  line-height: 1.7;
+  padding: 12px;
+  border-radius: 8px;
+  background: var(--page);
+}
+.update-progress {
+  margin-top: 20px;
+}
+.update-progress progress {
+  width: 100%;
+  accent-color: var(--green);
+}
+.update-progress p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.build-label:has(.update-shortcut) {
+  flex-wrap: wrap;
+}
+.build-label .update-shortcut {
+  flex-basis: 100%;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
 .log-panel .task-actions label {
   display: flex;
   gap: 8px;
