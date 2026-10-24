@@ -10,6 +10,7 @@ use std::{
 use tauri::Emitter;
 
 pub struct App {
+    pub terminals: crate::terminal::TerminalManager,
     pub store: Store,
     pub data: PathBuf,
     pub handle: Mutex<Option<tauri::AppHandle>>,
@@ -52,6 +53,7 @@ impl App {
             }
         }
         Ok(Arc::new(Self {
+            terminals: crate::terminal::TerminalManager::default(),
             store: Store::open(&data.join("state/devkit.db"))?,
             data,
             handle: Mutex::new(None),

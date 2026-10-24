@@ -16,6 +16,7 @@
     "test:ui": "node scripts/check-ui.cjs",
     "test:network-ui": "node scripts/check-network-ui.cjs",
     "test:device-ui": "node scripts/check-device-ui.cjs",
+    "test:terminal-ui": "node scripts/check-terminal-ui.cjs",
     "test:updater-ui": "node scripts/check-updater-ui.cjs",
     "test:updater-release": "node scripts/check-updater-release.cjs",
     "test:tasks-ui": "node scripts/check-task-center-ui.cjs",
@@ -32,6 +33,8 @@
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",
     "@tauri-apps/api": "^2.10.0",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "lucide-react": "^0.468.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

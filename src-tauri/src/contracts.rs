@@ -27,6 +27,8 @@ fn source() -> String {
         CloseStatus::decl(),
         crate::updater::AppUpdateInfo::decl(),
         crate::updater::AppUpdateProgress::decl(),
+        crate::terminal::TerminalInfo::decl(),
+        crate::terminal::TerminalEvent::decl(),
     ];
     format!(
         "// Generated from Rust DTOs. Run pnpm bindings to update.\n{}\n",

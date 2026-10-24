@@ -1,0 +1,317 @@
+.terminal-page[hidden],
+.terminal-surface[hidden] {
+  display: none;
+}
+.terminal-empty {
+  min-height: 390px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  text-align: center;
+  padding: 30px;
+}
+.terminal-empty > svg {
+  color: var(--green);
+}
+.terminal-empty h2 {
+  font-size: 20px;
+  font-weight: 500;
+}
+.terminal-empty p,
+.terminal-empty small {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.terminal-session-menu {
+  position: fixed;
+  z-index: 80;
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  max-height: min(340px, calc(100vh - 24px));
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 7px;
+  background: var(--surface);
+  box-shadow: 0 12px 35px var(--shadow);
+}
+.terminal-session-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-radius: 5px;
+  padding: 11px 10px;
+  text-align: left;
+}
+.terminal-session-menu > button:hover:not(:disabled) {
+  background: var(--soft);
+}
+.terminal-session-menu > button > svg {
+  color: var(--green);
+  flex-shrink: 0;
+}
+.terminal-session-menu b {
+  font-size: 12px;
+  font-weight: 500;
+  display: block;
+  overflow-wrap: anywhere;
+}
+.terminal-session-menu small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.terminal-menu-label {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 10px 10px 4px;
+  margin-top: 4px;
+}
+.terminal-session-menu p {
+  color: var(--muted);
+  padding: 10px;
+  font-size: 12px;
+}
+.terminal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 3px;
+  padding: 6px 7px 0;
+  background: var(--sidebar);
+  border: 1px solid var(--line);
+  border-radius: 6px 6px 0 0;
+}
+.terminal-tab {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding-right: 6px;
+  border: 1px solid transparent;
+  border-radius: 5px 5px 0 0;
+}
+.terminal-tab.selected {
+  border-color: var(--line);
+  border-bottom-color: var(--surface);
+  background: var(--surface);
+  margin-bottom: -1px;
+  z-index: 1;
+}
+.terminal-tab-select {
+  background: transparent;
+  border: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 11px 9px;
+  font-size: 12px;
+  text-align: left;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.terminal-add-tab {
+  align-self: center;
+  margin: 0 4px 4px;
+}
+.terminal-dot {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--muted);
+}
+.terminal-dot.online {
+  background: var(--success);
+}
+.terminal-context {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 0;
+}
+.terminal-target-icon {
+  display: grid;
+  place-items: center;
+  width: 33px;
+  height: 35px;
+  flex-shrink: 0;
+  background: var(--soft);
+  color: var(--green);
+  border-radius: 4px;
+}
+.terminal-context > div {
+  min-width: 0;
+  flex: 1;
+}
+.terminal-context b {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.terminal-context small {
+  display: block;
+  color: var(--muted);
+  font:
+    11px/1.6 Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.terminal-state {
+  color: var(--muted);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.terminal-state.active {
+  color: var(--success);
+}
+.terminal-state.disconnected,
+.terminal-state.failed {
+  color: var(--warning);
+}
+.terminal-ended {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 12px 15px;
+  background: var(--warning-bg);
+  color: var(--warning);
+  font-size: 12px;
+  border: 1px solid var(--warning-border);
+  border-top: 0;
+}
+.terminal-ended span {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.terminal-ended .button {
+  padding: 6px 10px;
+  font-size: 11px;
+}
+.terminal-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-top: 0;
+  background: var(--surface);
+}
+.terminal-toolbar > span,
+.terminal-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.terminal-toolbar > span {
+  font-size: 11px;
+  color: var(--muted);
+  gap: 6px;
+}
+.terminal-toolbar .text-button {
+  font-size: 11px;
+}
+.terminal-views {
+  background: #11231b;
+  color: #dbe9de;
+  border-radius: 0 0 6px 6px;
+  padding: 16px 16px 13px;
+  overflow: hidden;
+}
+:root[data-theme='dark'] .terminal-views {
+  background: #0d1912;
+}
+.terminal-surface {
+  height: max(280px, calc(100vh - 465px));
+  max-height: 850px;
+  min-width: 0;
+}
+.terminal-emulator {
+  width: 100%;
+  height: 100%;
+}
+.terminal-emulator .xterm {
+  height: 100%;
+}
+.terminal-emulator .xterm-viewport {
+  scrollbar-width: thin;
+}
+.terminal-emulator .xterm-screen {
+  max-width: 100%;
+}
+.terminal-footnote {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.terminal-footnote > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.terminal-snippets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.terminal-snippets button {
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font:
+    11px Consolas,
+    monospace;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .terminal-context {
+    padding: 12px;
+    flex-wrap: wrap;
+  }
+  .terminal-context .terminal-state {
+    padding-left: 45px;
+    width: 100%;
+  }
+  .terminal-toolbar {
+    padding: 10px;
+  }
+  .terminal-toolbar > div {
+    gap: 10px;
+  }
+  .terminal-views {
+    padding: 12px 9px;
+  }
+  .terminal-empty {
+    padding: 28px 15px;
+  }
+}

@@ -234,6 +234,14 @@
     },
     {
       "name": "Rust: cfg_aliases",
+      "version": "0.1.1",
+      "license": "MIT",
+      "repository": "https://github.com/katharostech/cfg_aliases",
+      "sourcePackage": "https://crates.io/api/v1/crates/cfg_aliases/0.1.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: cfg_aliases",
       "version": "0.2.2",
       "license": "MIT",
       "repository": "https://github.com/katharostech/cfg_aliases",
@@ -465,6 +473,14 @@
       "fullTextLocated": true
     },
     {
+      "name": "Rust: downcast-rs",
+      "version": "1.2.1",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/marcianx/downcast-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/downcast-rs/1.2.1/download",
+      "fullTextLocated": true
+    },
+    {
       "name": "Rust: dpi",
       "version": "0.1.2",
       "license": "Apache-2.0 AND MIT",
@@ -574,6 +590,14 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/image-rs/fdeflate",
       "sourcePackage": "https://crates.io/api/v1/crates/fdeflate/0.3.7/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: filedescriptor",
+      "version": "0.8.3",
+      "license": "MIT",
+      "repository": "https://github.com/wezterm/wezterm",
+      "sourcePackage": "https://crates.io/api/v1/crates/filedescriptor/0.8.3/download",
       "fullTextLocated": true
     },
     {
@@ -1041,6 +1065,14 @@
       "fullTextLocated": true
     },
     {
+      "name": "Rust: lazy_static",
+      "version": "1.5.1",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/rust-lang-nursery/lazy-static.rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/lazy_static/1.5.1/download",
+      "fullTextLocated": true
+    },
+    {
       "name": "Rust: libc",
       "version": "0.2.191",
       "license": "MIT OR Apache-2.0",
@@ -1166,6 +1198,14 @@
       "license": "MIT",
       "repository": "https://github.com/mbrubeck/rust-debug-unreachable",
       "sourcePackage": "https://crates.io/api/v1/crates/new_debug_unreachable/1.0.6/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: nix",
+      "version": "0.28.0",
+      "license": "MIT",
+      "repository": "https://github.com/nix-rust/nix",
+      "sourcePackage": "https://crates.io/api/v1/crates/nix/0.28.0/download",
       "fullTextLocated": true
     },
     {
@@ -1302,6 +1342,14 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/image-rs/image-png",
       "sourcePackage": "https://crates.io/api/v1/crates/png/0.18.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: portable-pty",
+      "version": "0.9.0",
+      "license": "MIT",
+      "repository": "https://github.com/wezterm/wezterm",
+      "sourcePackage": "https://crates.io/api/v1/crates/portable-pty/0.9.0/download",
       "fullTextLocated": true
     },
     {
@@ -1721,6 +1769,14 @@
       "fullTextLocated": true
     },
     {
+      "name": "Rust: serial2",
+      "version": "0.2.38",
+      "license": "BSD-2-Clause OR Apache-2.0",
+      "repository": "https://github.com/de-vri-es/serial2-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/serial2/0.2.38/download",
+      "fullTextLocated": true
+    },
+    {
       "name": "Rust: serialize-to-javascript",
       "version": "0.1.2",
       "license": "MIT OR Apache-2.0",
@@ -1758,6 +1814,22 @@
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/RustCrypto/hashes",
       "sourcePackage": "https://crates.io/api/v1/crates/sha2/0.10.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: shared_library",
+      "version": "0.1.9",
+      "license": "Apache-2.0/MIT",
+      "repository": "https://github.com/tomaka/shared_library/",
+      "sourcePackage": "https://crates.io/api/v1/crates/shared_library/0.1.9/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: shell-words",
+      "version": "1.1.1",
+      "license": "MIT/Apache-2.0",
+      "repository": "https://github.com/tmiasko/shell-words",
+      "sourcePackage": "https://crates.io/api/v1/crates/shell-words/1.1.1/download",
       "fullTextLocated": true
     },
     {
@@ -2010,10 +2082,26 @@
     },
     {
       "name": "Rust: thiserror",
+      "version": "1.0.69",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/thiserror",
+      "sourcePackage": "https://crates.io/api/v1/crates/thiserror/1.0.69/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: thiserror",
       "version": "2.0.21",
       "license": "MIT OR Apache-2.0",
       "repository": "https://github.com/dtolnay/thiserror",
       "sourcePackage": "https://crates.io/api/v1/crates/thiserror/2.0.21/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: thiserror-impl",
+      "version": "1.0.69",
+      "license": "MIT OR Apache-2.0",
+      "repository": "https://github.com/dtolnay/thiserror",
+      "sourcePackage": "https://crates.io/api/v1/crates/thiserror-impl/1.0.69/download",
       "fullTextLocated": true
     },
     {
@@ -2554,6 +2642,14 @@
     },
     {
       "name": "Rust: winreg",
+      "version": "0.10.1",
+      "license": "MIT",
+      "repository": "https://github.com/gentoo90/winreg-rs",
+      "sourcePackage": "https://crates.io/api/v1/crates/winreg/0.10.1/download",
+      "fullTextLocated": true
+    },
+    {
+      "name": "Rust: winreg",
       "version": "0.55.0",
       "license": "MIT",
       "repository": "https://github.com/gentoo90/winreg-rs",
@@ -2750,6 +2846,22 @@
       "license": "MIT",
       "repository": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react",
       "sourcePackage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/react",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: @xterm/addon-fit",
+      "version": "0.11.0",
+      "license": "MIT",
+      "repository": "https://github.com/xtermjs/xterm.js/tree/master#readme",
+      "sourcePackage": "https://github.com/xtermjs/xterm.js/tree/master#readme",
+      "fullTextLocated": true
+    },
+    {
+      "name": "npm: @xterm/xterm",
+      "version": "6.0.0",
+      "license": "MIT",
+      "repository": "https://github.com/xtermjs/xterm.js#readme",
+      "sourcePackage": "https://github.com/xtermjs/xterm.js#readme",
       "fullTextLocated": true
     },
     {

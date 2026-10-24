@@ -119,7 +119,7 @@ impl App {
         match self.close_status() {
             Ok(status) if status.tasks.is_empty() && status.unsaved.is_empty() => {
                 self.stop_observers();
-                h.exit(0);
+                exit_after_terminals(h);
             }
             _ => {
                 show_window(&h);
@@ -214,7 +214,7 @@ impl App {
                             app.stop_observers();
                             let handle = app.handle.lock().unwrap().clone();
                             if let Some(h) = handle {
-                                h.exit(0);
+                                exit_after_terminals(h);
                             }
                         } else {
                             app.draining.store(false, Ordering::SeqCst);
@@ -237,6 +237,17 @@ impl App {
         });
         Ok(())
     }
+}
+
+fn exit_after_terminals(handle: tauri::AppHandle) {
+    let app = handle.state::<Arc<App>>().inner().clone();
+    app.draining.store(true, Ordering::SeqCst);
+    tauri::async_runtime::spawn(async move {
+        let _gate = app.update_gate.write().await;
+        let closing = app.clone();
+        let _ = tokio::task::spawn_blocking(move || closing.terminals.shutdown()).await;
+        handle.exit(0);
+    });
 }
 
 #[cfg(test)]

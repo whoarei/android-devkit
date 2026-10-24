@@ -367,5 +367,22 @@
   "产物缓存路径不安全，未清理": "Unsafe artifact cache path; nothing was cleared",
   "只能清理截图或导出副本缓存": "Only cached screenshots and export copies can be cleared",
   "清理缓存失败，请重试": "Cache cleanup failed; please retry",
-  "截图任务仍在收尾，请稍后清理": "The screenshot task is finishing; please try cleanup shortly"
+  "截图任务仍在收尾，请稍后清理": "The screenshot task is finishing; please try cleanup shortly",
+  "终端输入过长或为空": "Terminal input is empty or too long",
+  "终端会话已关闭": "Terminal session is closed",
+  "终端输入顺序已变化": "Terminal input order has changed",
+  "终端输入队列已满，请稍后重试": "Terminal input queue is full. Retry shortly",
+  "终端输出确认无效": "Invalid terminal output acknowledgement",
+  "终端视图已关闭": "Terminal view was closed",
+  "终端会话已存在": "Terminal session already exists",
+  "终端输入已断开": "Terminal input was disconnected",
+  "无法读取终端进程状态": "Could not read terminal process status",
+  "原设备连接已断开或变化，请重新连接": "The original device connection was lost or changed. Reconnect to continue",
+  "终端连接已经变化，请重新输入": "The terminal connection changed. Enter the command again",
+  "该 SDK 仍被终端会话使用，请先关闭相关会话": "Terminal sessions are using this SDK. Close those sessions first",
+  "终端视图已重新载入": "Terminal view was reloaded",
+  "无法启动交互终端": "Could not start the interactive terminal",
+  "终端尺寸无效": "Invalid terminal dimensions",
+  "终端会话参数无效": "Invalid terminal session parameters",
+  "请先关闭终端会话，再安装更新。": "Close terminal sessions before installing the update."
 }

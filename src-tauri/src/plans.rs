@@ -62,6 +62,14 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                 expanded = crate::dependencies::resolve(&ids, &local, &catalog)?;
             }
             for id in &expanded {
+                let changes_platform_tools = id == "platform-tools"
+                    && (op.kind == "sdk_remove"
+                        || catalog.iter().find(|p| p.id == *id).is_some_and(|desired| {
+                            !local.iter().any(|p| p.id == *id && p.version == desired.version)
+                        }));
+                if changes_platform_tools {
+                    app.terminals.check_sdk_unused(&settings.sdk_root)?;
+                }
                 effects.push(format!(
                     "{} {id}",
                     if op.kind == "sdk_remove" {

@@ -25,6 +25,7 @@ mod recovery;
 mod regression_tests;
 mod repository;
 mod storage;
+mod terminal;
 mod updater;
 use tauri::Manager;
 pub fn run() {
@@ -46,6 +47,12 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            terminal::terminal_create,
+            terminal::terminal_list,
+            terminal::terminal_write,
+            terminal::terminal_resize,
+            terminal::terminal_ack,
+            terminal::terminal_close,
             commands::ui_locale_set,
             commands::workspace_snapshot,
             commands::task_list,

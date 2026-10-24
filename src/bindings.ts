@@ -24,3 +24,5 @@ export type ExportPreview = { artifact: Artifact, text: string, offset: number, 
 export type CloseStatus = { tasks: Array<Task>, unsaved: Array<Artifact>, draining: boolean, trayEnabled: boolean, };
 export type AppUpdateInfo = { updateId: string, currentVersion: string, latestVersion: string, notes: string, publishedAt: string | null, canAutoInstall: boolean, };
 export type AppUpdateProgress = { phase: string, downloaded: number, total: number | null, };
+export type TerminalInfo = { id: string, generation: string, kind: string, label: string, target: Target | null, sdkRoot: string, state: string, reason: string, exitCode: number | null, };
+export type TerminalEvent = { generation: string, kind: string, offset: number, data: Array<number>, state: string, reason: string, exitCode: number | null, };

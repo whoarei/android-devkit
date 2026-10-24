@@ -3,6 +3,12 @@
   "description": "Local workbench only; all system actions validated by Rust",
   "windows": ["main"],
   "permissions": [
+    "allow-terminal-create",
+    "allow-terminal-list",
+    "allow-terminal-write",
+    "allow-terminal-resize",
+    "allow-terminal-ack",
+    "allow-terminal-close",
     "allow-ui-locale-set",
     "core:event:allow-listen",
     "core:event:allow-unlisten",

@@ -42,13 +42,15 @@ import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Obser
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
 import { SdkManager } from './SdkManager';
+import { TerminalNewSession, TerminalPage, terminalDeviceName } from './TerminalPage';
+import { openDeviceTerminal, useTerminals } from './terminal';
 import { useSoftwareUpdate, SoftwareUpdateSection, SoftwareUpdateDialog } from './SoftwareUpdate';
 import { AvdSettingsFields, AvdPreview, EditAvd, newAvdSettings, type AvdForm } from './AvdEditor';
 import { hasSdkUpdate } from './sdk';
 import { Button, Badge, Modal, Field } from './ui';
 import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
 import type { Settings, Workspace, Device, Avd, Plan, Operation, ApkInfo, Target } from './types';
-type Page = 'devices' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
+type Page = 'devices' | 'terminal' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
 const useUi = create<{
   page: Page;
   selected: string;
@@ -62,6 +64,7 @@ const useUi = create<{
 }));
 const titles: Record<Page, string> = {
   devices: '设备工作台',
+  terminal: 'ADB 终端',
   sdk: 'SDK 管理',
   tasks: '任务中心',
   diagnostics: '环境诊断',
@@ -71,6 +74,7 @@ type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
 export function App() {
   const locale = useLocale();
   const theme = useTheme();
+  const terminalCount = useTerminals((state) => state.sessions.length);
   const updater = useSoftwareUpdate();
   const { page, setPage, selected, select } = useUi();
   const toggleSelection = (key: string) => select(selected === key ? '' : key);
@@ -356,6 +360,7 @@ export function App() {
           {(
             [
               ['devices', Smartphone],
+              ['terminal', Terminal],
               ['sdk', Package],
               ['tasks', Activity],
             ] as const
@@ -369,6 +374,7 @@ export function App() {
               <Icon size={18} />
               <span>{t(titles[id])}</span>
               {id === 'tasks' && active.length > 0 && <b>{active.length}</b>}
+              {id === 'terminal' && terminalCount > 0 && <b>{terminalCount}</b>}
             </button>
           ))}
         </nav>
@@ -427,16 +433,19 @@ export function App() {
             <p>
               {page === 'devices'
                 ? t('准备好设备，让下一次验证更直接。')
-                : page === 'sdk'
-                  ? t('按需准备组件，复用已有开发环境。')
-                  : page === 'tasks'
-                    ? t('每个操作的目标、阶段和结果都留在这里。')
-                    : page === 'diagnostics'
-                      ? t('从检测到的事实出发，定位环境与连接问题。')
-                      : t('为当前工作空间选择路径和行为。')}
+                : page === 'terminal'
+                  ? t('设备会话直接进入 ADB Shell，通用命令行使用本机 PowerShell。')
+                  : page === 'sdk'
+                    ? t('按需准备组件，复用已有开发环境。')
+                    : page === 'tasks'
+                      ? t('每个操作的目标、阶段和结果都留在这里。')
+                      : page === 'diagnostics'
+                        ? t('从检测到的事实出发，定位环境与连接问题。')
+                        : t('为当前工作空间选择路径和行为。')}
             </p>
           </div>
           <div className="page-actions">
+            {page === 'terminal' && <TerminalNewSession data={data} />}
             {page === 'devices' && (
               <>
                 <Button onClick={() => setModal('wireless')}>
@@ -729,6 +738,19 @@ export function App() {
                         {t('查看日志')}
                       </Button>
                     )}
+                    <Button
+                      disabled={target?.state !== 'ready'}
+                      onClick={() => {
+                        if (!target) return;
+                        setPage('terminal');
+                        void guard(() =>
+                          openDeviceTerminal(target, terminalDeviceName(target, data)),
+                        );
+                      }}
+                    >
+                      <Terminal size={15} />
+                      {t('ADB 终端')}
+                    </Button>
                     {selectedAvd && (
                       <>
                         <Button
@@ -817,6 +839,7 @@ export function App() {
             </div>
           </>
         )}
+        <TerminalPage data={data} visible={page === 'terminal'} openSdk={() => setPage('sdk')} />
         {page === 'sdk' && (
           <SdkManager
             data={data}

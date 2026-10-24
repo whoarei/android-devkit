@@ -64,6 +64,12 @@ impl App {
             .try_write()
             .map_err(|_| AppError::new("UPDATE_BUSY", "有操作正在处理，请稍后重试软件更新。"))?;
         let status = self.close_status()?;
+        if self.terminals.active_count() > 0 {
+            return Err(AppError::new(
+                "UPDATE_TERMINALS_ACTIVE",
+                "请先关闭终端会话，再安装更新。",
+            ));
+        }
         if status.draining || !status.tasks.is_empty() {
             return Err(AppError::new(
                 "UPDATE_TASKS_ACTIVE",

@@ -745,6 +745,9 @@ impl App {
                 self.line(id, format!("已存在，保留：{pkg}"))?;
                 continue;
             }
+            if *pkg == "platform-tools" {
+                self.terminals.check_sdk_unused(&settings.sdk_root)?;
+            }
             if !remove && local.iter().any(|p| p.id == *pkg) {
                 assert_package_unused(pkg, settings, &android::avds(settings))?;
             }
