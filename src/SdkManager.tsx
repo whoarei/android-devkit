@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, HardDrive, Plus, Search, X } from 'lucide-re
 import { call, errorText, native, size } from './api';
 import { Button, Field, Modal } from './ui';
 import { SdkDownloadSettings, SdkSourceBar } from './SdkDownloadSettings';
+import { JavaStatus } from './JavaEnvironment';
 import {
   hasSdkUpdate as updated,
   imageFamily,
@@ -44,7 +45,8 @@ export function SdkManager({
   refreshing,
   refreshCatalog,
   warnings,
-  startWithSources = false,
+  startWithSources = 0,
+  configureJava,
 }: {
   data?: Workspace;
   busy: boolean;
@@ -52,13 +54,17 @@ export function SdkManager({
   refreshing: boolean;
   refreshCatalog: (beforeRefresh?: () => Promise<void>) => Promise<string[]>;
   warnings: string[];
-  startWithSources?: boolean;
+  startWithSources?: number;
+  configureJava: () => void;
   prepare: (kind: string, args?: Record<string, string>) => Promise<void>;
 }) {
   const locale = useLocale();
   const [tab, setTab] = useState<'platforms' | 'tools' | 'sites'>(
     startWithSources ? 'sites' : 'platforms',
   );
+  useEffect(() => {
+    if (startWithSources) setTab('sites');
+  }, [startWithSources]);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [hideObsolete, setHideObsolete] = useState(true);
@@ -206,6 +212,7 @@ export function SdkManager({
         </Button>
       </div>
       <SdkSourceBar source={data?.settings.sdkDownload} open={() => setTab('sites')} />
+      <JavaStatus settings={data?.settings} open={configureJava} />
       <div className="sdk-tabs tabs" role="group" aria-label={t('SDK 管理分类')}>
         {(
           [

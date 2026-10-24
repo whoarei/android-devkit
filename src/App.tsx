@@ -42,6 +42,7 @@ import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Obser
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
 import { SdkManager } from './SdkManager';
+import { JavaConfiguration, JavaStatus } from './JavaEnvironment';
 import { defaultSdkDownload, sdkSourceName } from './SdkDownloadSettings';
 import { TerminalNewSession, TerminalPage, terminalDeviceName } from './TerminalPage';
 import { openDeviceTerminal, useTerminals } from './terminal';
@@ -87,7 +88,9 @@ export function App() {
     refetchInterval: 5000,
   });
   const data = query.data;
-  const [sdkSources, setSdkSources] = useState(false);
+  const [sdkSources, setSdkSources] = useState(0);
+  const [javaOpen, setJavaOpen] = useState(false);
+  const [javaOperation, setJavaOperation] = useState<Operation | null>(null);
   const [modal, setModal] = useState<ModalName>(null),
     [plan, setPlan] = useState<Plan | null>(null),
     [accepted, setAccepted] = useState<string[]>([]),
@@ -155,11 +158,21 @@ export function App() {
   ) => {
     setBusy(true);
     await guard(async () => {
-      const p = await call<Plan>('plan_create', {
-        operation: { kind, args, target } satisfies Operation,
-      });
+      const operation = { kind, args, target } satisfies Operation;
+      let p: Plan;
+      try {
+        p = await call<Plan>('plan_create', { operation });
+      } catch (e) {
+        if (typeof e === 'object' && e && 'code' in e && e.code === 'JAVA_CONFIGURATION_REQUIRED') {
+          setJavaOperation(operation);
+          setJavaOpen(true);
+          return;
+        }
+        throw e;
+      }
       setPlan(p);
       setAccepted([]);
+      if (['sdk_install', 'sdk_remove', 'avd_create'].includes(kind)) setJavaOperation(null);
     });
     setBusy(false);
   };
@@ -838,7 +851,7 @@ export function App() {
           </>
         )}
         <TerminalPage data={data} visible={page === 'terminal'} openSdk={() => setPage('sdk')} />
-        {page === 'sdk' && (
+        <div hidden={page !== 'sdk'}>
           <SdkManager
             data={data}
             prepare={prepare}
@@ -848,8 +861,9 @@ export function App() {
             refreshCatalog={(beforeRefresh) => catalogRefresh.mutateAsync(beforeRefresh)}
             warnings={catalogRefresh.isSuccess ? catalogRefresh.data : []}
             startWithSources={sdkSources}
+            configureJava={() => setJavaOpen(true)}
           />
-        )}
+        </div>
         {page === 'tasks' && (
           <TaskCenter
             guard={guard}
@@ -869,8 +883,9 @@ export function App() {
           <SettingsPanel
             updater={updater}
             initial={data?.settings}
+            configureJava={() => setJavaOpen(true)}
             manageSdkSources={() => {
-              setSdkSources(true);
+              setSdkSources((value) => value + 1);
               setPage('sdk');
             }}
             guard={guard}
@@ -881,7 +896,10 @@ export function App() {
           />
         )}
         {page === 'diagnostics' && (
-          <Diagnostics guard={guard} prepare={prepare} onExport={requestExport} />
+          <>
+            <JavaStatus settings={data?.settings} open={() => setJavaOpen(true)} />
+            <Diagnostics guard={guard} prepare={prepare} onExport={requestExport} />
+          </>
         )}
       </main>
       {toast && (
@@ -897,9 +915,33 @@ export function App() {
           prepare={prepare}
           busy={busy}
           error={t(error)}
+          hidden={javaOpen || !!plan}
         />
       )}
       <SoftwareUpdateDialog updater={updater} />
+      {javaOpen && (
+        <JavaConfiguration
+          resume={!!javaOperation}
+          close={() => setJavaOpen(false)}
+          refresh={refresh}
+          showNetwork={() => {
+            setJavaOpen(false);
+            setPage('settings');
+          }}
+          done={async () => {
+            const operation = javaOperation;
+            await refresh();
+            if (operation) {
+              const next = await call<Plan>('plan_create', { operation });
+              if (operation.kind.startsWith('sdk_')) setPage('sdk');
+              setAccepted([]);
+              setPlan(next);
+            }
+            setJavaOperation(null);
+            setJavaOpen(false);
+          }}
+        />
+      )}
       {modal === 'wireless' && (
         <ConnectDevice
           close={() => setModal(null)}
@@ -1054,12 +1096,14 @@ function CreateAvd({
   prepare,
   busy,
   error,
+  hidden = false,
 }: {
   data?: Workspace;
   close: () => void;
   prepare: (k: string, a: Record<string, string>) => Promise<void>;
   busy: boolean;
   error: string;
+  hidden?: boolean;
 }) {
   const [step, setStep] = useState(1),
     [form, setForm] = useState<AvdForm>({
@@ -1077,7 +1121,7 @@ function CreateAvd({
       (p) => p.category === 'image' && (p.abi === 'x86_64' || p.id.endsWith(';x86_64')),
     ) ?? [];
   return (
-    <Modal title={t('新建模拟器')} onClose={close} wide className="avd-modal">
+    <Modal title={t('新建模拟器')} onClose={close} wide className="avd-modal" hidden={hidden}>
       <div className="avd-modal-body">
         <div className="wizard-steps">
           {[t('设备形态'), t('系统镜像'), t('确认配置')].map((label, i) => (
@@ -1352,9 +1396,11 @@ function SettingsPanel({
   guard,
   done,
   manageSdkSources,
+  configureJava,
 }: {
   initial?: Settings;
   manageSdkSources: () => void;
+  configureJava: () => void;
   updater: ReturnType<typeof useSoftwareUpdate>;
   guard: <T>(f: () => Promise<T>) => Promise<T | undefined>;
   done: () => void;
@@ -1377,6 +1423,9 @@ function SettingsPanel({
   useEffect(() => {
     if (initial) setForm(initial);
   }, [initial?.sdkRoot]);
+  useEffect(() => {
+    if (initial) setForm((current) => ({ ...current, javaPath: initial.javaPath }));
+  }, [initial?.javaPath]);
   const set = (key: keyof Settings, value: string | number | string[] | boolean) =>
     setForm((s) => ({ ...s, [key]: value }));
   const choose = async (key: 'sdkRoot' | 'javaPath') => {
@@ -1414,12 +1463,12 @@ function SettingsPanel({
             <Button onClick={() => void guard(() => choose('sdkRoot'))}>{t('选择目录')}</Button>
           </div>
         </Field>
-        <Field label={t('Java 运行时（java.exe）')}>
-          <div className="input-action">
-            <input value={form.javaPath} onChange={(e) => set('javaPath', e.target.value)} />
-            <Button onClick={() => void guard(() => choose('javaPath'))}>{t('选择')}</Button>
-          </div>
-        </Field>
+        <JavaStatus settings={initial} open={configureJava} />
+        {form.javaPath && (
+          <p className="hint">
+            <code>{form.javaPath}</code>
+          </p>
+        )}
         <Field label={t('AVD 根目录（一行一个，最后一个用于新建）')}>
           <textarea
             rows={3}

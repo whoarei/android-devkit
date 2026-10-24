@@ -39,6 +39,24 @@ pub fn environment_scan(app: Service<'_>) -> Vec<Environment> {
     android::scan(&app.store.settings())
 }
 #[tauri::command]
+pub async fn java_environment(app: Service<'_>) -> Result<crate::java::JavaEnvironment> {
+    app.java_environment().await
+}
+#[tauri::command]
+pub async fn java_check(app: Service<'_>, path: Option<String>) -> Result<crate::java::JavaCheck> {
+    let settings = app.store.settings();
+    Ok(crate::java::check(
+        &settings,
+        path.as_deref().unwrap_or(&settings.java_path),
+        "configured",
+    )
+    .await)
+}
+#[tauri::command]
+pub async fn java_apply(app: Service<'_>, path: String) -> Result<crate::java::JavaCheck> {
+    app.apply_java(&path).await
+}
+#[tauri::command]
 pub fn sdk_open_directory(app: Service<'_>) -> Result<()> {
     let settings = app.store.settings();
     let path = Path::new(&settings.sdk_root);
@@ -76,6 +94,12 @@ pub fn sdk_open_directory(app: Service<'_>) -> Result<()> {
 #[tauri::command]
 pub fn settings_save(app: Service<'_>, settings: Settings) -> Result<()> {
     let _configuration_guard = app.configuration_gate.lock().unwrap();
+    if settings.java_path != app.store.settings().java_path {
+        return Err(AppError::new(
+            "JAVA_CONTEXT_CHANGED",
+            "Java 配置已更新，请刷新设置后保存；切换运行时请使用配置 Java",
+        ));
+    }
     crate::repository::validate(&settings)?;
     if settings.sdk_download != app.store.settings().sdk_download {
         return Err(AppError::new(
@@ -147,7 +171,32 @@ pub async fn sdk_source_apply(app: Service<'_>, source: SdkDownloadSource) -> Re
     app.apply_sdk_source(source).await
 }
 #[tauri::command]
-pub fn plan_create(app: Service<'_>, operation: Operation) -> Result<Plan> {
+pub async fn plan_create(app: Service<'_>, mut operation: Operation) -> Result<Plan> {
+    let settings = app.store.settings();
+    if crate::java::needed(&operation.kind) {
+        if app
+            .store
+            .active_tasks()?
+            .iter()
+            .any(|task| task.operation.kind == "java_prepare")
+        {
+            return Err(AppError::new(
+                "JAVA_CONFIGURATION_REQUIRED",
+                "Java 准备进行中，请等待任务完成后返回安装计划",
+            ));
+        }
+        crate::java::check(&settings, &settings.java_path, "configured")
+            .await
+            .require()?;
+    }
+    if operation.kind == "bootstrap" && operation.optional("purpose") == "emulator" {
+        let needs_java = !crate::java::check(&settings, &settings.java_path, "configured")
+            .await
+            .ready();
+        operation
+            .args
+            .insert("prepareJava".into(), needs_java.to_string());
+    }
     app.prepare_plan(operation)
 }
 #[tauri::command]

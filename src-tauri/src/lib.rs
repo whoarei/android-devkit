@@ -12,6 +12,7 @@ mod dependencies;
 mod domain;
 mod engine;
 mod exports;
+mod java;
 mod lifecycle;
 mod log_buffer;
 mod observe;
@@ -59,6 +60,9 @@ pub fn run() {
             commands::workspace_snapshot,
             commands::task_list,
             commands::environment_scan,
+            commands::java_environment,
+            commands::java_check,
+            commands::java_apply,
             commands::sdk_open_directory,
             commands::settings_save,
             commands::catalog_refresh,

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-java-apply"
+description = "Enables the java_apply command without any pre-configured scope."
+commands.allow = ["java_apply"]
+
+[[permission]]
+identifier = "deny-java-apply"
+description = "Denies the java_apply command without any pre-configured scope."
+commands.deny = ["java_apply"]

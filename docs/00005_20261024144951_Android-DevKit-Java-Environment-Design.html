@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Android DevKit · Java 环境配置交互方案</title>
+<style>
+:root{color-scheme:light;--d-bg:#f4f7f1;--d-paper:#fff;--d-text:#263b2f;--d-muted:#637566;--d-line:#dce5d8;--d-soft:#eaf2e5;--d-accent:#286c4c}*{box-sizing:border-box}body{margin:0;background:var(--d-bg);color:var(--d-text);font:14px/1.8 'Segoe UI','Microsoft YaHei',sans-serif}.doc{max-width:1160px;margin:0 auto;padding:40px 30px 65px}h1,h2,h3,p{margin:0}h1{font-size:32px;font-weight:600;margin:9px 0 12px}h2{font-size:22px;font-weight:600;margin-bottom:14px}h3{font-size:16px;margin-bottom:7px}p+p{margin-top:10px}.kicker{font-size:11px;letter-spacing:2px;color:var(--d-accent)}.muted{color:var(--d-muted)}.meta{display:flex;gap:15px;flex-wrap:wrap;color:var(--d-muted);font-size:12px;margin:16px 0}.pill{background:var(--d-soft);color:var(--d-accent);padding:2px 9px;border-radius:4px}nav.doc-nav{display:flex;gap:20px;flex-wrap:wrap;margin:17px 0 28px}a{color:var(--d-accent);text-underline-offset:3px}section.doc-section{border-top:1px solid var(--d-line);padding-top:26px;margin-top:34px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}.doc-card{border:1px solid var(--d-line);background:var(--d-paper);border-radius:8px;padding:19px}.callout{background:var(--d-soft);border-left:3px solid var(--d-accent);padding:15px 18px;margin-top:17px}.doc-table{width:100%;border-collapse:collapse;background:var(--d-paper);font-size:13px}.doc-table td,.doc-table th{padding:12px 13px;border-bottom:1px solid var(--d-line);text-align:left;vertical-align:top}.doc-table th{font-weight:600;background:var(--d-soft)}.doc-table td:first-child{width:21%;font-weight:600}code{font:12px/1.7 Consolas,monospace;overflow-wrap:anywhere}.doc-toolbar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:20px 0 12px;font-size:12px}.doc-toolbar select{font:inherit;color:inherit;border:1px solid var(--d-line);border-radius:5px;padding:7px;background:var(--d-paper)}.doc-toolbar label{display:flex;gap:8px;align-items:center}.note{font-size:12px;color:var(--d-muted);margin-top:11px}.flow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:18px 0}.flow span{background:var(--d-soft);padding:7px 11px;border-radius:5px}.checks{padding-left:23px}.checks li+li{margin-top:8px}.doc-dark{color-scheme:dark;--d-bg:#101a14;--d-paper:#1a281f;--d-text:#deebe1;--d-muted:#adbeaf;--d-line:#3a4c3d;--d-soft:#263b2c;--d-accent:#a3dfb6}@media(max-width:700px){.doc{padding:25px 14px 45px}h1{font-size:26px}.grid{grid-template-columns:1fr}.table-wrap{overflow:auto}.doc-table{min-width:620px}.doc-toolbar{gap:12px}}@media print{.doc{padding:0}.doc-toolbar,.doc-nav{display:none}.doc-section{break-inside:avoid}.table-wrap{overflow:visible}.doc-table{min-width:0}}
+</style>
+</head>
+<body>
+<main class="doc">
+ <header>
+  <div class="kicker">ANDROID DEVKIT / INTERACTION DESIGN</div>
+  <h1>Java 环境配置</h1>
+  <p>把 Java 从安装失败后的报错，前移为 SDK 操作前可理解、可恢复的依赖准备步骤。优先复用可用环境，缺失时一键准备应用私有运行时。</p>
+  <div class="meta"><span class="pill">交互设计基线 · v1</span><span>北京时间 2026-10-24 14:49:51</span><span>主流程已接入当前开发版本；下方原型使用模拟数据</span></div>
+  <nav class="doc-nav" aria-label="文档目录"><a href="#prototype">试用原型</a><a href="#baseline">现状与边界</a><a href="#flow">入口与流程</a><a href="#rules">检测与配置规则</a><a href="#recovery">异常与恢复</a><a href="#acceptance">验收场景</a></nav>
+ </header>
+ <section id="prototype">
+  <div class="doc-toolbar"><label>预览状态<select id="doc-java-scenario"><option value="missing">未安装 Java</option><option value="studio">发现 Android Studio Java</option><option value="old">Java 版本不兼容</option><option value="broken">Java 路径失效</option><option value="network">Java 下载超时</option><option value="ready">Java 已就绪</option></select></label><label><input type="checkbox" id="doc-java-dark">深色预览</label></div>
+  <style>
+#ad-java-design{--j-bg:light-dark(#f7f9f5,#111b15);--j-paper:light-dark(#ffffff,#1b291f);--j-side:light-dark(#edf3e9,#17251b);--j-ink:light-dark(#23382d,#deebe1);--j-muted:light-dark(#617365,#adbeaf);--j-line:light-dark(#dce5d8,#3a4c3d);--j-soft:light-dark(#eaf2e5,#263b2c);--j-green:light-dark(#246a48,#a3dfb6);--j-fill:light-dark(#286c4c,#317451);--j-on:#ffffff;--j-warn:light-dark(#80551f,#efc987);--j-warnbg:light-dark(#faf1e1,#3d3020);--j-error:light-dark(#a33e32,#ffb0a1);--j-errorbg:light-dark(#fff0ec,#402720);--j-shade:light-dark(#182b2060,#020b06b0);font:13px/1.6 'Segoe UI','Microsoft YaHei',sans-serif;color:var(--j-ink);width:100%;isolation:isolate;text-align:left}
+#ad-java-design *{box-sizing:border-box}
+#ad-java-design [hidden]{display:none!important}
+#ad-java-design button,#ad-java-design input,#ad-java-design select{font:inherit;color:inherit}
+#ad-java-design button{cursor:inherit}
+#ad-java-design button:disabled{opacity:.48;cursor:not-allowed}
+#ad-java-design button:focus-visible,#ad-java-design input:focus-visible,#ad-java-design select:focus-visible,#ad-java-design summary:focus-visible{outline:2px solid var(--j-green);outline-offset:3px}
+#ad-java-design h1,#ad-java-design h2,#ad-java-design h3,#ad-java-design p{margin:0}
+#ad-java-design h1{font-size:23px;line-height:1.4;font-weight:600}
+#ad-java-design h2{font-size:18px;font-weight:600}
+#ad-java-design h3{font-size:14px;font-weight:600}
+#ad-java-design small{font-size:12px}
+#ad-java-design code{font:12px/1.6 Consolas,monospace;overflow-wrap:anywhere}
+#ad-java-design .j-window{border:1px solid var(--j-line);border-radius:10px;overflow:hidden;background:var(--j-bg)}
+#ad-java-design .j-titlebar{padding:10px 16px;background:var(--j-side);display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--j-line)}
+#ad-java-design .j-logo{background:var(--j-fill);color:var(--j-on);border-radius:6px;width:22px;height:22px;display:grid;place-items:center;font-size:12px}
+#ad-java-design .j-caption{color:var(--j-muted);font-size:11px;margin-left:auto;margin-right:90px}
+#ad-java-design .j-workspace{display:grid}
+#ad-java-design .j-surface{grid-area:1/1;display:grid;grid-template-columns:145px minmax(0,1fr);min-height:590px}
+#ad-java-design .j-sidebar{background:var(--j-side);border-right:1px solid var(--j-line);padding:24px 9px;display:flex;flex-direction:column;gap:5px}
+#ad-java-design .j-nav{display:flex;align-items:center;gap:9px;padding:11px 12px;background:transparent;border:0;border-radius:6px;text-align:left;width:100%}
+#ad-java-design .j-nav[aria-current=page]{background:var(--j-soft);color:var(--j-green);font-weight:600}
+#ad-java-design .j-nav i{width:16px;height:16px;display:inline-block}
+#ad-java-design .j-side-note{margin-top:auto;padding:25px 11px 0;color:var(--j-muted);font-size:11px}
+#ad-java-design .j-main{padding:25px;min-width:0}
+#ad-java-design .j-muted{color:var(--j-muted)}
+#ad-java-design .j-subtitle{color:var(--j-muted);font-size:12px;margin-top:5px}
+#ad-java-design .j-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+#ad-java-design .j-between{justify-content:space-between}
+#ad-java-design .j-strip{border:1px solid var(--j-line);padding:12px 14px;background:var(--j-paper);border-radius:6px;margin-top:18px}
+#ad-java-design .j-warning{background:var(--j-warnbg);color:var(--j-warn)}
+#ad-java-design .j-good{background:var(--j-soft);color:var(--j-green)}
+#ad-java-design .j-badge{display:inline-block;padding:2px 7px;border-radius:4px;background:var(--j-soft);color:var(--j-green);font-size:11px;white-space:nowrap}
+#ad-java-design .j-button{padding:8px 12px;min-height:35px;border:1px solid var(--j-line);border-radius:5px;background:var(--j-paper);display:inline-flex;align-items:center;justify-content:center;gap:7px}
+#ad-java-design .j-primary{background:var(--j-fill);border-color:var(--j-fill);color:var(--j-on)}
+#ad-java-design .j-link{padding:0;border:0;background:transparent;color:var(--j-green);text-decoration:underline;text-underline-offset:3px}
+#ad-java-design .j-tabs{display:flex;gap:22px;border-bottom:1px solid var(--j-line);margin-top:23px}
+#ad-java-design .j-tab{padding:0 0 10px;color:var(--j-muted)}
+#ad-java-design .j-tab.active{border-bottom:2px solid var(--j-green);color:var(--j-green);font-weight:600}
+#ad-java-design .j-table{border-collapse:collapse;width:100%;margin-top:16px;font-size:12px}
+#ad-java-design .j-table th,#ad-java-design .j-table td{text-align:left;padding:13px 9px;border-bottom:1px solid var(--j-line)}
+#ad-java-design .j-table th{color:var(--j-muted);font-weight:400;background:var(--j-side)}
+#ad-java-design .j-table td:first-child{width:30px}
+#ad-java-design .j-table small{display:block;font-size:11px;color:var(--j-muted);margin-top:3px}
+#ad-java-design input[type=checkbox],#ad-java-design input[type=radio]{accent-color:var(--j-fill);width:15px;height:15px;flex-shrink:0}
+#ad-java-design .j-actions{display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:20px}
+#ad-java-design .j-actions>.j-muted:first-child{margin-right:auto;font-size:12px}
+#ad-java-design .j-card{background:var(--j-paper);border:1px solid var(--j-line);border-radius:7px;padding:18px;margin-top:18px}
+#ad-java-design .j-card .j-row+.j-row{margin-top:13px}
+#ad-java-design .j-footer{padding:7px 15px;background:var(--j-side);border-top:1px solid var(--j-line);font-size:11px;color:var(--j-muted);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#ad-java-design .j-overlay{grid-area:1/1;z-index:4;background:var(--j-shade);padding:24px;display:grid;place-items:center}
+#ad-java-design .j-dialog{background:var(--j-paper);border:1px solid var(--j-line);border-radius:10px;width:min(546px,100%);padding:23px;box-shadow:0 15px 55px var(--j-shade);min-width:0;overflow-wrap:anywhere}
+#ad-java-design .j-close{background:transparent;border:0;font-size:22px;padding:0 5px;line-height:1.2}
+#ad-java-design .j-context{font-size:12px;padding:9px 11px;background:var(--j-side);border-radius:5px;margin:16px 0;color:var(--j-muted)}
+#ad-java-design fieldset{border:0;padding:0;margin:0;min-width:0}
+#ad-java-design .j-option{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--j-line);border-radius:6px;padding:13px;margin-top:10px}
+#ad-java-design .j-option:has(input:checked){background:var(--j-soft);border-color:var(--j-green)}
+#ad-java-design .j-option input{margin-top:4px}
+#ad-java-design .j-option small{display:block;color:var(--j-muted);margin-top:4px;font-size:12px}
+#ad-java-design .j-option strong{font-weight:600}
+#ad-java-design .j-field{display:block;font-size:12px;margin-top:15px}
+#ad-java-design .j-field>span{display:block;margin-bottom:6px;font-weight:600}
+#ad-java-design .j-input{padding:9px 10px;border:1px solid var(--j-line);border-radius:5px;background:var(--j-bg);width:100%;min-width:0}
+#ad-java-design .j-input-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+#ad-java-design .j-input-row .j-input{flex:1}
+#ad-java-design .j-input-row .j-button{flex-shrink:0}
+#ad-java-design .j-check{display:flex;align-items:flex-start;gap:9px;font-size:12px;margin-top:16px}
+#ad-java-design .j-check input{margin:4px 0 0}
+#ad-java-design .j-details{margin-top:13px;color:var(--j-muted);font-size:12px}
+#ad-java-design .j-details summary{color:var(--j-green)}
+#ad-java-design .j-details>div{margin-top:8px;padding:11px;background:var(--j-bg);border-radius:5px}
+#ad-java-design .j-feedback{font-size:12px;margin-top:13px;border-radius:5px;padding:11px 12px;background:var(--j-soft);color:var(--j-green)}
+#ad-java-design .j-feedback.error{background:var(--j-errorbg);color:var(--j-error)}
+#ad-java-design .j-progress{height:6px;border-radius:8px;background:var(--j-side);overflow:hidden;margin:18px 0}
+#ad-java-design .j-progress>div{height:100%;background:var(--j-fill)}
+#ad-java-design .j-steps{list-style:none;margin:15px 0 0;padding:0;display:grid;gap:11px;font-size:12px;color:var(--j-muted)}
+#ad-java-design .j-steps .done{color:var(--j-green)}
+#ad-java-design .j-toast{margin-top:15px;padding:10px 12px;background:var(--j-soft);color:var(--j-green);border-radius:5px;font-size:12px}
+@media(max-width:790px){#ad-java-design .j-surface{grid-template-columns:56px minmax(0,1fr)}#ad-java-design .j-nav span,#ad-java-design .j-side-note{display:none}#ad-java-design .j-sidebar{padding:20px 6px}#ad-java-design .j-nav{justify-content:center;padding:12px 5px}#ad-java-design .j-main{padding:22px 19px}}
+@media(max-width:540px){#ad-java-design .j-surface{grid-template-columns:minmax(0,1fr)}#ad-java-design .j-sidebar{flex-direction:row;justify-content:center;padding:7px;border-right:0;border-bottom:1px solid var(--j-line)}#ad-java-design .j-nav{width:auto;flex:1}#ad-java-design .j-main{padding:20px 13px}#ad-java-design .j-caption{margin-right:0}#ad-java-design .j-table th:nth-child(3),#ad-java-design .j-table td:nth-child(3){display:none}#ad-java-design .j-table td,#ad-java-design .j-table th{padding:11px 5px}#ad-java-design .j-tabs{gap:16px;font-size:12px}#ad-java-design .j-overlay{padding:10px}#ad-java-design .j-dialog{padding:18px 14px}#ad-java-design .j-dialog h2{font-size:17px}#ad-java-design .j-input-row{flex-wrap:wrap}#ad-java-design .j-input-row .j-input{flex-basis:100%}#ad-java-design .j-actions>.j-muted:first-child{flex-basis:100%}}
+@media(pointer:coarse){#ad-java-design .j-button,#ad-java-design .j-link,#ad-java-design .j-close{min-height:44px}#ad-java-design .j-input{font-size:16px}#ad-java-design input[type=radio],#ad-java-design input[type=checkbox]{width:19px;height:19px}}
+</style>
+<div id="ad-java-design" aria-label="Android DevKit Java 环境配置">
+ <div class="j-window">
+  <div class="j-titlebar"><span class="j-logo">A</span><span>Android DevKit</span><span class="j-caption">交互预览 · 演示数据</span></div>
+  <div class="j-workspace">
+   <div class="j-surface">
+    <nav class="j-sidebar" aria-label="应用导航">
+     <button class="j-nav cursor-interaction" data-page="sdk" aria-label="SDK 管理"><i data-lucide="package" aria-hidden="true"></i><span>SDK 管理</span></button>
+     <button class="j-nav cursor-interaction" data-page="tasks" aria-label="任务中心"><i data-lucide="list-checks" aria-hidden="true"></i><span>任务中心</span></button>
+     <button class="j-nav cursor-interaction" data-page="diagnostics" aria-label="环境诊断"><i data-lucide="activity" aria-hidden="true"></i><span>环境诊断</span></button>
+     <button class="j-nav cursor-interaction" data-page="settings" aria-label="设置"><i data-lucide="settings" aria-hidden="true"></i><span>设置</span></button>
+     <div class="j-side-note">WINDOWS x64<br>SDK 已连接<br>E:\Android\sdk</div>
+    </nav>
+    <main class="j-main"><div id="j-content"></div><div id="j-toast" class="j-toast" role="status" hidden></div></main>
+   </div>
+   <div id="j-overlay" class="j-overlay" hidden></div>
+  </div>
+  <div class="j-footer"><span>SDK：E:\Android\sdk</span><span id="j-footer-state">Java 待配置</span></div>
+ </div>
+</div>
+<script>
+(() => {
+ const root=document.getElementById('ad-java-design'),content=root.querySelector('#j-content'),overlay=root.querySelector('#j-overlay'),surface=root.querySelector('.j-surface');
+ const candidates={studio:'C:\\Program Files\\Android\\Android Studio\\jbr\\bin\\java.exe',private:'%LOCALAPPDATA%\\AndroidDevKit\\runtime\\java21\\bin\\java.exe'};
+ const packages=[{id:'platform-tools',name:'Android SDK Platform-Tools',version:'37.0.0',size:'7.2 MiB'},{id:'emulator',name:'Android Emulator',version:'36.6.11',size:'418 MiB'},{id:'cmdline-tools',name:'Android SDK Command-line Tools',version:'22.0',size:'已安装'}];
+ let s={scenario:'missing',page:'sdk',selected:['platform-tools','emulator'],ready:false,source:'',path:'',mode:'private',candidate:'',valid:false,agreed:false,modal:'',resume:false,job:'',progress:0,error:'',notice:'',sdkJob:false,proxy:'',returnProxy:false};
+ let timer=0,lastFocus=null;
+ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const button=(label,action,primary=false,disabled=false)=>`<button class="j-button cursor-interaction ${primary?'j-primary':''}" data-action="${action}" ${disabled?'disabled':''}>${label}</button>`;
+ const link=(label,action)=>`<button class="j-link cursor-interaction" data-action="${action}">${label}</button>`;
+ const selectedNames=()=>packages.filter(p=>s.selected.includes(p.id)).map(p=>p.name).join('、');
+ const liveJob=()=>s.job==='running';
+ function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{design:'Java 安装前置检查',scenario:s.scenario,java:s.ready?'已就绪':'待配置',choice:s.mode},privateContent:{schema:1,state:{...s,modal:'',job:s.job==='running'?'cancelled':s.job}}}).catch(()=>{});}
+ function header(title,sub){return `<h1>${title}</h1><p class="j-subtitle">${sub}</p>`;}
+ function javaStatus(){return s.ready?`Java 21 · ${s.source==='private'?'应用私有':'已有运行时'} · 可用`:s.scenario==='old'?'Java 8 · 与当前 SDK 工具不兼容':s.scenario==='broken'?'Java 路径已失效':'未找到可用的 Java';}
+ function sdk(){return header('SDK 管理','选择需要的组件，查看安装计划后执行。')+`<div class="j-strip j-row j-between"><span><b>下载源</b>　腾讯云镜像</span><span class="j-muted">SDK：E:\\Android\\sdk</span></div>
+ <div class="j-strip j-row j-between ${s.ready?'j-good':'j-warning'}"><div><b>${liveJob()?'正在准备 Java…':javaStatus()}</b><p class="j-subtitle">${s.ready?'SDK 安装环境已就绪。':liveJob()?'组件选择已保留，完成后可继续安装。':'浏览和选择组件不受影响；安装前需要配置 Java。'}</p></div>${button(liveJob()?'查看准备进度':s.ready?'管理 Java':'配置 Java',liveJob()?'progress':'configure',!s.ready&&!liveJob())}</div>
+ <div class="j-tabs" aria-label="SDK 分类"><span class="j-tab">SDK Platforms</span><span class="j-tab active">SDK Tools</span><span class="j-tab">下载源与站点</span></div>
+ <table class="j-table"><thead><tr><th aria-label="选择组件"></th><th>组件</th><th>版本</th><th>状态</th></tr></thead><tbody>${packages.map(p=>`<tr><td><input type="checkbox" aria-label="选择 ${p.name}" data-package="${p.id}" ${s.selected.includes(p.id)?'checked':''} ${p.id==='cmdline-tools'?'disabled':''}></td><td>${p.name}<small>${p.size}</small></td><td>${p.version}</td><td>${p.id==='cmdline-tools'?'已安装':'未安装'}</td></tr>`).join('')}</tbody></table>
+ <div class="j-actions"><span class="j-muted">已选择 ${s.selected.length} 项变更</span>${button(liveJob()?'正在准备 Java…':'查看安装计划','plan',true,!s.selected.length||liveJob())}</div>`;}
+ function settings(){return header('设置','工具路径与运行环境。')+`<div class="j-card"><div class="j-row j-between"><h2>Java 运行环境</h2><span class="j-badge">${s.ready?'可用':'待配置'}</span></div><p class="j-subtitle" style="margin-top:12px">${javaStatus()}</p>${s.ready?`<code>${esc(s.path)}</code>`:''}<p class="j-subtitle">仅用于 Android DevKit 的 SDK 工具，不修改系统 PATH、JAVA_HOME 或 Android Studio 设置。</p><div class="j-actions">${button(liveJob()?'查看准备进度':'配置 Java',liveJob()?'progress':'configure',true)}</div></div>
+ <div class="j-card"><h2>网络与下载</h2><label class="j-field"><span>手动代理</span><input class="j-input" id="j-proxy" placeholder="留空直连，例如 http://127.0.0.1:7890" value="${esc(s.proxy)}"></label><p class="j-subtitle">Java 下载沿用此代理，下载来源独立于 SDK 镜像。</p><div class="j-actions">${button(s.returnProxy?'保存并返回 Java 配置':'保存网络设置','proxy',true)}</div></div>`;}
+ function task(){return header('任务中心','Java 准备与 SDK 安装分别记录。')+(s.job?`<div class="j-card"><div class="j-row j-between"><h2>准备 Java 运行时</h2><span class="j-badge">${s.job==='running'?'进行中':s.job==='done'?'已完成':s.job==='failed'?'失败':'已取消'}</span></div><p class="j-subtitle">Temurin JRE 21 · Windows x64 · 约 46.7 MiB</p><p class="j-subtitle">来源：Adoptium 官方发行（GitHub）</p><div class="j-progress"><div style="width:${s.progress}%"></div></div><p class="j-subtitle">${s.job==='done'?'已校验、解压并验证 SDK 工具可运行。':s.job==='failed'?'Java 下载连接超时，SDK 安装尚未开始。':s.job==='cancelled'?'准备已取消，原组件选择已保留。':'正在下载和验证，完成前不会安装已选 SDK 组件。'}</p><div class="j-actions">${s.job==='running'?button('查看进度','progress'):s.job==='done'?button('返回 SDK 管理','sdk',true):button('继续配置 Java','configure',true)}</div></div>`:`<div class="j-card"><p class="j-muted">暂无 Java 准备任务</p></div>`)+(s.sdkJob?`<div class="j-card"><h2>SDK 组件安装</h2><p class="j-subtitle">演示已提交：${esc(selectedNames())}</p><p class="j-subtitle">Java 21 已验证 · 来源：腾讯云镜像</p></div>`:'');}
+ function diagnostics(){return header('环境诊断','按实际功能检查工具链。')+`<div class="j-card"><div class="j-row j-between"><div><h3>Java 运行环境</h3><p class="j-subtitle">${javaStatus()}</p></div>${button('检测并配置','configure',true)}</div><div class="j-row j-between"><span>Command-line Tools 22.0</span><span class="j-badge">已安装</span></div><div class="j-row j-between"><span>ADB 与真机连接</span><span class="j-badge">可独立使用</span></div></div>`;}
+ function render(){content.innerHTML=({sdk,settings,tasks:task,diagnostics}[s.page]||sdk)();root.querySelectorAll('[data-page]').forEach(n=>{if(n.dataset.page===s.page)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});root.querySelector('#j-footer-state').textContent=s.ready?'Java 21 · 已就绪':liveJob()?'Java · 准备中':'Java · 待配置';const toast=root.querySelector('#j-toast');toast.hidden=!s.notice;toast.textContent=s.notice;if(s.modal)drawModal();else{overlay.hidden=true;overlay.innerHTML='';surface.inert=false;}globalThis.lucide?.createIcons({attrs:{width:16,height:16}});}
+ function open(type){lastFocus=document.activeElement;s.modal=type;drawModal();overlay.querySelector('button:not(:disabled),input:not(:disabled)')?.focus();}
+ function close(){s.modal='';overlay.hidden=true;overlay.innerHTML='';surface.inert=false;if(lastFocus?.isConnected)lastFocus.focus();else root.querySelector('[data-action=configure],[data-action=plan],[data-page=sdk]')?.focus();}
+ function context(){return s.resume?`<div class="j-context">正在为 ${s.selected.length} 项 SDK 变更准备环境 · 组件选择已保留</div>`:'';}
+ function configBody(){const found=s.scenario==='studio';return `<p class="j-subtitle">SDK 工具需要兼容的 Java。选择一种方式，仅对本应用生效。</p>${context()}${s.ready?`<div class="j-feedback">当前 Java 已就绪；新配置验证通过前继续保留当前配置。</div>`:s.scenario==='old'?`<div class="j-feedback error">检测到 Java 8，无法运行当前 SDK 工具。请选择兼容运行时。</div>`:s.scenario==='broken'?`<div class="j-feedback error">原 java.exe 已不存在，请重新选择或准备私有运行时。</div>`:''}
+ <fieldset aria-label="Java 配置方式"><label class="j-option cursor-interaction"><input type="radio" name="j-mode" value="private" ${s.mode==='private'?'checked':''}><span><strong>一键准备应用私有 Java</strong> ${!found?'<span class="j-badge">推荐</span>':''}<small>Temurin JRE 21 · 约 46.7 MiB<br>自动下载、校验与配置，无需管理员权限。</small></span></label>
+ <label class="j-option cursor-interaction"><input type="radio" name="j-mode" value="local" ${s.mode==='local'?'checked':''}><span><strong>使用已有 Java</strong> ${found?'<span class="j-badge">发现可用环境</span>':''}<small>${found?'Android Studio 自带 Java 21 已通过检测，可直接复用。':'选择已安装的 JDK、JRE 或 Android Studio 自带运行时。'}</small></span></label></fieldset>
+ ${s.mode==='private'?`<details class="j-details"><summary class="cursor-interaction">下载与许可详情</summary><div>来源：Adoptium 官方发行（GitHub）<br>安装位置：<code>%LOCALAPPDATA%\\AndroidDevKit\\runtime\\java21</code><br>使用已有手动代理；SDK 镜像切换不会改变 Java 来源。<br>运行时用于 SDK 管理，不包含项目编译所需的完整 JDK。</div></details><label class="j-check cursor-interaction"><input type="checkbox" id="j-license" ${s.agreed?'checked':''}><span>我已阅读并同意 Temurin 运行时许可（GPLv2 + Classpath Exception）。</span></label><details class="j-details"><summary class="cursor-interaction">查看许可说明</summary><div>原型仅演示许可入口。正式应用在此展示随发行包附带的完整许可文本，许可确认按文本版本保存。</div></details>`:`<label class="j-field"><span>Java 可执行文件</span><div class="j-input-row"><input class="j-input" id="j-path" aria-label="Java 可执行文件" placeholder="选择或粘贴 java.exe 的完整路径" value="${esc(s.candidate)}">${button('选择文件','pick')}</div></label><div class="j-row" style="margin-top:10px">${button('检测可用性','validate',false,!s.candidate.trim())}${button('重新扫描','scan')}</div><p class="j-subtitle">检测启动、版本、架构及与当前 SDK 工具的兼容性。</p>${s.valid?'<div class="j-feedback" role="status">Java 21 · x64 · SDK 工具启动验证通过</div>':''}`}
+ ${s.error?`<div class="j-feedback error" role="alert">${esc(s.error)}</div>`:''}
+ <div class="j-actions">${button('暂不配置','close')}${s.mode==='private'?button('同意并准备 Java','install',true,!s.agreed):button(s.resume?'使用并返回安装计划':'使用此 Java','use',true,!s.valid)}</div>`;}
+ function progressBody(){const failed=s.job==='failed',done=s.job==='done';return `${context()}<p class="j-subtitle">Temurin JRE 21 · 应用私有运行时</p><div class="j-progress" role="progressbar" aria-label="Java 准备进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${s.progress}"><div style="width:${s.progress}%"></div></div><ul class="j-steps"><li class="${s.progress>=65?'done':''}">${s.progress>=65?'✓':'●'} 下载运行时 ${s.progress>=65?'已完成':failed?'连接超时':s.progress+'%'}</li><li class="${s.progress>=80?'done':''}">${s.progress>=80?'✓':'○'} 校验并解压</li><li class="${done?'done':''}">${done?'✓':'○'} 验证 Java 与 SDK 工具，保存配置</li></ul>${failed?`<div class="j-feedback error" role="alert">无法连接 Java 下载站点。SDK 安装尚未开始，组件选择已保留。</div><div class="j-row" style="margin-top:13px">${link('使用本地 Java','local')}${link('检查代理设置','network')}</div>`:done?'<div class="j-feedback" role="status">Java 已就绪，可以继续查看 SDK 安装计划。</div>':'<p class="j-subtitle" style="margin-top:16px">准备完成后不会自动执行 SDK 安装。</p>'}<div class="j-actions">${failed?button('稍后处理','close')+button('重试下载','retry',true):done?button(s.resume?'返回安装计划':'完成','complete',true):button('取消准备','cancel')+button('转到任务中心','background')}</div>`;}
+ function planBody(){return `<p class="j-subtitle">环境已复查，请确认组件变更。</p><div class="j-feedback">✓ Java 21 · 兼容性检查通过<br>✓ Command-line Tools 22.0 · 可用</div><div class="j-context">下载源：腾讯云镜像<br>Java：${s.source==='private'?'应用私有运行时':'已有运行时'}<br>SDK：E:\\Android\\sdk</div><ul class="j-steps">${packages.filter(p=>s.selected.includes(p.id)).map(p=>`<li>${p.name} · ${p.version} · ${p.size}</li>`).join('')}</ul><label class="j-check cursor-interaction"><input type="checkbox" id="j-sdk-license"><span>我已阅读并同意所选 SDK 组件许可。</span></label><details class="j-details"><summary class="cursor-interaction">查看 SDK 许可</summary><div>演示数据。正式应用沿用现有逐项许可文本与确认记录。</div></details><div class="j-actions">${button('返回组件列表','close')}${button('开始安装','start-sdk',true,true)}</div>`;}
+ function drawModal(){const active=overlay.contains(document.activeElement)?document.activeElement:null;const focusKey=active?.dataset.action?`[data-action="${active.dataset.action}"]`:active?.id?`#${active.id}`:active?.name==='j-mode'?`input[name=j-mode][value=${active.value}]`:null;overlay.hidden=false;surface.inert=true;overlay.innerHTML=`<section class="j-dialog" role="dialog" aria-modal="true" aria-labelledby="j-dialog-title"><div class="j-row j-between"><h2 id="j-dialog-title">${s.modal==='config'?'配置 Java 运行环境':s.modal==='progress'?(s.job==='failed'?'Java 准备失败':s.job==='done'?'Java 已就绪':'正在准备 Java'):'SDK 安装计划'}</h2><button class="j-close cursor-interaction" data-action="close" aria-label="关闭对话框">×</button></div>${s.modal==='config'?configBody():s.modal==='progress'?progressBody():planBody()}</section>`;if(focusKey){const target=overlay.querySelector(focusKey);if(target&&!target.disabled)target.focus();else overlay.querySelector('[data-action=close]').focus();}}
+ function configure(resume=false){if(liveJob()){open('progress');return;}s.resume=resume;s.error='';s.mode=s.scenario==='studio'?'local':'private';s.candidate=s.scenario==='studio'?candidates.studio:'';s.valid=s.scenario==='studio';s.agreed=false;open('config');}
+ function start(){clearInterval(timer);s.job='running';s.progress=0;s.error='';s.modal='progress';render();timer=setInterval(()=>{s.progress=Math.min(100,s.progress+20);if(s.scenario==='network'&&s.progress>=40){clearInterval(timer);s.job='failed';}else if(s.progress===100){clearInterval(timer);s.job='done';s.ready=true;s.source='private';s.path=candidates.private;s.notice='Java 准备完成，SDK 组件选择已保留。';}render();if(s.job!=='running')save();},500);save();}
+ function finishLocal(){s.ready=true;s.source='local';s.path=s.candidate;s.notice='Java 已验证并保存，仅用于本应用。';s.error='';if(s.resume){s.page='sdk';s.modal='plan';render();}else{close();render();}save();}
+ function action(a){s.notice='';if(a==='configure')configure(false);else if(a==='plan'){s.resume=true;if(s.ready){open('plan');}else configure(true);}else if(a==='close')close();else if(a==='install'||a==='retry')start();else if(a==='use')finishLocal();else if(a==='validate'){s.valid=false;if(!/java\.exe$/i.test(s.candidate.trim()))s.error='请选择 java.exe 的完整路径。';else if(/(?:java|jdk|jre)[-_ ]?8[\\/]/i.test(s.candidate))s.error='Java 8 与当前 SDK 工具不兼容，请选择其他运行时。';else{s.valid=true;s.error='';}drawModal();}else if(a==='pick'){s.candidate='C:\\Program Files\\Java\\jdk-21\\bin\\java.exe';s.valid=false;s.error='';drawModal();}else if(a==='scan'){if(s.scenario==='studio'){s.candidate=candidates.studio;s.valid=true;s.error='';}else{s.valid=false;s.error='未发现其他可用的 Java，请选择文件或准备私有运行时。';}drawModal();}else if(a==='progress')open('progress');else if(a==='local'){s.mode='local';s.modal='config';s.error='';render();}else if(a==='network'){s.returnProxy=true;s.page='settings';close();render();}else if(a==='proxy'){s.proxy=root.querySelector('#j-proxy')?.value||'';s.notice='网络设置已保存。';if(s.returnProxy){s.returnProxy=false;s.modal='config';s.mode='private';s.error='';}render();}else if(a==='background'){s.page='tasks';close();render();}else if(a==='cancel'){clearInterval(timer);s.job='cancelled';s.notice='已取消 Java 准备，组件选择已保留。';close();render();}else if(a==='complete'){if(s.resume){s.page='sdk';s.modal='plan';render();}else{close();render();}}else if(a==='sdk'){s.page='sdk';render();}else if(a==='start-sdk'){s.sdkJob=true;s.page='tasks';close();render();}save();}
+ root.addEventListener('click',event=>{const nav=event.target.closest('[data-page]');if(nav){s.page=nav.dataset.page;s.notice='';s.resume=false;render();save();return;}const b=event.target.closest('[data-action]');if(b&&!b.disabled)action(b.dataset.action);});
+ root.addEventListener('change',event=>{const el=event.target;if(el.dataset.package){s.selected=el.checked?[...s.selected,el.dataset.package]:s.selected.filter(id=>id!==el.dataset.package);render();save();}else if(el.name==='j-mode'){s.mode=el.value;s.error='';drawModal();save();}else if(el.id==='j-license'){s.agreed=el.checked;overlay.querySelector('[data-action=install]').disabled=!s.agreed;}else if(el.id==='j-sdk-license'){overlay.querySelector('[data-action=start-sdk]').disabled=!el.checked;}});
+ root.addEventListener('input',event=>{if(event.target.id==='j-path'){s.candidate=event.target.value;s.valid=false;s.error='';overlay.querySelector('[data-action=validate]').disabled=!s.candidate.trim();overlay.querySelector('[data-action=use]').disabled=true;overlay.querySelectorAll('.j-feedback').forEach(n=>n.remove());}});
+ overlay.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();close();return;}if(event.key==='Tab'){const nodes=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),summary')];if(event.shiftKey&&document.activeElement===nodes[0]){event.preventDefault();nodes.at(-1)?.focus();}else if(!event.shiftKey&&document.activeElement===nodes.at(-1)){event.preventDefault();nodes[0]?.focus();}}});
+ function scenario(value){clearInterval(timer);close();s={...s,scenario:value,page:'sdk',selected:['platform-tools','emulator'],ready:value==='ready',source:value==='ready'?'private':'',path:value==='ready'?candidates.private:'',modal:'',job:'',progress:0,notice:'',error:'',resume:false,sdkJob:false,returnProxy:false};render();save();}
+ function restore(data){if(data?.schema===1&&data.state){const v=data.state;s={...s,...v,modal:'',job:v.job==='running'?'cancelled':v.job};if(!['sdk','settings','tasks','diagnostics'].includes(s.page))s.page='sdk';s.selected=Array.isArray(s.selected)?s.selected.filter(id=>packages.some(p=>p.id===id&&id!=='cmdline-tools')):[];}}
+ root.addEventListener('ad-java-scenario',event=>scenario(event.detail));
+ window.addEventListener('openai:set_globals',event=>{const value=event.detail?.globals?.widgetState?.privateContent;if(value){clearInterval(timer);restore(value);render();}});
+ restore(window.openai?.widgetState?.privateContent);render();
+ if(globalThis.Tweak){const controls={scenario:s.scenario};const tweak=new globalThis.Tweak({container:root,onChange:()=>scenario(controls.scenario)});tweak.addSelect(controls,'scenario',{label:'环境状态',options:[{label:'未安装 Java',value:'missing'},{label:'发现 Android Studio Java',value:'studio'},{label:'Java 版本不兼容',value:'old'},{label:'Java 路径失效',value:'broken'},{label:'Java 下载超时',value:'network'},{label:'Java 已就绪',value:'ready'}]});}
+})();
+</script>
+
+
+  <p class="note">试用：查看安装计划 → 配置 Java → 同意许可并准备 → 返回安装计划。可切换到“使用已有 Java”体验路径检测；选择文件、扫描和下载均为模拟，不读写本机环境。原型预设 Command-line Tools 22.0 已安装，组件与版本仅用于展示。</p>
+ </section>
+ <section class="doc-section" id="baseline">
+  <h2>现状与设计边界</h2>
+  <div class="grid">
+   <article class="doc-card"><h3>已有能力可以复用</h3><p>设置页已有 <code>java.exe</code> 路径。初始配置会尝试 <code>JAVA_HOME</code> 与常见 Android Studio JBR 路径；“模拟器最小环境”能按需下载应用私有 Temurin JRE 21。</p><p>当前普通 SDK 操作通过 <code>sdkmanager</code> 执行，Java 前置检查主要验证文件存在。路径存在并不能证明版本、架构或 SDK 工具兼容性合格。</p></article>
+   <article class="doc-card"><h3>本次新增交互</h3><p>SDK 页面常驻精简 Java 状态；设置与诊断共用一个配置面板；安装计划增加环境预检和恢复上下文；Java 准备成为可观察的独立任务。</p><p>推荐沿用项目已固定的 JRE 21 运行时，不要求用户安装完整 JDK。项目编译用 JDK、Gradle JDK 管理与系统环境变量管理暂不纳入。</p></article>
+  </div>
+  <div class="callout"><strong>按实际操作检查依赖。</strong>Java 缺失会阻塞当前依赖 SDK Java 工具的安装、卸载或 AVD 创建步骤。目录浏览、组件勾选、下载源配置、使用已有 ADB 连接真机，以及启动已具备条件的模拟器，不应被一个全局 Java 错误屏蔽。归档下载本身不要求 Java，但本次方案在开始 SDK 安装任务前完成环境检查，避免下载完成后才报错。</div>
+  <p class="note">代码依据：<code>src/App.tsx</code> 设置页；<code>src-tauri/src/domain.rs</code> 初始探测；<code>src-tauri/src/plans.rs</code> 与 <code>engine.rs</code> 的 bootstrap；<code>process.rs</code> 的 Java 工具入口；<code>resources/bootstrap.json</code> 的固定运行时。方案以仓库当前支持的 Command-line Tools 12～22 为范围。</p>
+ </section>
+ <section class="doc-section" id="flow">
+  <h2>入口与主流程</h2>
+  <div class="grid">
+   <article class="doc-card"><h3>主入口：SDK 管理</h3><p>进入页面自动执行轻量检测，不弹窗。缺失或失效时，在下载源下方显示“未找到可用的 Java / 配置 Java”；已就绪时收起为“Java 21 · 应用私有 · 可用 / 管理 Java”。</p><p>允许继续浏览和勾选。“查看安装计划”保持可用：存在 Java 问题时打开配置面板，保留组件、版本、操作类型、筛选、页签及滚动位置。</p></article>
+   <article class="doc-card"><h3>辅助入口：设置与环境诊断</h3><p>设置 → Java 运行环境：显示版本、来源、实际路径、最近检测结果与“配置 Java”。替换现有只有路径输入的交互，使用同一面板。</p><p>环境诊断列出具体阻塞与“检测并配置”。准备开发环境、SDK 安装/卸载、创建 AVD 等依赖入口共用检测结果与修复动作。</p></article>
+  </div>
+  <div class="flow" aria-label="Java 准备流程"><span>选择 SDK 组件</span>→<span>检查运行环境</span>→<span>复用或准备 Java</span>→<span>验证并保存</span>→<span>重新生成安装计划</span>→<span>用户确认执行</span></div>
+  <ol class="checks">
+   <li><strong>检测已有环境。</strong>已配置且验证通过的 Java 直接复用。仅发现其他可用候选时，展示来源、版本和路径，提供“使用此 Java”；发现不代表自动覆盖当前用户配置。</li>
+   <li><strong>没有可用环境。</strong>默认选择“一键准备应用私有 Java”；同屏保留“使用已有 Java”。前者展示体积、来源、安装位置、许可入口及生效范围；后者提供扫描结果或文件选择。</li>
+   <li><strong>准备阶段独立记录。</strong>首次确认对应运行时许可后，下载 → 完整性校验 → 解压 → 启动验证 → SDK 工具兼容性验证 → 保存。显示真实阶段、进度和失败点；可转任务中心继续观察。</li>
+   <li><strong>返回原操作。</strong>Java 验证通过后提供“返回安装计划”。重新验证组件、来源、许可、磁盘与依赖，展示新计划。只有再次点击“开始安装”才执行 SDK 变更；完成 Java 准备不构成 SDK 安装确认。</li>
+   <li><strong>工具也缺失时合并准备。</strong>同一“运行环境未就绪”面板列出 Java 与 Command-line Tools，准备清单分别展示来源、体积与许可。原生下载与解压工具能独立引导，不允许出现“安装 Java 依赖 sdkmanager”的循环。</li>
+  </ol>
+ </section>
+ <section class="doc-section" id="rules">
+  <h2>检测与配置规则</h2>
+  <div class="table-wrap"><table class="doc-table"><thead><tr><th>项目</th><th>交互约定</th></tr></thead><tbody>
+   <tr><td>配置方式</td><td>一键准备私有运行时 / 使用已有 Java。已有 Java 可来自 JDK、JRE、Android Studio JBR；不要求存在 <code>javac</code>。可选择 <code>java.exe</code>；如接受目录输入则归一到 <code>bin/java.exe</code>，并回显实际文件。</td></tr>
+   <tr><td>候选发现顺序</td><td>显式保存路径 → 已安装私有运行时 → Android Studio JBR → <code>JAVA_HOME</code> → <code>PATH</code>。按规范路径去重，保留来源标签；不对磁盘全量递归扫描。显式配置失效时保留失效信息与修复入口，不静默换到另一候选。</td></tr>
+   <tr><td>验证内容</td><td>文件存在且可执行；实际启动并读取版本、供应商、位数与架构；用当前受支持 SDK 工具执行不改变 SDK 的启动验证。区分“Java 本身失败”和“Command-line Tools 缺失 / 损坏”。兼容标准按工具版本维护并以启动结果确认，不使用“任意 Java 17+ 均可”这类全局判断。</td></tr>
+   <tr><td>超时与取消</td><td>建议 Java 启动检查上限 5 秒，SDK 工具启动检查上限 10 秒；此为实现目标，需用实机验证调整。检查使用无需联网且不接受许可、不写 SDK 的入口。超时显示“检测超时”，可重试；取消关闭受控子进程。</td></tr>
+   <tr><td>状态生命周期</td><td>未检测 / 检测中 / 可用 / 未找到 / 路径失效 / 版本不兼容 / 架构不支持 / 启动失败 / 检测超时。Java 路径或文件、SDK 根目录、Command-line Tools 版本变化后使对应兼容性结果失效。执行任何依赖操作前重新快速核验。</td></tr>
+   <tr><td>推荐运行时</td><td>沿用现有 Temurin JRE 21 Windows x64 固定发行包；原型体积约 46.7 MiB，正式页面从清单读取准确体积和版本。私有目录位于应用数据目录，不安装到系统，不改系统 <code>PATH</code> / <code>JAVA_HOME</code> / IDE 配置。</td></tr>
+   <tr><td>私有准备与保存</td><td>先下载到暂存目录，核对随应用可信发行清单固定的 SHA-256，安全解压并验证运行时和工具兼容性；全部通过后原子切换应用路径。存在同名损坏目录也不能直接视为已就绪。失败保留原配置，不把半成品作为候选。</td></tr>
+   <tr><td>网络与来源</td><td>Java 沿用现有手动代理，但使用独立的 Adoptium 官方发行地址（当前为 GitHub）；Google / 腾讯 / 自定义 SDK 根地址不适用于 Java。面板默认只显示摘要，详情展开完整下载地址和校验依据。</td></tr>
+   <tr><td>离线与下载失败</td><td>首版通过“使用已有 Java”选择离线解压好的受信任 JDK/JRE/JBR，检测通过即可使用。不在首版引入任意 JDK ZIP 导入器或未知镜像。下载失败保留组件选择，提供原源重试、检查代理和使用本地 Java。</td></tr>
+   <tr><td>许可</td><td>私有运行时显示并确认随包附带的完整许可，沿用现有按许可文本哈希保存的确认机制；同版本已确认可复用。Java 许可与 SDK 组件许可分开，准备前能看到实际将下载的内容。</td></tr>
+   <tr><td>任务与配置一致性</td><td>Java 准备独立任务，允许关闭面板后继续；关闭用“转到任务中心”，取消才停止任务。依赖当前 Java 的任务运行时，面板可查看、扫描与验证候选，切换按钮禁用并说明“相关任务结束后可切换”，不后台自动应用。相关任务终结后由用户应用。</td></tr>
+   <tr><td>只改 Java 配置</td><td>保存仅更新经验证的 Java 设置，并同步设置页表单；不能用旧表单覆盖其他已更新配置。原始 SDK 计划绑定配置版本，变更后重新生成；网络源、组件版本或依赖已变化时展示差异再确认。</td></tr>
+   <tr><td>取消与重启恢复</td><td>取消只停止准备，暂存文件清理或保留为隔离下载缓存；原 SDK 选择保留。重启读取任务状态和有效配置，允许复用已校验完成的运行时，保留原操作草稿供用户恢复。草稿失效时明确原因，不自动启动安装。</td></tr>
+  </tbody></table></div>
+ </section>
+ <section class="doc-section" id="recovery">
+  <h2>异常状态与恢复</h2>
+  <div class="table-wrap"><table class="doc-table"><thead><tr><th>触发场景</th><th>用户看到什么</th><th>下一步</th></tr></thead><tbody>
+   <tr><td>首次使用，无 Java</td><td>“未找到可用的 Java。浏览和选择组件不受影响；安装前需要配置。”</td><td>推荐私有运行时，或选择已有 Java。</td></tr>
+   <tr><td>发现 Studio JBR</td><td>“发现 Android Studio 自带 Java 21 · 验证通过”，显示路径。</td><td>默认展示已有 Java 方式，点击使用后返回原操作；不修改 Studio 配置。</td></tr>
+   <tr><td>Java 太旧</td><td>“检测到 Java 8，无法运行当前 SDK 工具”，详情展示实际工具要求与错误。</td><td>切换已有候选或准备私有运行时；不提示用户先卸载旧 Java。</td></tr>
+   <tr><td>路径失效 / 架构不支持 / 启动失败</td><td>具体路径、失败原因与最近检测时间；保存按钮禁用。</td><td>重新选择或检测；只有验证通过才保存。</td></tr>
+   <tr><td>工具缺失</td><td>“Command-line Tools 未就绪”，Java 检查结果单独显示。</td><td>进入合并环境准备，避免误报成 Java 错误。</td></tr>
+   <tr><td>Java 下载超时</td><td>“无法连接 Java 下载站点。SDK 安装尚未开始，组件选择已保留。”</td><td>重试 Java 下载、检查代理、选择本地 Java；SDK 镜像设置不作为修复 Java 的默认动作。</td></tr>
+   <tr><td>校验失败 / 解压失败</td><td>展示失败阶段；“未应用新 Java 配置”。校验失败时不继续解压。</td><td>清理对应失败缓存后重新下载，或改用已验证的本地 Java。</td></tr>
+   <tr><td>空间不足 / 目录不可写</td><td>安装前显示所需空间或无法写入的具体目录。</td><td>释放空间、处理应用数据目录权限，或使用已有 Java；不默认要求以管理员启动。</td></tr>
+   <tr><td>准备中关闭 / 取消</td><td>关闭只收起对话框，任务继续；“取消准备”才终止。任务中心持续可见。</td><td>回到原组件列表；失败或取消后不丢失选择。</td></tr>
+   <tr><td>同时使用 Java 的任务未结束</td><td>“相关任务进行中，结束后可切换 Java”，提供任务入口。</td><td>可先检查候选，等任务结束后用户再应用。</td></tr>
+  </tbody></table></div>
+ </section>
+ <section class="doc-section" id="acceptance">
+  <h2>交互与实现验收</h2>
+  <ol class="checks">
+   <li>全新 Windows 环境不安装系统 Java：仍能浏览 SDK 与切换来源；安装前出现配置入口。</li>
+   <li>无 Java 时选好多个组件，配置成功、失败、取消、后台完成后，选择与页面上下文均保留。</li>
+   <li>已有兼容 Studio JBR / JDK / JRE 时无需重复下载，明确用户确认后应用；显式配置失效不能静默替换。</li>
+   <li>java.exe 存在但过旧、损坏、错误架构或启动超时，均不会显示“可用”或允许保存；修改路径立即使旧检测结果失效。</li>
+   <li>Java 可用但 Command-line Tools 缺失，分别报告结果并能准备工具；两者都缺失时一次展示完整准备清单。</li>
+   <li>下载后的校验、解压、SDK 工具验证任一步失败，旧配置可继续使用，半成品不进入有效环境。</li>
+   <li>Java 下载失败不会引导用户错误切换 SDK 镜像；离线选择本地 Java 检测通过后可继续。</li>
+   <li>Java 准备完成不会自动开始 SDK 安装；原组件许可继续通过正常安装计划确认。</li>
+   <li>相关任务运行时不能切换 Java；结束后不自动套用待选配置。并发准备请求进入同一 Java 任务。</li>
+   <li>SDK / 来源 / 工具版本变化后重新生成计划；取消确认不会执行过期计划，外部移动 Java 后能在操作前发现。</li>
+   <li>保存新 Java 后设置表单同步，后续保存网络等字段不会把旧 Java 路径写回；系统环境变量和 IDE 设置保持原值。</li>
+   <li>对话框可通过键盘操作，焦点限制在面板中，关闭返回原入口；进度与成功/失败有可访问状态提示；浅色、深色和窄宽度下内容不溢出。</li>
+  </ol>
+  <p class="note">当前交互原型演示主路径、本地路径检测、发现 Studio、版本/路径异常、下载超时、取消、后台任务与返回计划。真实 Java 执行、兼容性判定、并发锁、重启草稿恢复和网络传输属于后续实现验收，本原型不代表这些能力已完成。</p>
+ </section>
+ <section class="doc-section">
+  <h2>参考与关联</h2>
+  <p><a href="00004_20261024112652_Android-DevKit-SDK-Mirror-Prototype.html">SDK 下载源切换交互原型</a>：Java 来源与 SDK 下载源独立。</p>
+  <p><a href="https://developer.android.com/tools/sdkmanager">Android Developers · sdkmanager</a>：SDK 包管理与组件许可流程。<a href="https://adoptium.net/docs/faq">Adoptium · FAQ</a>：Temurin 发行与许可说明。外部文档于北京时间 2026-10-24 查阅；运行时与兼容性范围以应用经过验证的固定清单为准。</p>
+ </section>
+</main>
+<script>
+document.getElementById('doc-java-scenario').addEventListener('change',event=>document.getElementById('ad-java-design').dispatchEvent(new CustomEvent('ad-java-scenario',{detail:event.target.value})));
+document.getElementById('doc-java-dark').addEventListener('change',event=>document.documentElement.classList.toggle('doc-dark',event.target.checked));
+if(!globalThis.lucide){const labels={package:'▦','list-checks':'☷',activity:'◉',settings:'⚙'};document.querySelectorAll('[data-lucide]').forEach(node=>node.textContent=labels[node.dataset.lucide]||'');}
+</script>
+</body>
+</html>

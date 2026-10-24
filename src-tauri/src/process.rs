@@ -37,6 +37,7 @@ impl Spec {
             .env_remove("ADB_SERVER_SOCKET")
             .env_remove("JAVA_TOOL_OPTIONS")
             .env_remove("_JAVA_OPTIONS")
+            .env_remove("JDK_JAVA_OPTIONS")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());

@@ -513,6 +513,8 @@ const path = require('node:path');
     assert.equal(await page.locator('html').getAttribute('lang'), 'en-US');
     await dialog.getByRole('button', { name: 'Close panel', exact: true }).click();
     await page.getByRole('button', { name: 'SDK Manager', exact: true }).click();
+    // SDK navigation now preserves the tab and selections while Java setup opens other pages.
+    await page.getByRole('button', { name: 'SDK Platforms', exact: true }).click();
     await page.getByLabel('Show preview components', { exact: true }).waitFor();
     await page.getByRole('textbox', { name: 'Search components', exact: true }).fill('Sources');
     const selectedSource = page.getByLabel('sources;android-35 change', { exact: true });

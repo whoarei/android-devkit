@@ -49,7 +49,9 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 “使用 Google 官方校验值验证安装包”默认开启。官方暂不可达时可使用已保存的官方记录；所选版本缺少匹配记录时暂缓安装。关闭此选项后仍按下载源提供的校验值验证完整性，任务记录会注明校验方式。新安装或升级后先刷新目录，以取得归档与校验元数据。
 
-使用搜索与状态筛选缩小范围，选择变更后查看计划，确认许可和操作内容再执行。工具或 Java 缺失时，按应用提供的环境准备提示处理；“环境诊断”可检查实际工具链和硬件加速情况。
+使用搜索与状态筛选缩小范围，选择变更后查看计划，确认许可和操作内容再执行。SDK 管理、设置和环境诊断均提供“配置 Java”：可一键准备应用私有 Temurin JRE 21，或检测并复用已有 JDK、JRE、Android Studio 自带运行时。SDK 安装前会检查 Java 启动及工具兼容性；配置完成后保留组件选择，返回原安装计划再次确认。
+
+私有 Java 安装在 `%LOCALAPPDATA%\AndroidDevKit\runtime\java21`，仅供本应用 SDK 工具使用，不修改系统环境变量。Java 下载使用 Adoptium 官方发行地址，沿用手动代理，独立于 SDK 镜像。准备进度、取消和失败记录可在任务中心查看；SDK 工具缺失时仍需使用“准备模拟器环境”。
 
 ### 2. 准备模拟器或连接真机
 
@@ -200,6 +202,6 @@ powershell -NoProfile -File scripts/package-release.ps1
 - [M3 实现与验证报告](docs/00002_20261018011008_Android-DevKit-M3-Implementation-Report.html)
 - [M4 核心功能与内部验收报告](docs/00003_20261018063845_Android-DevKit-M4-Progress-Report.html)
 - [SDK 下载源切换交互原型](docs/00004_20261024112652_Android-DevKit-SDK-Mirror-Prototype.html)
-- [SDK 下载源切换交互原型](docs/00004_20261024112652_Android-DevKit-SDK-Mirror-Prototype.html)
+- [Java 环境配置交互方案](docs/00005_20261024144951_Android-DevKit-Java-Environment-Design.html)
 
 历史报告记录对应阶段的验证范围。提交问题时，请附上应用版本、Windows 版本、连接方式和复现步骤；需要时可从“环境诊断”预览并导出诊断信息。

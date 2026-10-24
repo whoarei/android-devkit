@@ -71,6 +71,22 @@ impl App {
                 "需逐项查看并接受所需许可",
             ));
         }
+        if plan.operation.kind == "java_prepare" {
+            if let Some(task) = self
+                .store
+                .active_tasks()?
+                .into_iter()
+                .find(|task| task.operation.kind == "java_prepare")
+            {
+                return Ok(task);
+            }
+            if self.java_busy(None)? {
+                return Err(AppError::new(
+                    "TASKS_ACTIVE",
+                    "相关任务进行中，结束后可准备 Java",
+                ));
+            }
+        }
         let mut op = plan.operation;
         let code = op.args.remove("code").unwrap_or_default();
         let task = Task {
@@ -161,7 +177,9 @@ impl App {
             format!("device:{}:{}", t.server_epoch, t.transport_id)
         } else if op.kind.starts_with("avd_") {
             format!("avd:{}", op.optional("avdId"))
-        } else if op.kind.starts_with("sdk_") || op.kind == "bootstrap" {
+        } else if op.kind.starts_with("sdk_")
+            || matches!(op.kind.as_str(), "bootstrap" | "java_prepare")
+        {
             format!("sdk:{}", settings.sdk_root)
         } else {
             "adb-global".into()
@@ -175,7 +193,7 @@ impl App {
         };
         let _sdk_write = if matches!(
             op.kind.as_str(),
-            "sdk_install" | "sdk_remove" | "bootstrap" | "avd_create"
+            "sdk_install" | "sdk_remove" | "bootstrap" | "avd_create" | "java_prepare"
         ) {
             Some(self.sdk_gate.write().await)
         } else {
@@ -278,6 +296,11 @@ impl App {
         settings: &Settings,
         secret: &str,
     ) -> Result<String> {
+        if crate::java::needed(&op.kind) {
+            crate::java::check(settings, &settings.java_path, "configured")
+                .await
+                .require()?;
+        }
         if let Some(target) = &op.target {
             let current = android::devices(settings, self.epoch.load(Ordering::SeqCst)).await;
             checked_target(target, &current, self.epoch.load(Ordering::SeqCst))?;
@@ -307,6 +330,10 @@ impl App {
             None
         };
         match op.kind.as_str() {
+            "java_prepare" => {
+                self.prepare_private_java(id, settings).await?;
+                Ok("Java 已就绪，可返回原安装计划".into())
+            }
             "adb_start" => {
                 let adb = android::compatible_adb(settings).await?;
                 process::run(Spec::new(adb, vec!["start-server".into()]))
@@ -864,9 +891,6 @@ impl App {
     ) -> Result<()> {
         let mut settings = settings.clone();
         bootstrap::assert_writable(Path::new(&settings.sdk_root))?;
-        let manifest: serde_json::Value = serde_json::from_str(
-            include_str!("../resources/bootstrap.json").trim_start_matches('\u{feff}'),
-        )?;
         let tool = if purpose == "usb" {
             "platform-tools"
         } else {
@@ -899,27 +923,115 @@ impl App {
             .await?;
         }
         if purpose != "usb" {
-            if !Path::new(&settings.java_path).is_file() {
-                let j = &manifest["java"];
-                let pkg = SdkPackage {
-                    id: "private-java-21".into(),
-                    url: j["url"].as_str().unwrap().into(),
-                    checksum: j["checksum"].as_str().unwrap().into(),
-                    checksum_type: "sha256".into(),
-                    size: j["size"].as_u64().unwrap(),
-                    ..Default::default()
-                };
-                let dest = self.data.join("runtime/java21");
-                if !dest.exists() {
-                    self.install_archive(id, &settings, &pkg, &dest, "").await?;
+            if !crate::java::check(&settings, &settings.java_path, "configured")
+                .await
+                .ready()
+            {
+                let java_license = crate::java::license();
+                if !self
+                    .store
+                    .task(id)?
+                    .confirmed_licenses
+                    .contains(&java_license.hash)
+                {
+                    return Err(AppError::new(
+                        "JAVA_CONFIGURATION_REQUIRED",
+                        "Java 不可用，请先配置并确认运行时许可",
+                    ));
                 }
-                settings.java_path = dest.join("bin/java.exe").to_string_lossy().into();
-                self.store.save_settings(&settings)?;
+                self.prepare_private_java(id, &settings).await?;
+                settings.java_path = self.store.settings().java_path;
             }
             let task = self.store.task(id)?;
             self.sdk_apply(id, &settings, task.operation.optional("packages"), false)
                 .await?;
         }
+        Ok(())
+    }
+    async fn prepare_private_java(self: &Arc<Self>, id: &str, settings: &Settings) -> Result<()> {
+        let runtime = self.data.join("runtime");
+        bootstrap::assert_writable(&runtime)?;
+        let dest = runtime.join("java21");
+        let target = crate::java::private_path(&self.data)
+            .to_string_lossy()
+            .into_owned();
+        let staged = runtime.join(format!(".java-stage-{id}"));
+        let backup = runtime.join(format!(".java-backup-{id}"));
+        let pkg = crate::java::package()?;
+        let existing = crate::java::check(settings, &target, "private").await;
+        if !existing.ready()
+            || existing.version != pkg.version.split('+').next().unwrap_or(&pkg.version)
+        {
+            let required = pkg.size.saturating_mul(5);
+            let available = bootstrap::free_space(&runtime);
+            if available > 0 && available < required {
+                return Err(AppError::new(
+                    "DISK_SPACE",
+                    "应用数据目录空间不足，无法准备 Java",
+                ));
+            }
+            // All generated paths are direct children of this task's application runtime directory.
+            // Extraction and downloads use the existing bounded, checksum-verifying installer.
+            let result = async {
+                self.update(id, |t| t.cancellable = true)?;
+                self.install_archive(id, settings, &pkg, &staged, "")
+                    .await?;
+                self.phase(id, "checking_java", "验证 Java 与 SDK 工具兼容性")?;
+                let path = staged.join("bin/java.exe");
+                crate::java::check(settings, &path.to_string_lossy(), "private")
+                    .await
+                    .require()?;
+                if self.cancelled(id) {
+                    return Err(AppError::new("CANCELLED", "已取消 Java 准备"));
+                }
+                Ok(())
+            }
+            .await;
+            if let Err(error) = result {
+                let _ = std::fs::remove_dir_all(&staged);
+                let _ = std::fs::remove_dir_all(runtime.join(format!(".devkit-stage-{id}")));
+                return Err(error);
+            }
+        }
+        let _guard = self.configuration_gate.lock().unwrap();
+        if self.cancelled(id) {
+            let _ = std::fs::remove_dir_all(&staged);
+            return Err(AppError::new("CANCELLED", "已取消 Java 准备"));
+        }
+        let mut current = self.store.settings();
+        if current.java_path != settings.java_path || current.sdk_root != settings.sdk_root {
+            let _ = std::fs::remove_dir_all(&staged);
+            return Err(AppError::new(
+                "JAVA_CONTEXT_CHANGED",
+                "准备期间工具配置已变化，请重新准备",
+            ));
+        }
+        self.phase(id, "configuring_java", "保存应用私有 Java 配置")?;
+        self.update(id, |t| t.cancellable = false)?;
+        let replacing = staged.exists();
+        if replacing {
+            if dest.exists() {
+                std::fs::rename(&dest, &backup)?;
+            }
+            if let Err(error) = std::fs::rename(&staged, &dest) {
+                if backup.exists() {
+                    let _ = std::fs::rename(&backup, &dest);
+                }
+                return Err(error.into());
+            }
+        }
+        current.java_path = target;
+        if let Err(error) = self.store.save_settings(&current) {
+            if replacing {
+                let _ = std::fs::remove_dir_all(&dest);
+                if backup.exists() {
+                    let _ = std::fs::rename(&backup, &dest);
+                }
+            }
+            return Err(error);
+        }
+        let _ = std::fs::remove_dir_all(&backup);
+        self.notify();
         Ok(())
     }
     async fn install_archive(
@@ -965,7 +1077,11 @@ impl App {
         self.line(id, format!("安装包来源：{}", pkg.url))?;
         self.line(
             id,
-            if crate::sdk_source::builtin(pkg, settings) && settings.sdk_download.verify_official {
+            if pkg.id == "private-java-21" {
+                "校验方式：应用固定发行清单 SHA-256"
+            } else if crate::sdk_source::builtin(pkg, settings)
+                && settings.sdk_download.verify_official
+            {
                 "校验方式：Google 官方记录"
             } else {
                 "校验方式：下载源归档记录"
@@ -975,26 +1091,30 @@ impl App {
         self.phase(id, "downloading", &format!("下载 {}", pkg.id))?;
         let app = self.clone();
         let task = id.to_string();
-        let archive = bootstrap::download(
-            settings,
-            pkg,
-            &self.data.join("cache/downloads"),
-            move |n, total| {
-                let _ = app.update(&task, |t| {
-                    t.progress = if total > 0 {
-                        Some(n as f64 / total as f64 * 100.0)
-                    } else {
-                        None
-                    };
-                    t.message = format!(
-                        "已下载 {:.1} / {:.1} MiB",
-                        n as f64 / 1048576.0,
-                        total as f64 / 1048576.0
-                    );
-                });
-            },
-        )
-        .await?;
+        let cache = self.data.join("cache/downloads");
+        let download = bootstrap::download(settings, pkg, &cache, move |n, total| {
+            let _ = app.update(&task, |t| {
+                t.progress = if total > 0 {
+                    Some(n as f64 / total as f64 * 100.0)
+                } else {
+                    None
+                };
+                t.message = format!(
+                    "已下载 {:.1} / {:.1} MiB",
+                    n as f64 / 1048576.0,
+                    total as f64 / 1048576.0
+                );
+            });
+        });
+        tokio::pin!(download);
+        let archive = loop {
+            tokio::select! {
+                result = &mut download => break result?,
+                _ = tokio::time::sleep(std::time::Duration::from_millis(250)), if pkg.id == "private-java-21" => {
+                    if self.cancelled(id) { return Err(AppError::new("CANCELLED", "已取消 Java 下载，未应用配置")); }
+                }
+            }
+        };
         if self.cancelled(id) {
             return Err(AppError::new("CANCELLED", "下载完成后取消，未提交安装"));
         }

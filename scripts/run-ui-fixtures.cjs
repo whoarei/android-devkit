@@ -41,6 +41,7 @@ server.on('error', (error) => {
       'check-task-center-ui.cjs',
       'check-sdk-avd-ui.cjs',
       'check-sdk-mirror-ui.cjs',
+      'check-java-ui.cjs',
     ]) {
       execFileSync(process.execPath, [path.join(__dirname, script)], {
         cwd: root,

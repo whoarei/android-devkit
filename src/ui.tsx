@@ -2,6 +2,7 @@ import { t } from './i18n';
 import {
   useEffect,
   useId,
+  useRef,
   Children,
   isValidElement,
   cloneElement,
@@ -55,6 +56,7 @@ export function Modal({
   className = '',
   hidden = false,
   dismissible = true,
+  trapFocus = false,
 }: {
   title: string;
   children: ReactNode;
@@ -63,7 +65,37 @@ export function Modal({
   className?: string;
   hidden?: boolean;
   dismissible?: boolean;
+  trapFocus?: boolean;
 }) {
+  const dialog = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (!trapFocus || hidden || !dialog.current) return;
+    const panel = dialog.current;
+    const previous = document.activeElement;
+    const controls = () =>
+      [
+        ...panel.querySelectorAll<HTMLElement>(
+          'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,a[href]',
+        ),
+      ].filter((node) => node.getClientRects().length > 0);
+    controls()[0]?.focus();
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab') return;
+      const nodes = controls();
+      if (event.shiftKey && document.activeElement === nodes[0]) {
+        event.preventDefault();
+        nodes.at(-1)?.focus();
+      } else if (!event.shiftKey && document.activeElement === nodes.at(-1)) {
+        event.preventDefault();
+        nodes[0]?.focus();
+      }
+    };
+    panel.addEventListener('keydown', trap);
+    return () => {
+      panel.removeEventListener('keydown', trap);
+      if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
+    };
+  }, [trapFocus, hidden]);
   useEffect(() => {
     if (hidden || !dismissible) return;
     const handler = (e: KeyboardEvent) => {
@@ -81,6 +113,7 @@ export function Modal({
       }}
     >
       <section
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label={t(title)}

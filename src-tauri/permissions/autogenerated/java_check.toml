@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-java-check"
+description = "Enables the java_check command without any pre-configured scope."
+commands.allow = ["java_check"]
+
+[[permission]]
+identifier = "deny-java-check"
+description = "Denies the java_check command without any pre-configured scope."
+commands.deny = ["java_check"]

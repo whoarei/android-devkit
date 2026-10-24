@@ -223,7 +223,7 @@ impl App {
         Ok(self.store.active_tasks()?.iter().any(|task| {
             matches!(
                 task.operation.kind.as_str(),
-                "sdk_install" | "sdk_remove" | "bootstrap" | "avd_create"
+                "sdk_install" | "sdk_remove" | "bootstrap" | "avd_create" | "java_prepare"
             )
         }))
     }

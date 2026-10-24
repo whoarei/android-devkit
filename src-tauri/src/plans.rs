@@ -9,6 +9,15 @@ use std::{collections::BTreeMap, path::Path};
 
 pub fn fingerprint(app: &App, settings: &Settings) -> Result<String> {
     let mut bytes = serde_json::to_vec(settings)?;
+    if let Ok(meta) = std::fs::metadata(&settings.java_path) {
+        bytes.extend(meta.len().to_le_bytes());
+        if let Ok(modified) = meta.modified().and_then(|time| {
+            time.duration_since(std::time::UNIX_EPOCH)
+                .map_err(std::io::Error::other)
+        }) {
+            bytes.extend(modified.as_nanos().to_le_bytes());
+        }
+    }
     for relative in [
         "cmdline-tools/latest/source.properties",
         "platform-tools/source.properties",
@@ -46,6 +55,15 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
     let mut warnings = Vec::new();
     let mut licenses = Vec::new();
     let title = match op.kind.as_str() {
+        "java_prepare" => {
+            let package = crate::java::package()?;
+            licenses.push(crate::java::license());
+            effects.push(format!("准备应用私有 Temurin JRE 21 · {:.1} MiB", package.size as f64 / 1048576.0));
+            effects.push(format!("Java 安装位置：{}", crate::java::private_path(&app.data).parent().unwrap().parent().unwrap().display()));
+            effects.push(format!("Java 下载地址：{}", package.url));
+            effects.push("校验运行时并验证 SDK 工具；仅更新本应用 Java 路径".into());
+            "准备 Java 运行时"
+        }
         "adb_start" => "启动设备服务",
         "adb_restart" => {
             warnings.push("将中断本机其他工具及设备连接，旧会话全部失效。".into());
@@ -143,7 +161,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                     pkg.size as f64 / 1048576.0
                 ));
             }
-            if purpose != "usb" && !Path::new(&settings.java_path).is_file() {
+            if purpose != "usb" && (op.optional("prepareJava") == "true" || !Path::new(&settings.java_path).is_file()) {
                 let text = include_str!("../resources/java-license.txt");
                 licenses.push(License {
                     id: "Temurin-JRE-21-GPLv2-Classpath".into(),
