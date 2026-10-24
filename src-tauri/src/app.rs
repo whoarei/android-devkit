@@ -232,6 +232,16 @@ impl App {
             return Err(AppError::new("PAIR_CODE_REQUIRED", "请重新获取配对码"));
         }
         let mut operation = task.operation;
+        if matches!(operation.kind.as_str(), "file_upload" | "file_download") {
+            return Err(AppError::new(
+                "TRANSFER_REVIEW_REQUIRED",
+                "请核对已发布条目后重新选择文件；中断的传输不会重放",
+            ));
+        }
+        if operation.kind == "screen_record" && task.state == "needs_review" {
+            operation.kind = "screen_recover".into();
+            operation.args.insert("sourceTaskId".into(), task_id.into());
+        }
         // Reconciliation replaces the phase. Uncertain starts must never be
         // replayed, including after a restart or a background snapshot.
         if task.state == "needs_review"

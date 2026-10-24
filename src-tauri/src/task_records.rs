@@ -65,6 +65,19 @@ impl App {
         if unsaved.contains(&task.id) {
             return Ok(Some(("files", "有待保存文件，请先处理")));
         }
+        if task.state == "needs_review"
+            && matches!(
+                task.operation.kind.as_str(),
+                "file_upload" | "file_download"
+            )
+            && task.operation.optional("conflicts") == "replace"
+            && task.operation.optional("backupsResolved") != "true"
+        {
+            return Ok(Some((
+                "files",
+                "替换原件尚待处理，请从原设备的文件传输面板恢复或清理",
+            )));
+        }
         if task.operation.kind == "log_record" {
             if !task.artifact.is_empty() {
                 return Ok(Some(("files", "原始采集仍在，请先处理采集文件")));

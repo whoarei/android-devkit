@@ -1,0 +1,22 @@
+{
+  "isolatedProfile": true,
+  "distinctApplicationId": "dev.android-devkit.qa.phase2",
+  "target": {
+    "serial": "emulator-5586",
+    "transportId": "54",
+    "serverEpoch": 1792857150
+  },
+  "nativeSplitInstallation": true,
+  "requestIdIdempotency": true,
+  "nativeRecordingAndVideoPreview": {
+    "width": 720,
+    "height": 1280,
+    "duration": 3.6458
+  },
+  "nativeFileRoundtripSha256": true,
+  "renameAndReplacement": true,
+  "cancellationBeforePublish": true,
+  "stagingCleanup": true,
+  "videoCacheDiscard": true,
+  "errors": []
+}

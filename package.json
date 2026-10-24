@@ -32,7 +32,9 @@
     "check": "pnpm build && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
     "verify:m4": "powershell -NoProfile -File scripts/build-test-apk.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib m4_real_sdk_observability -- --ignored --nocapture",
     "verify:perf": "cargo test --manifest-path src-tauri/Cargo.toml --release --lib log_throughput -- --ignored --nocapture",
-    "verify:faults": "node scripts/run-fault-tests.cjs"
+    "verify:faults": "node scripts/run-fault-tests.cjs",
+    "verify:phase2": "powershell -NoProfile -File scripts/build-split-fixtures.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib phase2_real_sdk_workflows -- --ignored --nocapture",
+    "verify:phase2-recovery": "cargo test --manifest-path src-tauri/Cargo.toml --lib phase2_replacement_recovery_regression -- --ignored --nocapture"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",

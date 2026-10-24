@@ -287,7 +287,8 @@ impl Operation {
                 | "avd_force_stop"
                 | "app_reinstall"
                 | "adb_restart"
-        )
+        ) || (matches!(self.kind.as_str(), "file_upload" | "file_download")
+            && self.optional("conflicts") == "replace")
     }
 }
 #[cfg_attr(test, derive(ts_rs::TS))]

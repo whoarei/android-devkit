@@ -252,6 +252,9 @@ pub async fn sdk_source_apply(app: Service<'_>, source: SdkDownloadSource) -> Re
 }
 #[tauri::command]
 pub async fn plan_create(app: Service<'_>, mut operation: Operation) -> Result<Plan> {
+    if matches!(operation.kind.as_str(), "file_upload" | "file_download") {
+        app.prepare_transfer_destinations(&mut operation).await?;
+    }
     let settings = app.store.settings();
     if crate::java::needed(&operation.kind) {
         if app
@@ -345,6 +348,76 @@ pub async fn file_choose(kind: String) -> Result<Option<String>> {
 #[tauri::command]
 pub fn apk_prepare(app: Service<'_>, path: String) -> Result<ApkInfo> {
     app.prepare_apk(Path::new(&path))
+}
+#[tauri::command]
+pub async fn apk_set_prepare(
+    app: Service<'_>,
+    paths: Vec<String>,
+) -> Result<crate::phone_apk::ApkSet> {
+    app.prepare_apk_set(paths.into_iter().map(std::path::PathBuf::from).collect())
+        .await
+}
+#[tauri::command]
+pub fn apk_set_tools(app: Service<'_>) -> Result<String> {
+    crate::phone_apk::tool_package(&app)
+}
+#[tauri::command]
+pub async fn phone_choose(kind: String) -> Result<Vec<String>> {
+    tokio::task::spawn_blocking(move || {
+        let dialog = rfd::FileDialog::new();
+        let paths = match kind.as_str() {
+            "apk_directory" | "download_directory" => dialog.pick_folder().map(|p| vec![p]),
+            "upload_directory" => dialog.pick_folders(),
+            "apk_files" => dialog.add_filter("Android APK", &["apk"]).pick_files(),
+            "upload_files" => dialog.pick_files(),
+            _ => return Err(AppError::new("DIALOG_KIND", "选择类型无效")),
+        };
+        Ok(paths
+            .unwrap_or_default()
+            .iter()
+            .map(|p| p.to_string_lossy().into())
+            .collect())
+    })
+    .await
+    .map_err(|e| AppError::new("DIALOG", e.to_string()))?
+}
+#[tauri::command]
+pub async fn device_files(
+    app: Service<'_>,
+    target: Target,
+    path: String,
+) -> Result<Vec<crate::phone_files::RemoteEntry>> {
+    app.remote_entries(&target, &path).await
+}
+#[tauri::command]
+pub async fn transfer_prepare(
+    app: Service<'_>,
+    direction: String,
+    paths: Vec<String>,
+    target: Target,
+    directory: String,
+) -> Result<crate::phone_files::TransferSet> {
+    app.prepare_transfer(&direction, paths, target, directory)
+        .await
+}
+#[tauri::command]
+pub fn video_preview(app: Service<'_>, artifact_id: String) -> Result<String> {
+    let (artifact, path) = app.checked_artifact(&artifact_id)?;
+    let _task_use = app.use_task_record(&artifact.task_id, false)?;
+    if artifact.kind != "video" {
+        return Err(AppError::new("ARTIFACT_TYPE", "请选择 MP4 录屏"));
+    }
+    if artifact.bytes > 64 * 1024 * 1024 {
+        return Err(AppError::new(
+            "PREVIEW_SIZE",
+            "超过 64 MiB，请保存后使用本机播放器查看",
+        ));
+    }
+    crate::phone_record::validate_mp4(&path)?;
+    Ok(format!(
+        "data:video/mp4;base64,{}",
+        base64::engine::general_purpose::STANDARD.encode(std::fs::read(path)?)
+    ))
 }
 #[tauri::command]
 pub async fn artifact_save(app: Service<'_>, task_id: String) -> Result<Option<String>> {
@@ -562,6 +635,8 @@ pub async fn export_save(app: Service<'_>, artifact_id: String) -> Result<Option
     let (artifact, source) = app.checked_artifact(&artifact_id)?;
     let file_name = if artifact.kind == "screenshot" {
         "android-screenshot.png"
+    } else if artifact.kind == "video" {
+        "android-screenrecord.mp4"
     } else {
         "android-devkit-export.txt"
     };

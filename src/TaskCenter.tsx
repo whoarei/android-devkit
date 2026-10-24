@@ -490,7 +490,9 @@ function TaskRow({
   const detailsId = useId();
   const canLaunch =
     task.state === 'succeeded' &&
-    ['apk_install', 'apk_install_wait', 'app_reinstall'].includes(task.operation.kind) &&
+    ['apk_install', 'apk_install_wait', 'app_reinstall', 'apk_set_install'].includes(
+      task.operation.kind,
+    ) &&
     task.operation.args.package;
   const isCapture = task.artifact && task.operation.kind === 'capture';
   const active = taskActive(task.state);
@@ -553,7 +555,7 @@ function TaskRow({
                 task.cancelRequested
                   ? t('正在取消')
                   : task.cancellable
-                    ? t('取消')
+                    ? t(task.operation.kind === 'screen_record' ? '停止并保存录屏' : '取消')
                     : t('此步骤完成后取消')
               }
               disabled={disabled || task.cancelRequested}
@@ -562,20 +564,23 @@ function TaskRow({
               <X size={14} />
             </TaskAction>
           )}
-          {['failed', 'needs_review', 'cancelled'].includes(task.state) && (
-            <TaskAction
-              label={t(
-                task.state === 'needs_review' &&
-                  ['avd_start', 'avd_cold', 'avd_wait'].includes(task.operation.kind)
-                  ? '继续等待系统就绪'
-                  : '重试',
-              )}
-              disabled={disabled}
-              onClick={retry}
-            >
-              <RefreshCw size={14} />
-            </TaskAction>
-          )}
+          {['failed', 'needs_review', 'cancelled'].includes(task.state) &&
+            !['file_upload', 'file_download'].includes(task.operation.kind) && (
+              <TaskAction
+                label={t(
+                  task.state === 'needs_review' &&
+                    ['avd_start', 'avd_cold', 'avd_wait'].includes(task.operation.kind)
+                    ? '继续等待系统就绪'
+                    : task.state === 'needs_review' && task.operation.kind === 'screen_record'
+                      ? '取回原录屏'
+                      : '重试',
+                )}
+                disabled={disabled}
+                onClick={retry}
+              >
+                <RefreshCw size={14} />
+              </TaskAction>
+            )}
           {canLaunch && (
             <TaskAction label={t('启动应用')} disabled={disabled} onClick={launch}>
               <Play size={14} />

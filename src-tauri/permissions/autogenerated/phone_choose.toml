@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-phone-choose"
+description = "Enables the phone_choose command without any pre-configured scope."
+commands.allow = ["phone_choose"]
+
+[[permission]]
+identifier = "deny-phone-choose"
+description = "Denies the phone_choose command without any pre-configured scope."
+commands.deny = ["phone_choose"]

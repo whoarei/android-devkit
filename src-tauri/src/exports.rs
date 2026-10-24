@@ -54,8 +54,13 @@ impl App {
         // Resolve the full reviewed set before deleting anything. Only immutable
         // screenshot/export copies belong here; recordings and user saves do not.
         let mut pending = Vec::new();
+        let mut task_guards = Vec::new();
+        let mut guarded_tasks = std::collections::BTreeSet::new();
         for id in ids.iter().collect::<std::collections::BTreeSet<_>>() {
             let (artifact, path) = self.store.artifact(id)?;
+            if !artifact.task_id.is_empty() && guarded_tasks.insert(artifact.task_id.clone()) {
+                task_guards.push(self.use_task_record(&artifact.task_id, true)?);
+            }
             if !artifact.task_id.is_empty() && self.store.task(&artifact.task_id)?.active() {
                 return Err(AppError::new(
                     "ARTIFACT_IN_USE",
@@ -75,6 +80,7 @@ impl App {
             }
             let (directory, extension) = match artifact.kind.as_str() {
                 "screenshot" => ("artifacts", "png"),
+                "video" => ("artifacts", "mp4"),
                 "export" => ("exports", "txt"),
                 _ => {
                     return Err(AppError::new(

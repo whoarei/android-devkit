@@ -558,6 +558,14 @@ pub async fn adb(
     args: Vec<String>,
     timeout: u64,
 ) -> Result<process::Output> {
+    process::run(adb_spec(settings, target, args, timeout).await?).await
+}
+pub async fn adb_spec(
+    settings: &Settings,
+    target: Option<&Target>,
+    args: Vec<String>,
+    timeout: u64,
+) -> Result<Spec> {
     let path = compatible_adb(settings).await?;
     let mut all = vec!["-H".into(), "127.0.0.1".into(), "-P".into(), "5037".into()];
     if let Some(t) = target {
@@ -584,7 +592,7 @@ pub async fn adb(
     all.extend(args);
     let mut s = Spec::new(path, all);
     s.timeout = timeout;
-    process::run(s).await
+    Ok(s)
 }
 pub async fn devices(settings: &Settings, epoch: u64) -> Vec<Device> {
     let raw = host_request("host:devices-l").unwrap_or_default();

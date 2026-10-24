@@ -22,7 +22,7 @@ fn index_matches(bytes: &[u8], data: &Path, target: &str) -> bool {
             matches!((std::fs::canonicalize(path), std::fs::canonicalize(data)), (Ok(actual), Ok(expected)) if actual == expected)
         })
 }
-fn publish_new_file(temporary: &Path, destination: &Path) -> std::io::Result<()> {
+pub(crate) fn publish_new_file(temporary: &Path, destination: &Path) -> std::io::Result<()> {
     #[cfg(windows)]
     {
         use std::os::windows::ffi::OsStrExt;
@@ -357,7 +357,12 @@ impl App {
                     t.message = if pending_commits.contains(&task.id) {
                         "AVD 提交记录尚未恢复完成，保留待检查状态；请检查索引冲突及恢复诊断"
                     } else {
-                        "已复查本地状态，结果仍无法完全确认；请检查原目标后主动重试"
+                        match op.kind.as_str() {
+                            "screen_record" | "screen_recover" => "录屏中断，未自动重新录制；请从原设备的录屏面板取回原文件",
+                            "file_upload" | "file_download" => "传输中断，未自动重放；请核对任务日志与原目标中的已发布条目，再重新选择文件",
+                            "apk_set_install" => "分包安装中断，未自动重复安装；请先核对原设备的版本与 split 集合",
+                            _ => "已复查本地状态，结果仍无法完全确认；请检查原目标后主动重试",
+                        }
                     }
                     .into();
                 }

@@ -10,9 +10,11 @@ $activitySource = @'
 package dev.androiddevkit.fixture;
 public class MainActivity extends android.app.Activity implements java.lang.Runnable {
   private android.os.Handler handler;
+  private android.widget.TextView view;
+  private int tick;
   public void onCreate(android.os.Bundle state) {
     super.onCreate(state);
-    android.widget.TextView view = new android.widget.TextView(this);
+    view = new android.widget.TextView(this);
     view.setText("Android DevKit M4 verification");
     view.setTextSize(24); view.setPadding(24,80,24,24);
     setContentView(view);
@@ -20,13 +22,13 @@ public class MainActivity extends android.app.Activity implements java.lang.Runn
     handler = new android.os.Handler(android.os.Looper.getMainLooper());
     handler.post(this);
   }
-  public void run() { android.util.Log.i("DevKitFixture", "M4 heartbeat token=fixture-secret 192.168.10.20"); handler.postDelayed(this, 500); }
+  public void run() { view.setText("Android DevKit verification\nFrame " + (++tick)); android.util.Log.i("DevKitFixture", "M4 heartbeat token=fixture-secret 192.168.10.20"); handler.postDelayed(this, 500); }
   public void onDestroy() { if (handler != null) handler.removeCallbacks(this); super.onDestroy(); }
 }
 '@
 [IO.File]::WriteAllText((Join-Path $fixtureRoot 'src\MainActivity.java'), $activitySource, (New-Object Text.UTF8Encoding $false))
 $manifestSource = @'
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.androiddevkit.fixture" android:versionCode="1" android:versionName="1.0"><uses-sdk android:minSdkVersion="23" android:targetSdkVersion="29"/><application android:label="DevKit M3 QA" android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="dev.androiddevkit.fixture" android:versionCode="1" android:versionName="1.0"><uses-sdk android:minSdkVersion="23" android:targetSdkVersion="29"/><application android:debuggable="true" android:label="DevKit M3 QA" android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>
 '@
 [IO.File]::WriteAllText((Join-Path $fixtureRoot 'AndroidManifest.xml'), $manifestSource, (New-Object Text.UTF8Encoding $false))
 & (Join-Path $javaRoot 'javac.exe') --release 8 -classpath $androidJar -d (Join-Path $fixtureRoot 'classes') (Join-Path $fixtureRoot 'src\MainActivity.java')

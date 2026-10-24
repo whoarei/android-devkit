@@ -387,6 +387,25 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             }
             if op.kind == "apk_install_wait" { "就绪后安装 APK" } else { "安装 APK" }
         }
+        "apk_set_install" => {
+            if op.target.is_none() { return Err(AppError::new("TARGET_REQUIRED", "请选择安装设备")); }
+            let set = crate::phone_apk::load(app, op.arg("setId")?)?;
+            op.args.insert("setHash".into(), digest_file(&crate::phone_apk::set_dir(app, &set.id)?.join("set.json"))?);
+            op.args.insert("package".into(), set.package.clone());
+            op.args.insert("version".into(), set.version.clone());
+            effects.push(format!("{} · versionCode={} · {} 个 APK · {:.1} MiB", set.package,set.version_code,set.members.len(),set.members.iter().map(|m|m.bytes).sum::<u64>() as f64/1048576.0));
+            effects.extend(set.members.iter().map(|m|format!("{} · {} · SHA-256 {}",m.file_name,if m.split.is_empty(){"base"}else{&m.split},m.sha256)));
+            warnings.push("所有 APK 在一次安装会话中提交；覆盖安装保留数据，冲突时不自动卸载或降级。安装后核对 versionCode 与 split 集合。".into());
+            "安装分包 APK"
+        }
+        "screen_record" | "screen_recover" => {
+            crate::phone_record::plan(app, &mut op, &mut effects, &mut warnings)?;
+            if op.kind == "screen_recover" { "取回已有录屏" } else { "录制屏幕" }
+        }
+        "file_upload" | "file_download" | "file_cleanup" | "file_restore" => {
+            crate::phone_files::plan(app, &mut op, &mut effects, &mut warnings)?;
+            match op.kind.as_str() { "file_upload" => "上传文件", "file_download" => "下载文件", "file_restore"=>"恢复被替换的旧目标", _ => "清理传输暂存" }
+        }
         "log_record" => {
             if op.target.is_none() {
                 return Err(AppError::new("TARGET_REQUIRED", "请选择采集设备"));

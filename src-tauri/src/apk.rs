@@ -17,7 +17,7 @@ impl App {
         {
             return Err(AppError::new(
                 "APK_ONLY",
-                "首版仅支持完整单 APK，不支持 AAB、APKS 或 XAPK",
+                "请选择 APK 文件；AAB、APKS、APKM 和 XAPK 容器暂不支持直接导入",
             ));
         }
         let meta = path.metadata()?;
@@ -106,7 +106,10 @@ impl App {
                     .cloned()
                     .unwrap_or_default();
                 if attrs.contains_key("manifest:split") {
-                    return Err(AppError::new("SPLIT_APK", "这是分包 APK，请选择完整单 APK"));
+                    return Err(AppError::new(
+                        "SPLIT_APK",
+                        "这是分包 APK，请从设备详情打开“分包 APK 安装”并选择整组文件",
+                    ));
                 }
             }
             Err(e) => {
@@ -303,7 +306,12 @@ pub fn parse_manifest(b: &[u8]) -> Result<std::collections::BTreeMap<String, Str
                     }
                 };
                 budget.charge(name.len() + 1 + key.len() + value.len())?;
-                attrs.insert(format!("{name}:{key}"), value.to_owned());
+                if name == "uses-split" && key == "name" {
+                    budget.charge(name.len() + key.len() + value.len() + 16)?;
+                    attrs.insert(format!("uses-split:name:{}", attrs.len()), value.to_owned());
+                } else {
+                    attrs.insert(format!("{name}:{key}"), value.to_owned());
+                }
             }
         }
         offset += size;

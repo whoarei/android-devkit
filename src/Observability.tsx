@@ -463,6 +463,7 @@ export function ArtifactsPanel({
     }
   }, [requestedTaskId, onRequestHandled]);
   const previewTrigger = useRef<HTMLElement | null>(null);
+  const [video, setVideo] = useState('');
   const wasPreviewing = useRef(false);
   const query = useQuery({
     queryKey: ['artifacts'],
@@ -516,7 +517,9 @@ export function ArtifactsPanel({
     run(async () => {
       previewTrigger.current =
         document.activeElement instanceof HTMLElement ? document.activeElement : null;
-      if (a.kind === 'screenshot') {
+      if (a.kind === 'video') {
+        setVideo(await call<string>('video_preview', { artifactId: a.id }));
+      } else if (a.kind === 'screenshot') {
         onScreenshot(await call('artifact_copy', { taskId: a.taskId, preview: true }));
       } else {
         onExport(await call('export_page', { artifactId: a.id, offset: 0 }));
@@ -550,7 +553,7 @@ export function ArtifactsPanel({
           onClose={() => setOpen(false)}
           wide
           className="artifact-modal"
-          hidden={previewOpen}
+          hidden={previewOpen || !!video}
         >
           <div className="artifact-summary">
             <span>
@@ -624,6 +627,12 @@ export function ArtifactsPanel({
               </div>
             )}
           </div>
+        </Modal>
+      )}
+      {video && (
+        <Modal title={tr('录屏预览')} onClose={() => setVideo('')} wide>
+          <video className="phone-video" controls src={video} />
+          <p className="hint">{tr('确认画面后可返回待保存文件另存 MP4。')}</p>
         </Modal>
       )}
     </>

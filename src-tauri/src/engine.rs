@@ -16,18 +16,27 @@ use std::{
 use tauri::Emitter;
 
 impl App {
-    async fn bound_adb(
+    pub(crate) async fn bound_adb(
         &self,
         settings: &Settings,
         target: &Target,
         args: Vec<String>,
         timeout: u64,
     ) -> Result<process::Output> {
+        process::run(self.bound_adb_spec(settings, target, args, timeout).await?).await
+    }
+    pub(crate) async fn bound_adb_spec(
+        &self,
+        settings: &Settings,
+        target: &Target,
+        args: Vec<String>,
+        timeout: u64,
+    ) -> Result<Spec> {
         let epoch = self.epoch.load(Ordering::SeqCst);
         let raw = android::host_request("host:devices-l")?;
         let current = android::parse_devices(&String::from_utf8_lossy(&raw), epoch);
         checked_target(target, &current, epoch)?;
-        android::adb(settings, Some(target), args, timeout).await
+        android::adb_spec(settings, Some(target), args, timeout).await
     }
     pub fn submit(
         self: &Arc<Self>,
@@ -251,6 +260,11 @@ impl App {
             }),
             Err(error) => self.update(id, |t| {
                 t.state = if (op.kind == "log_record" && !t.artifact.is_empty())
+                    || (op.kind == "screen_record"
+                        && matches!(t.phase.as_str(), "recording" | "pulling"))
+                    || (matches!(op.kind.as_str(), "file_upload" | "file_download")
+                        && op.optional("conflicts") == "replace"
+                        && t.phase == "publishing")
                     || matches!(
                         error.code.as_str(),
                         "TOOL_TIMEOUT" | "RESULT_UNKNOWN" | "PARTIAL_COMPLETE"
@@ -758,6 +772,15 @@ impl App {
                 .success()?;
                 Ok("系统已接受应用启动请求".into())
             }
+            "apk_set_install" => Box::pin(self.install_apk_set(id, op, settings)).await,
+            "screen_record" | "screen_recover" => {
+                Box::pin(self.screen_record(id, op, settings)).await
+            }
+            "file_upload" | "file_download" => {
+                Box::pin(self.transfer_files(id, op, settings)).await
+            }
+            "file_cleanup" => Box::pin(self.cleanup_transfer(op, settings)).await,
+            "file_restore" => Box::pin(self.restore_transfer(op)).await,
             "log_record" => self.record_logs(id, op).await,
             "capture" => {
                 self.phase(id, "capturing", "正在读取 PNG 二进制数据")?;
@@ -1521,7 +1544,7 @@ pub fn install_error(text: &str) -> AppError {
             "ABI_MISMATCH" => "APK 架构与设备不匹配",
             "SDK_MISMATCH" => "设备系统版本低于 APK 要求",
             "STORAGE_FULL" => "设备存储不足",
-            "MISSING_SPLIT" => "需要分包；P0 仅支持完整单 APK",
+            "MISSING_SPLIT" => "缺少必要分包；请使用分包 APK 安装并补齐 base 与所需 split",
             _ => "安装未确认成功，请检查原设备与错误详情",
         },
     )

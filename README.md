@@ -10,6 +10,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 0.4.0 完成一期功能收尾：新增 SDK 发现与复用、Java 环境检测与私有运行时配置、系统镜像按 API 分组、任务记录删除与采集清理、默认设备与就绪后安装、环境摘要复制及 AVD 空间统计；修复多模拟器目标歧义和升级安装时旧进程尚未退出的问题，并补充 35 场景故障专项验证。已有 SDK / Java 路径保持沿用。
 
+二期开发源码已实现 **分包 APK 安装 → 录屏 → 文件传输**，包含明确的冲突选择、完整暂存后发布与中断原件恢复；尚未另行发布。自动验证与实体手机待验项见 [二期实施与验收报告](docs/00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html)。
+
 ## 产品特性
 
 - **复用现有开发环境**：接入已有 Android SDK 和模拟器，统一查看和管理设备，减少重复配置。
@@ -81,7 +83,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 点击目标设备卡片上的“安装 APK”并选择文件，或将单个 APK 拖到该设备行。在安装面板核对设备名称、序列号和 APK 信息，点击“确认安装计划”，确认后提交任务。
 
-默认覆盖安装并保留应用数据。安装目标会绑定到本次选定的设备连接；设备断开后不会自动改投其他设备。当前支持单个完整 `.apk`，不支持直接安装 AAB 或分包 APK。
+默认覆盖安装并保留应用数据。安装目标会绑定到本次选定的设备连接；设备断开后不会自动改投其他设备。v0.4.0 发布版支持单个完整 `.apk`。当前开发源码新增“分包 APK 安装”：从设备详情多选 base / split APK 或选择目录，校验签名、版本与依赖后一次安装；AAB、APKS、APKM、XAPK 容器暂不支持直接导入。
 
 安装进度和结果保留在“任务中心”，可按任务名称、设备或状态检索。
 
@@ -115,11 +117,11 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 ### 数据存放位置
 
-| 内容                           | 默认位置                                           |
-| ------------------------------ | -------------------------------------------------- |
-| Android SDK | 设置中选择的目录，新配置默认为 `%LOCALAPPDATA%\Android\Sdk` |
-| 新建 AVD                       | `%LOCALAPPDATA%\AndroidDevKit\avd`，可在设置中调整 |
-| 应用状态、任务、下载缓存与截图 | `%LOCALAPPDATA%\AndroidDevKit`                     |
+| 内容                           | 默认位置                                                    |
+| ------------------------------ | ----------------------------------------------------------- |
+| Android SDK                    | 设置中选择的目录，新配置默认为 `%LOCALAPPDATA%\Android\Sdk` |
+| 新建 AVD                       | `%LOCALAPPDATA%\AndroidDevKit\avd`，可在设置中调整          |
+| 应用状态、任务、下载缓存与截图 | `%LOCALAPPDATA%\AndroidDevKit`                              |
 
 应用也会发现用户 `.android\avd` 下的已有模拟器。退出工作台与停止模拟器分开；有任务或待保存文件时，按退出面板提示处理。需要关闭窗口后继续在后台运行，可在设置中启用托盘。
 
@@ -167,6 +169,12 @@ pnpm.cmd tauri dev
 | `.agents/skills/`      | 项目维护用 skill，包括版本发布流程                                   |
 
 前端通过 `src/api.ts` 调用原生命令。修改 Rust 数据类型后运行 `pnpm.cmd bindings`，更新自动生成的 `src/bindings.ts`，不要直接编辑生成文件。
+
+### 二期开发源码的设备操作
+
+选择可用设备后，详情提供“分包 APK 安装”“录屏”“文件传输”。录屏默认 30 秒，可选 1–180 秒，停止后完整取回至待保存文件；可预览、另存或清理缓存。中断后选择“取回原录屏”，不会自动重录。
+
+文件传输支持共享存储浏览、多选文件或目录、拖入上传；同名目标必须明确选择保留、重命名或替换。先写入任务专属暂存，校验后发布；替换中断会保留旧目标备份，可从文件面板恢复，普通清理不会删除受保护原件。传输只访问 Download、Pictures、Movies、DCIM，不跟随链接或绕过私有目录。
 
 ### 检查与测试
 
@@ -216,7 +224,7 @@ powershell -NoProfile -File scripts/package-release.ps1
 ## 更多资料
 
 - [二期范围与验收基线：真机使用效率](docs/00009_20261024174538_Android-DevKit-Phase2-Scope.html)
-
+- [二期实施、自动验证与实机待验报告](docs/00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html)
 - [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)
 - [一期功能收口与验收记录](docs/00007_20261024162627_Android-DevKit-Phase1-Completion-Report.html)
 - [产品需求与交互方案](docs/00000_20261017232447_Android-DevKit-PRD.html)
@@ -228,3 +236,13 @@ powershell -NoProfile -File scripts/package-release.ps1
 - [任务删除交互方案](docs/00006_20261024145638_Android-DevKit-Task-Deletion-Design.html)
 
 历史报告记录对应阶段的验证范围。提交问题时，请附上应用版本、Windows 版本、连接方式和复现步骤；需要时可从“环境诊断”预览并导出诊断信息。
+
+二期隔离 SDK 验证（需要既有 E:\Android\sdk、API 29 default x86_64 镜像、Build-Tools 35 与 Android Studio JBR）：
+
+```powershell
+pnpm.cmd verify:phase2
+# 单独复验替换中断后的原件保护与恢复（仅一台专用 AVD）
+pnpm.cmd verify:phase2-recovery
+```
+
+该入口仅在 .qa/runtime 创建两台专用 AVD，验证分包升级与数据保留、录屏与取回、文件往返及提交点强杀恢复，并清理自己的设备实例。实际手机 USB / 无线和系统文件对话框仍按验收报告人工登记。

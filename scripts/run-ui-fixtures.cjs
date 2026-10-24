@@ -68,6 +68,7 @@ const root = path.resolve(__dirname, '..');
           'sdk-mirror',
           'java',
           'p0',
+          'phone',
         ]) {
       execFileSync(process.execPath, [path.join(__dirname, `check-${script}-ui.cjs`)], {
         cwd: root,

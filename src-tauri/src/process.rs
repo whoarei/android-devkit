@@ -18,6 +18,7 @@ pub struct Spec {
     pub env: BTreeMap<String, String>,
     pub timeout: u64,
     pub stdin: Option<String>,
+    pub cwd: Option<PathBuf>,
 }
 impl Spec {
     pub fn new(program: impl Into<PathBuf>, args: Vec<String>) -> Self {
@@ -27,10 +28,14 @@ impl Spec {
             env: Default::default(),
             timeout: 30,
             stdin: None,
+            cwd: None,
         }
     }
     pub fn command(&self) -> Command {
         let mut c = Command::new(&self.executable);
+        if let Some(cwd) = &self.cwd {
+            c.current_dir(cwd);
+        }
         c.args(&self.args)
             .envs(&self.env)
             .env_remove("ANDROID_SERIAL")

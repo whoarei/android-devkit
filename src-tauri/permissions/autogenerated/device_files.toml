@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-device-files"
+description = "Enables the device_files command without any pre-configured scope."
+commands.allow = ["device_files"]
+
+[[permission]]
+identifier = "deny-device-files"
+description = "Denies the device_files command without any pre-configured scope."
+commands.deny = ["device_files"]

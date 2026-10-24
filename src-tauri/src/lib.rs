@@ -19,6 +19,12 @@ mod java;
 mod lifecycle;
 mod log_buffer;
 mod observe;
+mod phone_apk;
+mod phone_files;
+mod phone_publish;
+mod phone_record;
+#[cfg(test)]
+mod phone_tests;
 mod plans;
 mod platform;
 mod privacy;
@@ -87,6 +93,12 @@ pub fn run() {
             commands::artifact_save,
             commands::artifact_copy,
             commands::apk_prepare,
+            commands::apk_set_prepare,
+            commands::apk_set_tools,
+            commands::phone_choose,
+            commands::device_files,
+            commands::transfer_prepare,
+            commands::video_preview,
             commands::log_read,
             commands::window_action,
             commands::window_state,

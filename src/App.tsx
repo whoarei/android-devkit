@@ -41,6 +41,7 @@ import {
 import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
+import { PhoneTools } from './PhoneTools';
 import { SdkManager } from './SdkManager';
 import { JavaConfiguration, JavaStatus } from './JavaEnvironment';
 import { defaultSdkDownload, sdkSourceName } from './SdkDownloadSettings';
@@ -238,6 +239,12 @@ export function App() {
     cleanups.push(listen('close-requested', () => setModal('close')));
     cleanups.push(
       getCurrentWebview().onDragDropEvent((event) => {
+        if (event.payload.type === 'drop' && document.body.dataset.phoneDrop === 'upload') {
+          window.dispatchEvent(
+            new CustomEvent('devkit-phone-drop', { detail: event.payload.paths }),
+          );
+          return;
+        }
         if (event.payload.type !== 'drop') return;
         if (event.payload.paths.length !== 1) {
           setError(t('每次仅支持拖入一个完整 APK 文件'));
@@ -916,6 +923,15 @@ export function App() {
                         </Button>
                       )}
                   </div>
+                  {target && (
+                    <PhoneTools
+                      key={deviceKey(target)}
+                      target={target}
+                      tasks={data?.tasks ?? []}
+                      prepare={prepare}
+                      planOpen={Boolean(plan)}
+                    />
+                  )}
                 </aside>
               )}
             </div>
@@ -1226,7 +1242,10 @@ export function App() {
             <Button
               primary
               danger={
-                plan.operation.kind.includes('delete') || plan.operation.kind.includes('wipe')
+                plan.operation.kind.includes('delete') ||
+                plan.operation.kind.includes('wipe') ||
+                (['file_upload', 'file_download'].includes(plan.operation.kind) &&
+                  plan.operation.args.conflicts === 'replace')
               }
               disabled={busy || plan.licenses.some((l) => !accepted.includes(l.hash))}
               onClick={() => void submit()}
