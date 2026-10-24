@@ -48,12 +48,9 @@
     font-size: 11px;
     padding-left: 16px;
   }
-  .title-env {
-    display: none;
-  }
   .main {
     margin-left: 72px;
-    padding: 23px 20px 55px;
+    padding: 23px 20px 24px;
   }
   .page-top {
     flex-wrap: wrap;
@@ -83,7 +80,7 @@
     position: fixed;
     right: 15px;
     top: 95px;
-    bottom: 50px;
+    bottom: 19px;
     overflow: auto;
     width: 280px;
     z-index: 35;
@@ -206,19 +203,6 @@
   }
   .log-toolbar .button {
     padding: 6px 8px;
-    font-size: 9px;
-  }
-  .status-end {
-    display: none;
-  }
-  .statusbar {
-    font-size: 9px;
-    padding-inline: 10px;
-  }
-  .statusbar > span:nth-child(2) {
-    max-width: 50%;
-  }
-  .statusbar button {
     font-size: 9px;
   }
   .modal-backdrop {

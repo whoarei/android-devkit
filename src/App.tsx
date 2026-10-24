@@ -310,10 +310,6 @@ export function App() {
           }}
           onDoubleClick={() => void call('window_action', { action: 'maximize' })}
         />
-        <span className="title-env">
-          {t('本机环境 ')}
-          <span>·</span> {data?.environment.adb ? t('已连接 SDK') : t('环境准备')}
-        </span>
         <button
           className="locale-switch"
           aria-label={theme === 'light' ? t('切换为暗色主题') : t('切换为亮色主题')}
@@ -888,19 +884,6 @@ export function App() {
           <Diagnostics guard={guard} prepare={prepare} onExport={requestExport} />
         )}
       </main>
-      <footer className="statusbar">
-        <span className="status-dot" />
-        <span>
-          {active.length
-            ? t('{0} 个任务进行中 \u00B7 {1}', active.length, active[0].message)
-            : t('工作空间就绪')}
-        </span>
-        <button onClick={() => setPage('tasks')}>
-          {active.length ? t('展开任务中心') : t('查看任务记录')}
-          <ChevronRight size={12} />
-        </button>
-        <span className="status-end">{t('Windows \u00B7 本地环境')}</span>
-      </footer>
       {toast && (
         <div className="toast" role="status">
           <Check size={17} />

@@ -107,14 +107,6 @@ textarea {
   height: 100%;
   flex: 1;
 }
-.title-env {
-  font-size: 10px;
-  color: var(--muted);
-  padding-right: 27px;
-}
-.title-env span {
-  padding: 0 5px;
-}
 .window-buttons {
   display: flex;
   height: 40px;
@@ -149,7 +141,7 @@ textarea {
 .sidebar {
   position: fixed;
   top: 40px;
-  bottom: 31px;
+  bottom: 0;
   left: 0;
   width: 220px;
   background: var(--sidebar);
@@ -253,7 +245,7 @@ nav button b {
 }
 .main {
   margin-left: 220px;
-  padding: 42px 40px 65px;
+  padding: 42px 40px 34px;
   min-height: 100vh;
   overflow: hidden;
 }
@@ -563,46 +555,6 @@ h1 {
   display: flex;
   justify-content: center;
   gap: 10px;
-}
-.statusbar {
-  height: 31px;
-  position: fixed;
-  bottom: 0;
-  inset-inline: 0;
-  background: var(--soft);
-  border-top: 1px solid var(--line);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 17px;
-  font-size: 10px;
-  color: var(--text-secondary);
-  z-index: 25;
-}
-.statusbar > span:nth-child(2) {
-  max-width: 65%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.statusbar button {
-  background: none;
-  border: 0;
-  font-size: 10px;
-  color: var(--success);
-  display: flex;
-  gap: 4px;
-  align-items: center;
-}
-.status-end {
-  margin-left: auto;
-  color: var(--muted);
-}
-.status-dot {
-  height: 5px;
-  width: 5px;
-  border-radius: 50%;
-  background: var(--success);
 }
 .detail-panel {
   background: var(--surface);
@@ -1047,7 +999,7 @@ h1 {
 }
 .change-bar {
   position: sticky;
-  bottom: 40px;
+  bottom: 9px;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -1658,7 +1610,7 @@ h1 {
 }
 .toast {
   position: fixed;
-  bottom: 53px;
+  bottom: 22px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
