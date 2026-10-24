@@ -4,11 +4,11 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.3.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.4.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
-一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，其余验收与发布事项暂缓执行，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
+一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，其余验收事项保留 TODO，发布按后续指令推进，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
 
-0.3.0 新增 SDK 下载源切换：支持 Google 官方、腾讯云镜像和自定义 HTTPS 源，仓库索引与安装包同步切换。官方校验默认开启，也可关闭并按所选源的校验值检查完整性。本版本同时包含交互式 ADB 终端与双击打开 SDK 目录功能。
+0.4.0 完成一期功能收尾：新增 SDK 发现与复用、Java 环境检测与私有运行时配置、系统镜像按 API 分组、任务记录删除与采集清理、默认设备与就绪后安装、环境摘要复制及 AVD 空间统计；修复多模拟器目标歧义和升级安装时旧进程尚未退出的问题，并补充 35 场景故障专项验证。已有 SDK / Java 路径保持沿用。
 
 ## 产品特性
 
@@ -30,8 +30,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.3.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.3.0/AndroidDevKit-0.3.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.3.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.3.0/AndroidDevKit-0.3.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.4.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.4.0/AndroidDevKit-0.4.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.4.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.4.0/AndroidDevKit-0.4.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 

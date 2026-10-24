@@ -19,7 +19,7 @@ $information = [ordered]@{
   createdBeijing = $created.ToString('yyyy-MM-dd HH:mm:ss zzz')
   sha256 = (Get-FileHash -LiteralPath $destinationExecutable -Algorithm SHA256).Hash.ToLowerInvariant()
   sizeBytes = (Get-Item -LiteralPath $destinationExecutable).Length
-  defaultSdk = 'E:\Android\sdk'
+  defaultSdk = '%LOCALAPPDATA%\Android\Sdk'
   signed = $false
 }
 $installer = Get-ChildItem -LiteralPath (Join-Path $repositoryRoot 'src-tauri/target/release/bundle/nsis') -Filter "*$($packageMetadata.version)*setup.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
