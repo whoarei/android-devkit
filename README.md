@@ -4,7 +4,9 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.2.1** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.2.2** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+
+0.2.2 修复模拟器旧锁文件中的 PID 被其他进程复用时误报“外部占用”的问题。现在会核对模拟器进程身份和启动时间，并保留真实文件占用检查。
 
 ## 产品特性
 
@@ -24,8 +26,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** `AndroidDevKit-X.Y.Z-setup.exe`：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** `AndroidDevKit-X.Y.Z-windows-x64.zip`：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.2.2-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.2.2/AndroidDevKit-0.2.2-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.2.2-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.2.2/AndroidDevKit-0.2.2-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 

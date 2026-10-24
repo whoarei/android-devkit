@@ -15,11 +15,12 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RELEASE_NOTES: |
-    Android DevKit v0.2.1 for Windows x64 — changes since v0.2.0.
+    Android DevKit v0.2.2 for Windows x64 — changes since v0.2.1.
 
     改进与修复
-    - 支持 Ctrl + + / Ctrl + - 放大或缩小整个界面，文字、按钮和布局同步缩放；Ctrl + 0 恢复默认大小。
-    - README 补充界面缩放快捷键说明。
+    - 修复模拟器旧锁文件中的 PID 被其他进程复用后，设备工作台误报“外部占用”的问题；即使 adb devices 中没有该设备，也能正确排除这类旧锁。
+    - 同时核对锁记录对应的模拟器进程身份与启动时间，保留真实文件锁保护；不删除外部锁文件或结束无关进程。
+    - 增加 PID 复用、进程启动时间及真实文件占用的回归测试。
 
     Installation and compatibility
     - Download the setup executable to install, or extract the portable ZIP. Requires Windows 11 x64 and WebView2 Runtime. Android SDK components are downloaded separately under their own licenses.
