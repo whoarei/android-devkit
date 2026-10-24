@@ -6,7 +6,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 当前版本：**0.4.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
-一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，其余验收事项保留 TODO，发布按后续指令推进，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
+一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，v0.4.0 已发布，其余验收事项继续保留 TODO，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
 
 0.4.0 完成一期功能收尾：新增 SDK 发现与复用、Java 环境检测与私有运行时配置、系统镜像按 API 分组、任务记录删除与采集清理、默认设备与就绪后安装、环境摘要复制及 AVD 空间统计；修复多模拟器目标歧义和升级安装时旧进程尚未退出的问题，并补充 35 场景故障专项验证。已有 SDK / Java 路径保持沿用。
 
@@ -214,6 +214,8 @@ powershell -NoProfile -File scripts/package-release.ps1
 [GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 仅在推送 `v*` 标签或在 Actions 页面手动运行时执行检查、测试和 Windows 打包。标签推送在检查通过后自动发布对应版本；手动运行用于检查和打包。维护者的版本确认、标签发布与产物核验步骤见 [版本发布 skill](.agents/skills/android-devkit-release/SKILL.md)。
 
 ## 更多资料
+
+- [二期范围与验收基线：真机使用效率](docs/00009_20261024174538_Android-DevKit-Phase2-Scope.html)
 
 - [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)
 - [一期功能收口与验收记录](docs/00007_20261024162627_Android-DevKit-Phase1-Completion-Report.html)
