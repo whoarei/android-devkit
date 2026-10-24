@@ -15,12 +15,15 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RELEASE_NOTES: |
-    Android DevKit v0.2.2 for Windows x64 — changes since v0.2.1.
+    Android DevKit v0.3.0 for Windows x64 — changes since v0.2.2.
 
-    改进与修复
-    - 修复模拟器旧锁文件中的 PID 被其他进程复用后，设备工作台误报“外部占用”的问题；即使 adb devices 中没有该设备，也能正确排除这类旧锁。
-    - 同时核对锁记录对应的模拟器进程身份与启动时间，保留真实文件锁保护；不删除外部锁文件或结束无关进程。
-    - 增加 PID 复用、进程启动时间及真实文件占用的回归测试。
+    新增与改进
+    - SDK 下载源：支持 Google 官方、腾讯云镜像和自定义 HTTPS 根地址，四类仓库索引与安装包同步切换；引导工具和模拟器依赖下载也使用所选来源。
+    - 官方校验默认开启，可按需关闭。开启时使用独立保存的 Google 官方记录；关闭后仍按所选源提供的校验值检查完整性，任务记录注明来源与校验方式。
+    - 来源切换提供连接检查、待应用状态和原子保存；刷新失败保留原来源，SDK 安装任务进行中阻止切换，旧安装计划不跨来源复用。
+    - 新增交互式 ADB 终端和本机 PowerShell，多会话支持输入、实时输出、切页保留与关闭；ADB Shell 固定到明确选择的设备。
+    - 双击 SDK 状态区域可直接打开当前 SDK 目录。
+    - 增加来源映射、可信记录与归档完整性、原子回滚、固定归档安装和镜像界面的回归验证。
 
     Installation and compatibility
     - Download the setup executable to install, or extract the portable ZIP. Requires Windows 11 x64 and WebView2 Runtime. Android SDK components are downloaded separately under their own licenses.

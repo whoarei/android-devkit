@@ -4,14 +4,15 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.2.2** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.3.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
-0.2.2 修复模拟器旧锁文件中的 PID 被其他进程复用时误报“外部占用”的问题。现在会核对模拟器进程身份和启动时间，并保留真实文件占用检查。
+0.3.0 新增 SDK 下载源切换：支持 Google 官方、腾讯云镜像和自定义 HTTPS 源，仓库索引与安装包同步切换。官方校验默认开启，也可关闭并按所选源的校验值检查完整性。本版本同时包含交互式 ADB 终端与双击打开 SDK 目录功能。
 
 ## 产品特性
 
 - **复用现有开发环境**：接入已有 Android SDK 和模拟器，统一查看和管理设备，减少重复配置。
 - **更容易找到需要的 SDK 组件**：按 Android 版本、镜像类型和架构分类查找，结合搜索与安装状态筛选，按需安装或更新组件。
+- **按网络条件切换 SDK 下载源**：选择 Google 官方、腾讯云镜像或自定义 HTTPS 根地址，检查后统一切换目录与归档下载；官方校验记录可缓存复用，也可按需关闭官方校验。
 - **为不同测试场景准备模拟器**：选择手机或平板，调整内存、屏幕、摄像头、网络和存储配置，用不同的设备环境验证应用表现。
 - **灵活连接真机**：支持 USB、无线调试配对和网络 ADB，根据设备与网络条件选择连接方式，并查看连接与授权状态。
 - **明确每次 APK 安装的目标**：选择或拖入 APK，核对目标设备和应用信息后安装；默认保留应用数据，设备断线后不会自动改投其他设备。
@@ -27,8 +28,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.2.2-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.2.2/AndroidDevKit-0.2.2-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.2.2-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.2.2/AndroidDevKit-0.2.2-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.3.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.3.0/AndroidDevKit-0.3.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.3.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.3.0/AndroidDevKit-0.3.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
@@ -44,7 +45,9 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 - **SDK Platforms**：按 Android API 查找平台与源码；系统镜像按 AOSP、Google APIs、Google Play，再按 ABI 展开。
 - **SDK Tools**：查找 Platform-Tools、Emulator、Build-Tools 等工具及其版本。
-- **SDK Update Sites**：查看仓库状态，管理自定义更新站点。
+- **下载源与站点**：选择 Google 官方、腾讯云镜像或自定义 HTTPS 仓库根地址，点击“检查连接”后“应用并刷新”；已有 SDK 安装任务结束后才能切换。自定义源应保留 Android 官方目录结构，第三方附加站点仍使用自身地址。
+
+“使用 Google 官方校验值验证安装包”默认开启。官方暂不可达时可使用已保存的官方记录；所选版本缺少匹配记录时暂缓安装。关闭此选项后仍按下载源提供的校验值验证完整性，任务记录会注明校验方式。新安装或升级后先刷新目录，以取得归档与校验元数据。
 
 使用搜索与状态筛选缩小范围，选择变更后查看计划，确认许可和操作内容再执行。工具或 Java 缺失时，按应用提供的环境准备提示处理；“环境诊断”可检查实际工具链和硬件加速情况。
 
@@ -194,6 +197,7 @@ powershell -NoProfile -File scripts/package-release.ps1
 - [Tauri 技术方案](docs/00001_20261017234246_Android-DevKit-Technical-Design.html)
 - [M3 实现与验证报告](docs/00002_20261018011008_Android-DevKit-M3-Implementation-Report.html)
 - [M4 核心功能与内部验收报告](docs/00003_20261018063845_Android-DevKit-M4-Progress-Report.html)
+- [SDK 下载源切换交互原型](docs/00004_20261024112652_Android-DevKit-SDK-Mirror-Prototype.html)
 - [SDK 下载源切换交互原型](docs/00004_20261024112652_Android-DevKit-SDK-Mirror-Prototype.html)
 
 历史报告记录对应阶段的验证范围。提交问题时，请附上应用版本、Windows 版本、连接方式和复现步骤；需要时可从“环境诊断”预览并导出诊断信息。

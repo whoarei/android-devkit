@@ -18,6 +18,8 @@ fn main() {
         "settings_save",
         "catalog_refresh",
         "sdk_sites_status",
+        "sdk_source_check",
+        "sdk_source_apply",
         "plan_create",
         "task_submit",
         "task_cancel",

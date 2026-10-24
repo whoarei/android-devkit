@@ -70,7 +70,7 @@ async fn sdk_repository_catalog() {
             sdk_channel: channel,
             ..Default::default()
         };
-        let (packages, statuses) = crate::repository::fetch(&settings).await.unwrap();
+        let (packages, statuses) = crate::repository::fetch(&settings, &root).await.unwrap();
         assert!(
             statuses.iter().all(|site| site.error.is_empty()),
             "{statuses:?}"

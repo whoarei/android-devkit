@@ -24,6 +24,8 @@ mod recovery;
 #[cfg(test)]
 mod regression_tests;
 mod repository;
+mod sdk_installer;
+mod sdk_source;
 mod storage;
 mod terminal;
 mod updater;
@@ -61,6 +63,8 @@ pub fn run() {
             commands::settings_save,
             commands::catalog_refresh,
             commands::sdk_sites_status,
+            commands::sdk_source_check,
+            commands::sdk_source_apply,
             commands::plan_create,
             commands::task_submit,
             commands::task_cancel,

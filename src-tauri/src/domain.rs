@@ -62,6 +62,37 @@ pub struct Settings {
     pub sdk_sites: Vec<SdkSite>,
     #[serde(default)]
     pub sdk_channel: u8,
+    #[serde(default)]
+    pub sdk_download: SdkDownloadSource,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SdkDownloadSource {
+    pub kind: String,
+    pub name: String,
+    pub url: String,
+    pub verify_official: bool,
+}
+impl Default for SdkDownloadSource {
+    fn default() -> Self {
+        Self {
+            kind: "google".into(),
+            name: String::new(),
+            url: String::new(),
+            verify_official: true,
+        }
+    }
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SdkSourceCheck {
+    pub sites: Vec<SdkSiteStatus>,
+    pub archive_url: String,
+    pub archive_error: String,
+    #[cfg_attr(test, ts(type = "number"))]
+    pub checked_at: u64,
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -89,6 +120,7 @@ impl Default for Settings {
             tray_enabled: false,
             sdk_sites: Vec::new(),
             sdk_channel: 0,
+            sdk_download: SdkDownloadSource::default(),
         }
     }
 }
@@ -156,6 +188,15 @@ pub struct SdkPackage {
     pub channel: u8,
     #[serde(default)]
     pub source_url: String,
+    #[serde(default)]
+    pub metadata_key: String,
+    #[serde(default)]
+    pub official_checksum: String,
+    #[serde(default)]
+    pub official_status: String,
+    #[serde(default)]
+    #[cfg_attr(test, ts(type = "number"))]
+    pub official_checked_at: u64,
 }
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

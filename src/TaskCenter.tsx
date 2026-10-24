@@ -355,6 +355,20 @@ function TaskRow({
             <dd>{new Date(task.createdAt * 1000).toLocaleString(getLocale())}</dd>
             <dt>{t('当前阶段')}</dt>
             <dd>{task.phase}</dd>
+            {task.operation.args.sdkDownloadSource && (
+              <>
+                <dt>{t('下载源')}</dt>
+                <dd>{task.operation.args.sdkDownloadSource}</dd>
+                <dt>{t('仓库根地址')}</dt>
+                <dd>{task.operation.args.sdkDownloadUrl}</dd>
+                <dt>{t('官方校验')}</dt>
+                <dd>
+                  {task.operation.args.sdkOfficialVerification === 'true'
+                    ? t('已开启')
+                    : t('已关闭，按下载源记录验证完整性')}
+                </dd>
+              </>
+            )}
           </dl>
           <p>{t(task.message)}</p>
           {isCapture && (

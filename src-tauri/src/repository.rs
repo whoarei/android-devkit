@@ -29,13 +29,18 @@ pub fn builtins() -> Vec<SdkSite> {
     .collect()
 }
 pub fn validate(settings: &Settings) -> Result<()> {
+    crate::sdk_source::normalize(&settings.sdk_download)?;
     if settings.sdk_channel > 3 || settings.sdk_sites.len() > 32 {
         return Err(AppError::new(
             "INVALID_SDK_SITES",
             "更新通道须为 0～3，自定义站点最多 32 个",
         ));
     }
-    let mut seen: Vec<_> = builtins().into_iter().map(|site| site.url).collect();
+    let mut seen: Vec<_> = crate::sdk_source::sites(settings)?
+        .into_iter()
+        .chain(builtins())
+        .map(|site| site.url)
+        .collect();
     for site in &settings.sdk_sites {
         let url = reqwest::Url::parse(&site.url)
             .map_err(|_| AppError::new("INVALID_SDK_SITE", "请输入有效的 HTTPS 仓库 XML 地址"))?;
@@ -72,7 +77,8 @@ pub fn package_enabled(package: &SdkPackage, settings: &Settings) -> bool {
     };
     channel <= settings.sdk_channel
         && (package.source_url.is_empty()
-            || builtins().iter().any(|site| site.url == package.source_url)
+            || crate::sdk_source::sites(settings)
+                .is_ok_and(|sites| sites.iter().any(|site| site.url == package.source_url))
             || settings
                 .sdk_sites
                 .iter()
@@ -83,7 +89,8 @@ pub fn statuses(data: &Path, settings: &Settings) -> Vec<SdkSiteStatus> {
         .ok()
         .and_then(|bytes| serde_json::from_slice(&bytes).ok())
         .unwrap_or_default();
-    builtins()
+    crate::sdk_source::sites(settings)
+        .unwrap_or_default()
         .into_iter()
         .map(|site| (site, true))
         .chain(settings.sdk_sites.iter().cloned().map(|site| (site, false)))
@@ -139,12 +146,14 @@ fn merge_site(
     }
     Ok(count)
 }
-pub async fn fetch(settings: &Settings) -> Result<(Vec<SdkPackage>, Vec<SdkSiteStatus>)> {
+pub async fn fetch(
+    settings: &Settings,
+    data: &Path,
+) -> Result<(Vec<SdkPackage>, Vec<SdkSiteStatus>)> {
     validate(settings)?;
-    let client = bootstrap::client(settings)?;
     let mut packages = BTreeMap::<String, SdkPackage>::new();
     let mut statuses = Vec::new();
-    for (site, builtin) in builtins()
+    for (site, builtin) in crate::sdk_source::sites(settings)?
         .into_iter()
         .map(|site| (site, true))
         .chain(settings.sdk_sites.iter().cloned().map(|site| (site, false)))
@@ -158,37 +167,26 @@ pub async fn fetch(settings: &Settings) -> Result<(Vec<SdkPackage>, Vec<SdkSiteS
         };
         if site.enabled {
             status.checked_at = now();
-            let result = async {
+            let result: Result<Vec<SdkPackage>> = async {
                 let url = reqwest::Url::parse(&site.url)
                     .map_err(|e| AppError::new("INVALID_SDK_SITE", e.to_string()))?;
-                let mut response = client
-                    .get(url.clone())
-                    .timeout(std::time::Duration::from_secs(40))
-                    .send()
-                    .await
-                    .map_err(|e| AppError::new("NETWORK", e.to_string()))?
-                    .error_for_status()
-                    .map_err(|e| AppError::new("NETWORK", e.to_string()))?;
-                let mut bytes = Vec::new();
-                while let Some(chunk) = response
-                    .chunk()
-                    .await
-                    .map_err(|e| AppError::new("NETWORK", e.to_string()))?
-                {
-                    if bytes.len() + chunk.len() > 24 * 1024 * 1024 {
-                        return Err(AppError::new(
-                            "CATALOG_TOO_LARGE",
-                            "仓库目录超出 24 MiB 上限",
-                        ));
-                    }
-                    bytes.extend_from_slice(&chunk);
-                }
-                let xml = std::str::from_utf8(&bytes)
-                    .map_err(|_| AppError::new("CATALOG_FORMAT", "仓库 XML 必须使用 UTF-8"))?;
+                let xml = crate::sdk_source::fetch_xml(settings, &site.url, 20).await?;
                 let base = url
                     .join(".")
                     .map_err(|e| AppError::new("CATALOG_FORMAT", e.to_string()))?;
-                let mut parsed = android::parse_catalog(xml, base.as_str(), false)?;
+                let mut parsed = android::parse_catalog(&xml, base.as_str(), false)?;
+                let key = digest(xml.as_bytes());
+                let path = crate::sdk_source::metadata_path(data, &key)?;
+                std::fs::create_dir_all(path.parent().unwrap())?;
+                if !path.exists() {
+                    std::fs::write(path, &xml)?;
+                }
+                for package in &mut parsed {
+                    package.metadata_key = key.clone();
+                    if builtin {
+                        package.url = crate::sdk_source::map_archive(settings, &package.url)?;
+                    }
+                }
                 parsed.retain(|package| package.channel <= settings.sdk_channel);
                 Ok(parsed)
             }
@@ -203,7 +201,39 @@ pub async fn fetch(settings: &Settings) -> Result<(Vec<SdkPackage>, Vec<SdkSiteS
         }
         statuses.push(status);
     }
-    Ok((packages.into_values().collect(), statuses))
+    let mut packages: Vec<_> = packages.into_values().collect();
+    crate::sdk_source::official_records(data, settings, &mut packages).await?;
+    Ok((packages, statuses))
+}
+pub async fn check(settings: &Settings, data: &Path) -> Result<SdkSourceCheck> {
+    let (packages, statuses) = fetch(settings, data).await?;
+    let package = packages.iter().find(|p| p.id == "platform-tools");
+    let archive_url = package.map(|p| p.url.clone()).unwrap_or_default();
+    let archive_error = if let Some(package) = package {
+        match bootstrap::client(settings)?
+            .head(&package.url)
+            .timeout(std::time::Duration::from_secs(15))
+            .send()
+            .await
+        {
+            Ok(response) if response.status().is_success() => {
+                crate::sdk_source::map_archive(settings, response.url().as_str())
+                    .err()
+                    .map(|e| e.message)
+                    .unwrap_or_default()
+            }
+            Ok(response) => format!("安装包地址返回 {}", response.status()),
+            Err(error) => error.to_string(),
+        }
+    } else {
+        "仓库未提供 Windows Platform-Tools 安装包".into()
+    };
+    Ok(SdkSourceCheck {
+        sites: statuses.into_iter().take(4).collect(),
+        archive_url,
+        archive_error,
+        checked_at: now(),
+    })
 }
 fn property(value: &str) -> String {
     let mut result = String::new();

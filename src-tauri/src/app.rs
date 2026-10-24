@@ -18,6 +18,7 @@ pub struct App {
     pub apks: Mutex<HashMap<String, ApkInfo>>,
     pub catalog: Mutex<Vec<SdkPackage>>,
     pub catalog_gate: tokio::sync::Mutex<()>,
+    pub configuration_gate: Mutex<()>,
     pub epoch: AtomicU64,
     pub draining: AtomicBool,
     pub update_gate: tokio::sync::RwLock<()>,
@@ -36,9 +37,15 @@ pub struct App {
 impl App {
     pub fn new(data: PathBuf) -> Result<Arc<Self>> {
         std::fs::create_dir_all(&data)?;
-        let catalog = std::fs::read(data.join("catalog.json"))
-            .ok()
-            .and_then(|b| serde_json::from_slice(&b).ok())
+        let store = Store::open(&data.join("state/devkit.db"))?;
+        let catalog = store
+            .sdk_catalog()
+            .map(|(packages, _)| packages)
+            .or_else(|| {
+                std::fs::read(data.join("catalog.json"))
+                    .ok()
+                    .and_then(|b| serde_json::from_slice(&b).ok())
+            })
             .unwrap_or_default();
         let mut apks = HashMap::new();
         if let Ok(entries) = std::fs::read_dir(data.join("apks")) {
@@ -54,13 +61,14 @@ impl App {
         }
         Ok(Arc::new(Self {
             terminals: crate::terminal::TerminalManager::default(),
-            store: Store::open(&data.join("state/devkit.db"))?,
+            store,
             data,
             handle: Mutex::new(None),
             plans: Mutex::new(HashMap::new()),
             apks: Mutex::new(apks),
             catalog: Mutex::new(catalog),
             catalog_gate: tokio::sync::Mutex::new(()),
+            configuration_gate: Mutex::new(()),
             epoch: AtomicU64::new(now()),
             draining: AtomicBool::new(false),
             update_gate: tokio::sync::RwLock::new(()),
@@ -178,17 +186,14 @@ impl App {
     pub async fn refresh_catalog(&self) -> Result<Vec<String>> {
         let _guard = self.catalog_gate.lock().await;
         let settings = self.store.settings();
-        let (p, statuses) = crate::repository::fetch(&settings).await?;
+        let (p, statuses) = crate::repository::fetch(&settings, &self.data).await?;
+        let _configuration_guard = self.configuration_gate.lock().unwrap();
         if serde_json::to_vec(&settings)? != serde_json::to_vec(&self.store.settings())? {
             return Err(AppError::new(
                 "CATALOG_SETTINGS_CHANGED",
                 "刷新期间设置发生变化，请按当前设置重新刷新目录",
             ));
         }
-        std::fs::write(
-            self.data.join("sdk-site-status.json"),
-            serde_json::to_vec(&statuses)?,
-        )?;
         let w: Vec<_> = statuses
             .iter()
             .filter(|status| !status.error.is_empty())
@@ -205,13 +210,88 @@ impl App {
                 },
             ));
         }
-        std::fs::write(self.data.join("catalog.json"), serde_json::to_vec(&p)?)?;
+        self.store.save_sdk_catalog(None, &p, &statuses)?;
         *self.catalog.lock().unwrap() = p;
         self.notify();
         Ok(w)
     }
     pub fn prepare_plan(&self, operation: Operation) -> Result<Plan> {
+        let _guard = self.configuration_gate.lock().unwrap();
         crate::plans::build(self, operation)
+    }
+    pub fn sdk_tasks_active(&self) -> Result<bool> {
+        Ok(self.store.active_tasks()?.iter().any(|task| {
+            matches!(
+                task.operation.kind.as_str(),
+                "sdk_install" | "sdk_remove" | "bootstrap" | "avd_create"
+            )
+        }))
+    }
+    pub async fn check_sdk_source(&self, source: SdkDownloadSource) -> Result<SdkSourceCheck> {
+        let _guard = self.catalog_gate.lock().await;
+        let mut settings = self.store.settings();
+        settings.sdk_download = crate::sdk_source::normalize(&source)?;
+        crate::repository::check(&settings, &self.data).await
+    }
+    pub async fn apply_sdk_source(&self, source: SdkDownloadSource) -> Result<Vec<String>> {
+        let _update_guard = self.allow_update_sensitive_work()?;
+        let _catalog_guard = self.catalog_gate.lock().await;
+        let _sdk_guard = self
+            .sdk_gate
+            .try_write()
+            .map_err(|_| AppError::new("TASKS_ACTIVE", "SDK 安装任务进行中，结束后可应用"))?;
+        if self.sdk_tasks_active()? {
+            return Err(AppError::new(
+                "TASKS_ACTIVE",
+                "SDK 安装任务进行中，结束后可应用",
+            ));
+        }
+        let previous = self.store.settings();
+        let mut settings = previous.clone();
+        settings.sdk_download = crate::sdk_source::normalize(&source)?;
+        let (packages, statuses) = crate::repository::fetch(&settings, &self.data).await?;
+        if packages.is_empty()
+            || statuses
+                .iter()
+                .take(4)
+                .any(|site| !site.error.is_empty() || site.package_count == 0)
+        {
+            return Err(AppError::new(
+                "SDK_SOURCE_UNAVAILABLE",
+                "新下载源目录未完整加载，已保留原下载源与目录",
+            )
+            .detail(
+                statuses
+                    .iter()
+                    .filter(|s| !s.error.is_empty())
+                    .map(|s| format!("{}: {}", s.name, s.error))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ));
+        }
+        let _configuration_guard = self.configuration_gate.lock().unwrap();
+        if self.sdk_tasks_active()? {
+            return Err(AppError::new(
+                "TASKS_ACTIVE",
+                "SDK 安装任务进行中，结束后可应用",
+            ));
+        }
+        if serde_json::to_vec(&previous)? != serde_json::to_vec(&self.store.settings())? {
+            return Err(AppError::new(
+                "CATALOG_SETTINGS_CHANGED",
+                "检查期间设置发生变化，请重新检查下载源",
+            ));
+        }
+        self.store
+            .save_sdk_catalog(Some(&settings), &packages, &statuses)?;
+        *self.catalog.lock().unwrap() = packages;
+        self.plans.lock().unwrap().clear();
+        self.notify();
+        Ok(statuses
+            .iter()
+            .filter(|site| !site.error.is_empty())
+            .map(|site| format!("{}: {}", site.name, site.error))
+            .collect())
     }
     pub fn monitor(self: &Arc<Self>) {
         let app = self.clone();

@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Android DevKit · SDK 下载源切换交互原型</title>
+<style>
+:root{color-scheme:light;--doc-bg:light-dark(#f5f7f2,#101712);--doc-paper:light-dark(#fff,#1a261e);--doc-ink:light-dark(#23382d,#dbe7de);--doc-muted:light-dark(#637466,#a7b9ad);--doc-line:light-dark(#dfe7db,#33453a);--doc-green:light-dark(#24694b,#a2e2ba);--doc-soft:light-dark(#edf3e8,#213127)}
+*{box-sizing:border-box}body{margin:0;background:var(--doc-bg);color:var(--doc-ink);font:14px/1.8 'Segoe UI','Microsoft YaHei',sans-serif}a{color:var(--doc-green);text-underline-offset:3px}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible{outline:2px solid var(--doc-green);outline-offset:3px}.doc-wrap{max-width:1192px;margin:auto;padding:36px 32px 75px}.doc-header{padding:0 0 25px;border-bottom:1px solid var(--doc-line);margin-bottom:25px}.doc-kicker{font-size:11px;letter-spacing:2px;color:var(--doc-muted)}.doc-header h1{font-size:30px;line-height:1.4;margin:10px 0}.doc-header p{margin:8px 0;color:var(--doc-muted)}.doc-meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--doc-muted)}.doc-pill{background:var(--doc-soft);padding:3px 10px;border-radius:5px;color:var(--doc-green)}.doc-nav{display:flex;gap:20px;margin-top:17px;flex-wrap:wrap;font-size:12px}.doc-section{margin-top:42px}.doc-section h2{font-size:21px;margin:0 0 14px}.doc-section h3{font-size:15px;margin:23px 0 8px}.doc-section p{margin:9px 0}.doc-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:15px;padding:13px 16px;background:var(--doc-paper);border:1px solid var(--doc-line);border-radius:8px;font-size:12px}.doc-toolbar select{padding:6px 10px;border:1px solid var(--doc-line);border-radius:4px;background:var(--doc-paper);color:var(--doc-ink);max-width:100%}.doc-toolbar label{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.doc-note{font-size:12px;color:var(--doc-muted)}.doc-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.doc-card{background:var(--doc-paper);border:1px solid var(--doc-line);padding:17px 20px;border-radius:8px}.doc-card h3{margin:0 0 8px}.doc-step{display:flex;gap:12px;align-items:flex-start;margin:14px 0}.doc-step>span{flex-shrink:0;width:25px;height:25px;display:grid;place-items:center;background:var(--doc-soft);color:var(--doc-green);border-radius:50%;font-size:12px}.doc-step p{margin:0}.doc-table-wrap{overflow-x:auto}.doc-table{border-collapse:collapse;width:100%;background:var(--doc-paper);font-size:12px}.doc-table th,.doc-table td{border:1px solid var(--doc-line);padding:12px 14px;text-align:left;vertical-align:top}.doc-table th{background:var(--doc-soft);font-weight:600}.doc-table td:first-child{min-width:110px}.doc-table code,code{font-family:Consolas,monospace;overflow-wrap:anywhere;font-size:.92em}.doc-callout{border-left:3px solid var(--doc-green);padding:12px 17px;background:var(--doc-soft);margin:18px 0}.doc-footer{border-top:1px solid var(--doc-line);margin-top:40px;padding-top:17px;font-size:12px;color:var(--doc-muted)}ul,ol{padding-left:21px}li{margin:7px 0}details.doc-review{background:var(--doc-paper);border:1px solid var(--doc-line);border-radius:8px;padding:16px 20px;margin-top:18px}details.doc-review summary{cursor:pointer;font-weight:600}.doc-flow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:17px 0}.doc-flow span{background:var(--doc-soft);padding:7px 12px;border-radius:4px;font-size:12px}.doc-flow b{font-weight:400;color:var(--doc-muted)}@media(max-width:700px){.doc-wrap{padding:25px 15px 50px}.doc-header h1{font-size:25px}.doc-grid{grid-template-columns:1fr}.doc-toolbar{padding:12px}.doc-table th,.doc-table td{padding:9px}.doc-table{min-width:650px}}@media print{body{background:white}.doc-wrap{padding:0}.doc-toolbar{display:none}.doc-section{break-inside:avoid}#ad-sdk-prototype .ad-layout{min-height:0}.doc-table{min-width:0}}
+</style>
+</head>
+<body>
+<main class="doc-wrap">
+  <header class="doc-header">
+    <div class="doc-kicker">ANDROID DEVKIT / INTERACTION DESIGN</div>
+    <h1>SDK 下载源切换</h1>
+    <p>Google 官方、腾讯云镜像与自定义源；仓库索引和安装包同步切换。v0.3.0 按最终要求将官方校验调整为默认开启的可选项；关闭后仍按下载源记录校验归档完整性。</p>
+    <div class="doc-meta"><span class="doc-pill">可点击原型 · v1</span><span>北京时间 2026-10-24 11:26:52</span><span>交互设计基线；功能已纳入 v0.3.0</span></div>
+    <nav class="doc-nav" aria-label="设计文档目录"><a href="#prototype">试用原型</a><a href="#structure">入口与主流程</a><a href="#rules">切换与校验规则</a><a href="#states">异常状态</a><a href="#acceptance">验收场景</a></nav>
+  </header>
+  <section id="prototype" aria-label="可点击交互原型">
+    <div class="doc-toolbar">
+      <label>预览状态<select id="doc-scenario" aria-label="预览状态"><option value="normal">正常切换</option><option value="network">连接失败</option><option value="coverage">缺少官方校验记录</option><option value="busy">SDK 安装任务进行中</option><option value="mismatch">安装包校验失败</option></select></label>
+      <label><input id="doc-dark" type="checkbox">深色预览</label>
+      <span class="doc-note">所有连接检测、下载和保存均为本地演示，不修改真实 SDK。</span>
+    </div>
+    <script id="ad-local-icons">
+if(!globalThis.lucide){const artwork={"smartphone":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-smartphone\" aria-hidden=\"true\"><rect width=\"14\" height=\"20\" x=\"5\" y=\"2\" rx=\"2\" ry=\"2\"></rect><path d=\"M12 18h.01\"></path></svg>","package":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-package\" aria-hidden=\"true\"><path d=\"M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z\"></path><path d=\"M12 22V12\"></path><path d=\"m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7\"></path><path d=\"m7.5 4.27 9 5.15\"></path></svg>","list-checks":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-list-checks\" aria-hidden=\"true\"><path d=\"m3 17 2 2 4-4\"></path><path d=\"m3 7 2 2 4-4\"></path><path d=\"M13 6h8\"></path><path d=\"M13 12h8\"></path><path d=\"M13 18h8\"></path></svg>","activity":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-activity\" aria-hidden=\"true\"><path d=\"M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2\"></path></svg>","settings":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-settings\" aria-hidden=\"true\"><path d=\"M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z\"></path><circle cx=\"12\" cy=\"12\" r=\"3\"></circle></svg>","globe-2":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-earth\" aria-hidden=\"true\"><path d=\"M21.54 15H17a2 2 0 0 0-2 2v4.54\"></path><path d=\"M7 3.34V5a3 3 0 0 0 3 3a2 2 0 0 1 2 2c0 1.1.9 2 2 2a2 2 0 0 0 2-2c0-1.1.9-2 2-2h3.17\"></path><path d=\"M11 21.95V18a2 2 0 0 0-2-2a2 2 0 0 1-2-2v-1a2 2 0 0 0-2-2H2.05\"></path><circle cx=\"12\" cy=\"12\" r=\"10\"></circle></svg>","shield-check":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>","loader-circle":"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-loader-circle\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-6.219-8.56\"></path></svg>"};globalThis.lucide={createIcons(){document.querySelectorAll("i[data-lucide]").forEach(node=>{const markup=artwork[node.dataset.lucide];if(markup)node.outerHTML=markup;});}};}
+</script>
+<!-- SDK_MIRROR_PROTOTYPE_BEGIN -->
+<style>
+#ad-sdk-prototype{--ad-bg:light-dark(#f7f9f5,#111814);--ad-paper:light-dark(#fff,#1a261e);--ad-side:light-dark(#f0f4ec,#15221a);--ad-title:light-dark(#edf2e9,#17241c);--ad-ink:light-dark(#23382d,#dbe7de);--ad-muted:light-dark(#637466,#a7b9ad);--ad-line:light-dark(#dfe7db,#33453a);--ad-soft:light-dark(#eef4eb,#213127);--ad-select:light-dark(#dfead9,#2b4835);--ad-green:light-dark(#24694b,#a2e2ba);--ad-fill:light-dark(#24694b,#28744f);--ad-on:#fff;--ad-warn:light-dark(#875929,#e8be79);--ad-warn-bg:light-dark(#faf1e8,#3b3022);--ad-error:light-dark(#a3493c,#f3a098);--ad-error-bg:light-dark(#fff0ed,#3a2422);--ad-overlay:light-dark(#20312355,#020805b8);font:13px/1.6 'Segoe UI','Microsoft YaHei',sans-serif;color:var(--ad-ink);width:100%;isolation:isolate;position:relative;text-align:left}
+#ad-sdk-prototype *{box-sizing:border-box}
+#ad-sdk-prototype [hidden]{display:none!important}
+#ad-sdk-prototype button,#ad-sdk-prototype input,#ad-sdk-prototype select{font:inherit;color:inherit}
+#ad-sdk-prototype button{cursor:inherit}
+#ad-sdk-prototype button:disabled{opacity:.48;cursor:not-allowed}
+#ad-sdk-prototype button:focus-visible,#ad-sdk-prototype input:focus-visible,#ad-sdk-prototype select:focus-visible{outline:2px solid var(--ad-green);outline-offset:3px}
+#ad-sdk-prototype h1,#ad-sdk-prototype h2,#ad-sdk-prototype h3,#ad-sdk-prototype p{margin:0}
+#ad-sdk-prototype h1{font-size:23px;font-weight:600;line-height:1.4}
+#ad-sdk-prototype h2{font-size:17px;font-weight:600}
+#ad-sdk-prototype h3{font-size:14px;font-weight:600}
+#ad-sdk-prototype small{font-size:12px}
+#ad-sdk-prototype code{font:12px/1.6 Consolas,monospace;overflow-wrap:anywhere}
+#ad-sdk-prototype .ad-window{background:var(--ad-bg);border:1px solid var(--ad-line);border-radius:10px;overflow:hidden}
+#ad-sdk-prototype .ad-titlebar{background:var(--ad-title);border-bottom:1px solid var(--ad-line);padding:9px 17px;display:flex;gap:10px;align-items:center;font-size:12px}
+#ad-sdk-prototype .ad-logo{width:21px;height:21px;border-radius:6px;background:var(--ad-fill);color:var(--ad-on);display:grid;place-items:center;font-size:11px;font-weight:600}
+#ad-sdk-prototype .ad-titlebar .ad-preview{margin-left:auto;margin-right:90px;color:var(--ad-muted);font-size:11px}
+#ad-sdk-prototype .ad-layout{display:grid;grid-template-columns:158px minmax(0,1fr);min-height:713px}
+#ad-sdk-prototype .ad-sidebar{background:var(--ad-side);border-right:1px solid var(--ad-line);padding:26px 10px;display:flex;flex-direction:column;gap:6px}
+#ad-sdk-prototype .ad-side-label{font-size:10px;letter-spacing:1.6px;color:var(--ad-muted);padding:0 12px 12px}
+#ad-sdk-prototype .ad-nav{display:flex;gap:10px;align-items:center;width:100%;text-align:left;padding:11px 12px;border:0;border-radius:6px;background:transparent;color:var(--ad-muted)}
+#ad-sdk-prototype .ad-nav[data-page]{color:var(--ad-ink)}
+#ad-sdk-prototype .ad-nav[aria-current=page]{background:var(--ad-select);color:var(--ad-green);font-weight:600}
+#ad-sdk-prototype .ad-nav i{display:inline-block;width:16px;height:16px}
+#ad-sdk-prototype .ad-sidebar-bottom{margin-top:auto;padding:28px 12px 0;font-size:11px;color:var(--ad-muted)}
+#ad-sdk-prototype .ad-main{min-width:0;padding:25px 25px 28px}
+#ad-sdk-prototype .ad-page-head{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;margin-bottom:20px}
+#ad-sdk-prototype .ad-subtitle{color:var(--ad-muted);margin-top:5px;font-size:12px}
+#ad-sdk-prototype .ad-tag{display:inline-flex;align-items:center;gap:5px;border-radius:4px;padding:3px 8px;background:var(--ad-soft);color:var(--ad-green);font-size:11px;white-space:nowrap}
+#ad-sdk-prototype .ad-current-strip{border:1px solid var(--ad-line);background:var(--ad-paper);border-radius:7px;padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:19px}
+#ad-sdk-prototype .ad-current-strip .ad-right{margin-left:auto}
+#ad-sdk-prototype .ad-muted{color:var(--ad-muted)}
+#ad-sdk-prototype .ad-tabs{display:flex;gap:21px;border-bottom:1px solid var(--ad-line);margin-bottom:22px;flex-wrap:wrap}
+#ad-sdk-prototype .ad-tab{background:transparent;border:0;border-bottom:2px solid transparent;padding:0 0 10px;color:var(--ad-muted);white-space:nowrap;font-size:12px}
+#ad-sdk-prototype .ad-tab[aria-selected=true]{border-bottom-color:var(--ad-green);color:var(--ad-green);font-weight:600}
+#ad-sdk-prototype .ad-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:13px}
+#ad-sdk-prototype .ad-source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}
+#ad-sdk-prototype .ad-source{position:relative;display:flex;align-items:flex-start;gap:9px;padding:15px 12px;border:1px solid var(--ad-line);border-radius:7px;background:var(--ad-paper)}
+#ad-sdk-prototype .ad-source:has(input:checked){border-color:var(--ad-green);background:var(--ad-soft)}
+#ad-sdk-prototype .ad-source input{margin:3px 0 0;accent-color:var(--ad-green);flex-shrink:0;width:14px;height:14px}
+#ad-sdk-prototype .ad-source strong{font-size:13px;display:block;font-weight:600}
+#ad-sdk-prototype .ad-source small{display:block;color:var(--ad-muted);margin-top:5px;font-size:11px}
+#ad-sdk-prototype .ad-applied{display:inline-block;font-size:10px;margin-top:9px;color:var(--ad-green)}
+#ad-sdk-prototype .ad-source-detail{background:var(--ad-paper);border:1px solid var(--ad-line);border-radius:7px;padding:16px}
+#ad-sdk-prototype .ad-field{display:block;margin-bottom:13px;min-width:0}
+#ad-sdk-prototype .ad-field>span{display:block;margin-bottom:6px;font-size:12px;font-weight:600}
+#ad-sdk-prototype .ad-input{width:100%;min-width:0;border:1px solid var(--ad-line);background:var(--ad-paper);border-radius:5px;padding:9px 10px;outline-offset:2px}
+#ad-sdk-prototype .ad-input[readonly]{background:var(--ad-bg);color:var(--ad-muted)}
+#ad-sdk-prototype .ad-field-hint{display:block;color:var(--ad-muted);font-size:11px;margin-top:5px}
+#ad-sdk-prototype .ad-address{background:var(--ad-bg);padding:9px 11px;border:1px solid var(--ad-line);border-radius:5px;display:block;margin-top:7px}
+#ad-sdk-prototype .ad-paths{margin-top:12px;font-size:12px}
+#ad-sdk-prototype .ad-paths summary{color:var(--ad-green);cursor:inherit}
+#ad-sdk-prototype .ad-path-list{display:grid;gap:7px;margin-top:11px}
+#ad-sdk-prototype .ad-path-list>div{display:grid;grid-template-columns:100px minmax(0,1fr);gap:8px}
+#ad-sdk-prototype .ad-checksum{display:flex;align-items:flex-start;gap:10px;margin:15px 0 0;padding:13px 14px;background:var(--ad-soft);border-radius:6px}
+#ad-sdk-prototype .ad-checksum i{display:inline-block;flex-shrink:0;width:17px;height:17px;margin-top:2px;color:var(--ad-green)}
+#ad-sdk-prototype .ad-checksum strong{font-size:12px;font-weight:600}
+#ad-sdk-prototype .ad-checksum p{font-size:11px;color:var(--ad-muted);margin-top:3px}
+#ad-sdk-prototype .ad-link{background:transparent;border:0;padding:0;color:var(--ad-green);text-decoration:underline;text-underline-offset:3px;font-size:12px}
+#ad-sdk-prototype .ad-button{border:1px solid var(--ad-line);border-radius:5px;background:var(--ad-paper);padding:8px 13px;display:inline-flex;gap:6px;justify-content:center;align-items:center;min-height:35px;white-space:nowrap;font-size:12px}
+#ad-sdk-prototype .ad-button i{width:14px;height:14px;display:inline-block}
+#ad-sdk-prototype .ad-primary{background:var(--ad-fill);color:var(--ad-on);border-color:var(--ad-fill)}
+#ad-sdk-prototype .ad-actions{display:flex;justify-content:flex-end;align-items:center;gap:9px;margin-top:18px;flex-wrap:wrap}
+#ad-sdk-prototype .ad-actions .ad-action-note{margin-right:auto;font-size:11px;color:var(--ad-muted)}
+#ad-sdk-prototype .ad-feedback{margin-top:14px;background:var(--ad-soft);padding:11px 13px;border-radius:5px;font-size:12px;overflow-wrap:anywhere}
+#ad-sdk-prototype .ad-feedback[data-tone=error]{background:var(--ad-error-bg);color:var(--ad-error)}
+#ad-sdk-prototype .ad-feedback[data-tone=warn]{background:var(--ad-warn-bg);color:var(--ad-warn)}
+#ad-sdk-prototype .ad-check-list{margin-top:8px;display:grid;gap:5px}
+#ad-sdk-prototype .ad-check-row{display:flex;justify-content:space-between;gap:10px;padding-top:4px;border-top:1px solid var(--ad-line);font-size:11px}
+#ad-sdk-prototype .ad-aux{margin-top:23px;border-top:1px solid var(--ad-line);padding-top:15px}
+#ad-sdk-prototype .ad-aux summary{display:flex;justify-content:space-between;font-size:12px;color:var(--ad-muted);cursor:inherit}
+#ad-sdk-prototype .ad-empty{padding:22px 0 3px;color:var(--ad-muted);font-size:12px}
+#ad-sdk-prototype .ad-footbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--ad-side);border-top:1px solid var(--ad-line);padding:6px 16px;font-size:10px;color:var(--ad-muted)}
+#ad-sdk-prototype .ad-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:16px}
+#ad-sdk-prototype .ad-table th{text-align:left;font-weight:400;color:var(--ad-muted);background:var(--ad-soft)}
+#ad-sdk-prototype .ad-table td,#ad-sdk-prototype .ad-table th{border-bottom:1px solid var(--ad-line);padding:12px 9px;vertical-align:middle}
+#ad-sdk-prototype .ad-table th:first-child{width:46px!important;white-space:nowrap}
+#ad-sdk-prototype .ad-table input{accent-color:var(--ad-green)}
+#ad-sdk-prototype .ad-table td small{display:block;font-size:10px;color:var(--ad-muted);margin-top:2px}
+#ad-sdk-prototype .ad-task{padding:20px;border:1px solid var(--ad-line);background:var(--ad-paper);border-radius:7px;margin-top:18px}
+#ad-sdk-prototype .ad-task-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#ad-sdk-prototype .ad-task h3{font-size:15px}
+#ad-sdk-prototype .ad-task-detail{margin-top:16px;display:grid;grid-template-columns:100px minmax(0,1fr);gap:10px;font-size:12px}
+#ad-sdk-prototype .ad-meter{height:5px;background:var(--ad-soft);margin:17px 0;border-radius:8px;overflow:hidden}
+#ad-sdk-prototype .ad-meter>div{height:100%;background:var(--ad-fill);width:65%}
+#ad-sdk-prototype .ad-setting{padding:18px;border:1px solid var(--ad-line);border-radius:7px;background:var(--ad-paper);margin-top:18px}
+#ad-sdk-prototype .ad-setting-row{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:13px 0}
+#ad-sdk-prototype .ad-setting-row+.ad-setting-row{border-top:1px solid var(--ad-line)}
+#ad-sdk-prototype .ad-toast{padding:10px 12px;background:var(--ad-select);color:var(--ad-green);border-radius:5px;margin-top:16px;font-size:12px}
+#ad-sdk-prototype .ad-overlay{position:absolute;inset:0;background:var(--ad-overlay);z-index:4;display:grid;place-items:center;padding:20px}
+#ad-sdk-prototype .ad-dialog{width:min(520px,100%);background:var(--ad-paper);border:1px solid var(--ad-line);border-radius:10px;padding:23px;box-shadow:0 15px 55px var(--ad-overlay);overflow-wrap:anywhere}
+#ad-sdk-prototype .ad-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+#ad-sdk-prototype .ad-dialog-head button{border:0;background:transparent;font-size:19px;padding:0 6px}
+#ad-sdk-prototype .ad-dialog p{font-size:12px;color:var(--ad-muted);margin-top:9px}
+#ad-sdk-prototype .ad-error{color:var(--ad-error)!important;font-size:12px;margin-top:7px}
+#ad-sdk-prototype .ad-spin{animation:ad-turn 1s linear infinite}
+@keyframes ad-turn{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#ad-sdk-prototype .ad-spin{animation:none}}
+@media(max-width:850px){#ad-sdk-prototype .ad-layout{grid-template-columns:60px minmax(0,1fr)}#ad-sdk-prototype .ad-side-label,#ad-sdk-prototype .ad-nav span,#ad-sdk-prototype .ad-sidebar-bottom{display:none}#ad-sdk-prototype .ad-nav{justify-content:center;padding:13px 7px}#ad-sdk-prototype .ad-main{padding:22px 19px}#ad-sdk-prototype .ad-sidebar{padding:20px 8px}}
+@media(max-width:600px){#ad-sdk-prototype .ad-titlebar .ad-preview{margin-right:0}#ad-sdk-prototype .ad-layout{grid-template-columns:minmax(0,1fr)}#ad-sdk-prototype .ad-sidebar{flex-direction:row;padding:7px;justify-content:center;border-right:0;border-bottom:1px solid var(--ad-line)}#ad-sdk-prototype .ad-nav{width:auto;flex:1}#ad-sdk-prototype .ad-sidebar .ad-nav:not([data-page]){display:none}#ad-sdk-prototype .ad-nav span{display:inline;font-size:11px}#ad-sdk-prototype .ad-nav{gap:5px;padding:8px 5px}#ad-sdk-prototype .ad-main{padding:20px 14px}#ad-sdk-prototype .ad-source-grid{grid-template-columns:minmax(0,1fr)}#ad-sdk-prototype .ad-source{padding:12px}#ad-sdk-prototype .ad-source strong,#ad-sdk-prototype .ad-source small{display:inline;margin-right:7px}#ad-sdk-prototype .ad-applied{margin-top:0}#ad-sdk-prototype .ad-source-detail{padding:13px}#ad-sdk-prototype .ad-tabs{gap:14px}#ad-sdk-prototype .ad-path-list>div{grid-template-columns:minmax(0,1fr);gap:1px}#ad-sdk-prototype .ad-table th:nth-child(3),#ad-sdk-prototype .ad-table td:nth-child(3){display:none}#ad-sdk-prototype .ad-actions .ad-action-note{flex-basis:100%}#ad-sdk-prototype .ad-current-strip .ad-right{margin-left:0}#ad-sdk-prototype .ad-task-detail{grid-template-columns:minmax(0,1fr);gap:5px}#ad-sdk-prototype .ad-task-detail>span:nth-child(even){margin-bottom:8px}#ad-sdk-prototype .ad-button{white-space:normal}#ad-sdk-prototype .ad-setting-row{align-items:flex-start;flex-wrap:wrap}#ad-sdk-prototype .ad-overlay{padding:12px}#ad-sdk-prototype .ad-dialog{padding:18px}}
+@media(pointer:coarse){#ad-sdk-prototype .ad-button,#ad-sdk-prototype .ad-tab,#ad-sdk-prototype .ad-nav{min-height:44px}#ad-sdk-prototype .ad-input{font-size:16px}#ad-sdk-prototype .ad-source{min-height:50px}}
+</style>
+<div id="ad-sdk-prototype" aria-label="Android DevKit SDK 下载源交互原型">
+  <div class="ad-window">
+    <div class="ad-titlebar"><span class="ad-logo">A</span><span>Android DevKit</span><span class="ad-preview">交互原型 · 演示数据</span></div>
+    <div class="ad-layout">
+      <nav class="ad-sidebar" aria-label="应用导航">
+        <div class="ad-side-label">WORKSPACE</div>
+        <div class="ad-nav"><i data-lucide="smartphone" aria-hidden="true"></i><span>设备工作台</span></div>
+        <button class="ad-nav cursor-interaction" data-page="sdk" aria-label="SDK 管理" aria-current="page"><i data-lucide="package" aria-hidden="true"></i><span>SDK 管理</span></button>
+        <button class="ad-nav cursor-interaction" data-page="tasks" aria-label="任务中心"><i data-lucide="list-checks" aria-hidden="true"></i><span>任务中心</span></button>
+        <div class="ad-nav"><i data-lucide="activity" aria-hidden="true"></i><span>环境诊断</span></div>
+        <button class="ad-nav cursor-interaction" data-page="settings" aria-label="设置"><i data-lucide="settings" aria-hidden="true"></i><span>设置</span></button>
+        <div class="ad-sidebar-bottom">SDK 已就位<br>E:\Android\sdk<br><br>WINDOWS x64</div>
+      </nav>
+      <main class="ad-main">
+        <div id="ad-content"></div>
+        <div class="ad-toast" id="ad-toast" aria-live="polite" hidden></div>
+      </main>
+    </div>
+    <div class="ad-footbar"><span>SDK：E:\Android\sdk</span><span id="ad-footer-source">下载源：Google 官方 · 直连</span></div>
+  </div>
+  <div class="ad-overlay" id="ad-overlay" hidden></div>
+</div>
+<script>
+(() => {
+  const root = document.getElementById('ad-sdk-prototype');
+  const content = root.querySelector('#ad-content');
+  const overlay = root.querySelector('#ad-overlay');
+  const sourceDefs = {
+    google: {name:'Google 官方',base:'https://dl.google.com/android/repository/',description:'Google 原始仓库'},
+    tencent: {name:'腾讯云镜像',base:'https://mirrors.cloud.tencent.com/AndroidSDK/',description:'国内网络可选'},
+    custom: {name:'自定义源',base:'',description:'HTTPS 仓库根地址'}
+  };
+  const paths = [['SDK 组件','repository2-3.xml'],['AOSP 系统镜像','sys-img/android/sys-img2-3.xml'],['Google APIs','sys-img/google_apis/sys-img2-3.xml'],['Google Play','sys-img/google_apis_playstore/sys-img2-3.xml']];
+  const items = [
+    {id:'platform-tools',name:'Android SDK Platform-Tools',version:'37.0.1',file:'platform-tools_r37.0.1-win.zip',checksum:'e03e78b1d80b396f1c3358e31251cb31740e1110'},
+    {id:'cmdline-tools;latest',name:'Android SDK Command-line Tools',version:'23.0',file:'commandlinetools-win-16111833_latest.zip',checksum:'57d04f2d75eb8e8fffc5000a987e5de4b5a63e9d'},
+    {id:'emulator',name:'Android Emulator',version:'37.3.5',file:'emulator-windows_x64-16632760.zip',checksum:'5ecdf654031e9791e20c336c8d87d2238cb69f3a'}
+  ];
+  const state = {page:'sdk',tab:'sources',current:'google',draft:'google',customName:'团队 SDK 镜像',customBase:'',appliedCustomName:'',appliedCustomBase:'',scenario:'normal',check:'idle',checkFor:'',error:'',selected:new Set(['platform-tools']),task:null,taskStage:0,addon:null};
+  let runToken = 0, toastTimer, lastFocus;
+  const esc = value => String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const icon = name => `<i data-lucide="${name}" aria-hidden="true"></i>`;
+  const icons = () => { if(globalThis.lucide) globalThis.lucide.createIcons({attrs:{width:16,height:16}}); };
+  const getName = (key,applied=false) => key==='custom' ? ((applied?state.appliedCustomName:state.customName).trim()||'自定义源') : sourceDefs[key].name;
+  const getBase = (key,applied=false) => key==='custom' ? (applied?state.appliedCustomBase:state.customBase.trim()) : sourceDefs[key].base;
+  const normalize = value => value.endsWith('/')?value:value+'/';
+  const fingerprint = () => `${state.draft}|${getName(state.draft)}|${getBase(state.draft) ? normalize(getBase(state.draft)) : ''}`;
+  const changed = () => state.draft!==state.current || (state.draft==='custom' && (normalize(getBase('custom'))!==state.appliedCustomBase || getName('custom')!==state.appliedCustomName));
+  const running = () => state.task && !['done','failed'].includes(state.task.status);
+  const hasTrust = id => !(state.scenario==='coverage' && id==='emulator');
+  const button = (label,action,primary=false,disabled=false) => `<button type="button" class="ad-button cursor-interaction ${primary?'ad-primary':''}" data-action="${action}" ${disabled?'disabled':''}>${label}</button>`;
+  function restore(saved){
+    if(!saved || saved.version!==1) return;
+    if(sourceDefs[saved.current]) state.current=saved.current;
+    if(sourceDefs[saved.draft]) state.draft=saved.draft;
+    if(['sources','tools','platforms'].includes(saved.tab)) state.tab=saved.tab;
+    if(typeof saved.customBase==='string' && !validateBase(saved.customBase)) state.customBase=normalize(saved.customBase.trim());
+    if(typeof saved.customName==='string') state.customName=saved.customName.slice(0,60);
+    if(typeof saved.appliedCustomBase==='string' && !validateBase(saved.appliedCustomBase)){state.appliedCustomBase=normalize(saved.appliedCustomBase.trim());state.appliedCustomName=String(saved.appliedCustomName||'自定义源').slice(0,60);}
+    if(state.current==='custom' && !state.appliedCustomBase) state.current='google';
+  }
+  function persist(){
+    if(!window.openai?.setWidgetState) return;
+    window.openai.setWidgetState({modelContent:{downloadSource:getName(state.current,true),design:'SDK 页签内切换',scenario:state.scenario},privateContent:{version:1,current:state.current,draft:state.draft,tab:state.tab,customName:state.customName,customBase:validateBase(state.customBase)?'':state.customBase,appliedCustomBase:state.appliedCustomBase,appliedCustomName:state.appliedCustomName}}).catch(()=>{});
+  }
+  function validateBase(value){
+    if(!value.trim()) return '请输入 HTTPS 仓库根地址。';
+    try { const u=new URL(value.trim());
+      if(u.protocol!=='https:') return '请使用 HTTPS 地址。';
+      if(u.username||u.password) return '地址不能包含用户名或密码。';
+      if(u.search||u.hash) return '请移除查询参数和 # 片段。';
+      if(/\.xml\/?$/i.test(u.pathname)) return '这里填写仓库根目录，不是单个 XML 文件。';
+      if(!u.hostname || /\s/.test(value)) return '请输入有效的 HTTPS 仓库根地址。';
+      return '';
+    } catch { return '请输入有效的 HTTPS 仓库根地址。'; }
+  }
+  function toast(text){
+    const node=root.querySelector('#ad-toast');node.textContent=text;node.hidden=false;
+    clearTimeout(toastTimer);toastTimer=setTimeout(()=>{node.hidden=true;},6000);
+  }
+  function header(title,subtitle,tag=''){return `<div class="ad-page-head"><div><h1>${title}</h1><p class="ad-subtitle">${subtitle}</p></div>${tag?`<span class="ad-tag">${tag}</span>`:''}</div>`;}
+  function sourceStrip(){return `<div class="ad-current-strip">${icon('globe-2')}<span class="ad-muted">下载源</span><strong>${esc(getName(state.current,true))}</strong><span class="ad-tag">索引与安装包同步切换</span><button class="ad-link ad-right cursor-interaction" data-action="sources">更换来源</button></div>`;}
+  function trustBlock(){return `<div class="ad-checksum">${icon('shield-check')}<div><strong>${state.scenario==='coverage'?'部分组件缺少官方校验记录':'使用 Google 官方校验值验证安装包'}</strong><p>${state.scenario==='coverage'?'官方站点暂不可达。已有记录的组件仍可安装，其余组件等待补充记录。':'已保存的官方记录可用于离线校验；安装包不匹配时停止安装。'}</p><button class="ad-link cursor-interaction" style="margin-top:5px" data-action="trust">查看校验依据</button></div></div>`;}
+  function sourcePage(){
+    return `<div class="ad-section-head"><div><h2>SDK 下载源</h2><p class="ad-subtitle">仓库目录、SDK 工具和系统镜像从同一来源获取。</p></div><span id="ad-draft-tag" class="ad-tag" ${changed()?'':'hidden'}>待应用</span></div>
+      <fieldset style="border:0;padding:0;margin:0" aria-label="选择 SDK 下载源"><div class="ad-source-grid">${Object.entries(sourceDefs).map(([key,def])=>`<label class="ad-source cursor-interaction"><input type="radio" name="ad-source" value="${key}" ${state.draft===key?'checked':''} ${state.check==='checking'?'disabled':''}><div><strong>${def.name}</strong><small>${def.description}</small><span class="ad-applied">${state.current===key?'● 当前使用':'&nbsp;'}</span></div></label>`).join('')}</div></fieldset>
+      <div class="ad-source-detail">
+        ${state.draft==='custom'?`<label class="ad-field"><span>源名称</span><input class="ad-input" id="ad-custom-name" maxlength="60" value="${esc(state.customName)}" placeholder="例如：团队 SDK 镜像" ${state.check==='checking'?'disabled':''}></label><label class="ad-field" style="margin-bottom:0"><span>仓库根地址</span><input class="ad-input" id="ad-custom-base" inputmode="url" autocomplete="off" spellcheck="false" value="${esc(state.customBase)}" placeholder="https://sdk.example.com/android/repository/" aria-describedby="ad-custom-hint ad-field-error" ${state.check==='checking'?'disabled':''}><small class="ad-field-hint" id="ad-custom-hint">保留 Android 官方目录结构；末尾的 / 会自动补齐。</small><small id="ad-field-error" class="ad-error" role="alert" ${state.error?'':'hidden'}>${esc(state.error)}</small></label>`:`<span class="ad-muted" style="font-size:12px">仓库根地址</span><code class="ad-address">${esc(getBase(state.draft))}</code>`}
+        <details class="ad-paths"><summary class="cursor-interaction">查看 4 类仓库地址</summary><div class="ad-path-list" id="ad-path-preview">${pathPreview()}</div></details>
+      </div>
+      ${trustBlock()}<div id="ad-source-feedback" aria-live="polite"></div>
+      <div class="ad-actions"><span class="ad-action-note" id="ad-action-note"></span><span id="ad-reset-wrap">${button('撤销更改','reset')}</span><span id="ad-check-wrap">${button('检查连接','check')}</span><span id="ad-apply-wrap">${button('应用并刷新','apply',true,true)}</span></div>
+      <details class="ad-aux"><summary class="cursor-interaction"><span>附加更新站点</span><span>独立于 SDK 下载源 · 展开管理</span></summary><div class="ad-empty" id="ad-addon-body">${state.addon?`<strong>${esc(state.addon.name)}</strong><code class="ad-address">${esc(state.addon.url)}</code>`:'尚未添加附加更新站点。'}<p style="margin-top:9px">第三方扩展组件继续使用站点自身地址。</p><div style="margin-top:12px">${button('添加站点','addon')}</div></div></details>`;
+  }
+  function pathPreview(){const base=getBase(state.draft);return paths.map(([label,path])=>`<div><span class="ad-muted">${label}</span><code>${base?esc(normalize(base)+path):esc('根地址 / '+path)}</code></div>`).join('');}
+  function updateFeedback(){
+    if(state.page!=='sdk'||state.tab!=='sources')return;
+    const tested=state.check==='success'&&state.checkFor===fingerprint();
+    root.querySelector('#ad-draft-tag').hidden=!changed();
+    const note=root.querySelector('#ad-action-note');note.textContent=running()?'SDK 安装任务进行中，结束后可应用。':changed()?'先检查连接，通过后应用。':'当前配置已生效。';
+    root.querySelector('#ad-reset-wrap button').disabled=!changed()||state.check==='checking';
+    root.querySelector('#ad-check-wrap button').disabled=state.check==='checking';
+    root.querySelector('#ad-check-wrap button').innerHTML=state.check==='checking'?`${icon('loader-circle')}检查中…`:'检查连接';
+    root.querySelector('#ad-apply-wrap button').disabled=!changed()||!tested||running();
+    let feedback='';let tone='normal';
+    if(state.check==='checking')feedback='正在检查 4 类仓库与示例安装包地址…';
+    if(state.check==='success')feedback=`<strong>连接检查通过</strong><span class="ad-muted"> · 演示响应 128 ms</span><div class="ad-check-list">${['SDK 组件目录','AOSP 系统镜像目录','Google APIs 目录','Google Play 目录','Windows 工具安装包'].map(label=>`<div class="ad-check-row"><span>${label}</span><span>可访问</span></div>`).join('')}</div>`;
+    if(state.check==='failed'){tone='error';feedback=state.error||'无法连接到所选源。当前仍使用 '+esc(getName(state.current,true))+'。请检查地址或代理后重试。';}
+    if(state.scenario==='busy' && running() && !feedback){tone='warn';feedback='Android Emulator 正在安装。可以选择来源并检查连接，任务结束后再应用。';}
+    root.querySelector('#ad-source-feedback').innerHTML=feedback?`<div class="ad-feedback" data-tone="${tone}" ${tone==='error'?'role="alert"':''}>${feedback}</div>`:'';
+    icons();
+  }
+  function packagePage(){
+    const platforms=state.tab==='platforms';
+    const display=platforms?[{id:'platforms;android-36',name:'Android SDK Platform 36',version:'2',file:'platform-36_r02.zip',checksum:'2c1a80dd4d9f7d0e6dd336ec603d9b5c55a6f576'}]:items;
+    return `<div class="ad-section-head"><h2>${platforms?'SDK Platforms':'SDK Tools'}</h2><span class="ad-muted" style="font-size:11px">稳定通道 · 演示组件</span></div><table class="ad-table"><thead><tr><th style="width:32px">选择</th><th>组件</th><th>版本</th><th>官方校验记录</th></tr></thead><tbody>${display.map(p=>`<tr><td><input type="checkbox" data-package="${p.id}" aria-label="选择 ${p.name}" ${state.selected.has(p.id)?'checked':''}></td><td>${p.name}<small>${p.id}</small></td><td>${p.version}</td><td><span class="ad-tag">${hasTrust(p.id)?'已就绪':'待补充'}</span></td></tr>`).join('')}</tbody></table>${trustBlock()}<div class="ad-actions"><span class="ad-action-note">下载后逐包校验，通过后安装。</span>${button(`查看安装计划（${state.selected.size}）`,'plan',true,!state.selected.size||running())}</div>`;
+  }
+  function taskPage(){
+    const task=state.task;
+    if(!task)return header('任务中心','查看组件来源与校验结果。')+`<div class="ad-task"><h3>暂无 SDK 下载任务</h3><p class="ad-subtitle">先在 SDK Tools 中选择组件并查看安装计划。</p><div class="ad-actions">${button('前往 SDK Tools','tools',true)}</div></div>`;
+    const failed=task.status==='failed',done=task.status==='done';
+    return header('任务中心','每个安装任务保存自己的下载来源和校验依据。')+`<article class="ad-task"><div class="ad-task-head"><h3>安装 SDK 组件</h3><span class="ad-tag">${failed?'校验失败':done?'已完成':'下载中'}</span></div><p class="ad-subtitle">${esc(task.names.join('、'))}</p>${!failed&&!done?'<div class="ad-meter" role="progressbar" aria-label="演示下载进度" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100"><div></div></div>':''}<div class="ad-task-detail"><span class="ad-muted">下载来源</span><span>${esc(task.source)}</span><span class="ad-muted">仓库地址</span><code>${esc(task.base)}</code><span class="ad-muted">校验依据</span><span>Google 官方记录 · 本地已保存</span><span class="ad-muted">安装包校验</span><span>${failed?'与官方校验值不一致':done?'全部通过':'下载完成后执行'}</span></div>${failed?'<div class="ad-feedback" data-tone="error" role="alert"><strong>安装包校验失败，已停止安装</strong><br>文件已移出可安装缓存。请重试，或更换下载源后新建任务。</div>':done?'<div class="ad-feedback">安装完成 · 官方校验通过</div>':''}<div class="ad-actions">${failed?button('更换下载源','sources')+button('重试下载','retry',true):done?button('返回 SDK 管理','tools',true):button('完成演示下载','finish',true)}</div></article>`;
+  }
+  function settingsPage(){return header('设置','工具路径、界面偏好与网络。')+`<div class="ad-setting"><h2>网络与下载</h2><div class="ad-setting-row"><div><h3>SDK 下载源</h3><p class="ad-subtitle">${esc(getName(state.current,true))} · 目录与安装包同步</p></div>${button('管理下载源','sources')}</div><div class="ad-setting-row"><div style="flex:1"><label class="ad-field" style="margin-bottom:0"><span>手动代理</span><input class="ad-input" aria-label="手动代理" readonly value="" placeholder="留空直连"><small class="ad-field-hint">下载源沿用这里的代理设置。</small></label></div></div></div>`;}
+  function render(){
+    root.querySelectorAll('[data-page]').forEach(n=>{if(n.dataset.page===state.page)n.setAttribute('aria-current','page');else n.removeAttribute('aria-current');});
+    root.querySelector('#ad-footer-source').textContent='下载源：'+getName(state.current,true)+' · 直连';
+    if(state.page==='sdk'){
+      content.innerHTML=header('SDK 管理','按需准备 Android 开发工具与模拟器环境。','Windows x64')+sourceStrip()+`<div class="ad-tabs" role="tablist" aria-label="SDK 管理分类">${[['platforms','SDK Platforms'],['tools','SDK Tools'],['sources','下载源与站点']].map(([key,label])=>`<button type="button" class="ad-tab cursor-interaction" id="ad-tab-${key}" data-tab="${key}" role="tab" aria-selected="${state.tab===key}" aria-controls="ad-sdk-panel">${label}</button>`).join('')}</div><section id="ad-sdk-panel" role="tabpanel" aria-labelledby="ad-tab-${state.tab}">${state.tab==='sources'?sourcePage():packagePage()}</section>`;
+      updateFeedback();
+    }else content.innerHTML=state.page==='tasks'?taskPage():settingsPage();
+    icons();
+  }
+  function openDialog(title,body,actions){
+    lastFocus=document.activeElement;
+    overlay.innerHTML=`<div class="ad-dialog" role="dialog" aria-modal="true" aria-labelledby="ad-dialog-title"><div class="ad-dialog-head"><h2 id="ad-dialog-title">${title}</h2><button type="button" data-action="close" aria-label="关闭对话框" class="cursor-interaction">×</button></div>${body}<div class="ad-actions">${actions}</div></div>`;
+    overlay.hidden=false;root.querySelector('.ad-layout').inert=true;
+    overlay.querySelector('input,button')?.focus();icons();
+  }
+  function closeDialog(){overlay.hidden=true;overlay.innerHTML='';root.querySelector('.ad-layout').inert=false;if(lastFocus?.isConnected)lastFocus.focus();}
+  async function check(){
+    state.error='';
+    if(state.draft==='custom'){
+      state.error=validateBase(state.customBase)||(!state.customName.trim()?'请输入源名称。':'');
+      if(state.error){state.check='failed';render();root.querySelector('#ad-custom-base')?.setAttribute('aria-invalid','true');return;}
+      state.customBase=normalize(new URL(state.customBase.trim()).toString());
+    }
+    const token=++runToken;state.check='checking';render();
+    await new Promise(resolve=>setTimeout(resolve,900));
+    if(token!==runToken)return;
+    state.check=state.scenario==='network'?'failed':'success';state.checkFor=fingerprint();
+    if(state.check==='failed')state.error='连接超时：Google Play 目录未响应。当前仍使用 '+esc(getName(state.current,true))+'，配置尚未切换。';
+    render();persist();
+  }
+  async function commit(){
+    if(!changed()||running()||state.check!=='success'||state.checkFor!==fingerprint())return;
+    const old=getName(state.current,true);state.current=state.draft;
+    if(state.current==='custom'){state.appliedCustomName=getName('custom');state.appliedCustomBase=normalize(getBase('custom'));}
+    state.selected.clear();state.check='idle';state.checkFor='';closeDialog();render();persist();toast('已从 '+old+' 切换为 '+getName(state.current,true)+'，目录已刷新（演示）。');
+  }
+  function apply(){
+    if(!changed()||running()||state.check!=='success'||state.checkFor!==fingerprint())return;
+    if(state.selected.size)openDialog('应用新的下载源？',`<p>下载来源将从 <strong>${esc(getName(state.current,true))}</strong> 切换到 <strong>${esc(getName(state.draft))}</strong>。</p><div class="ad-feedback">刷新目录后，清空当前 ${state.selected.size} 项待安装选择。请按新目录重新选择组件。</div>`,button('继续编辑','close')+button('应用并刷新目录','commit',true));
+    else commit();
+  }
+  function showPlan(){
+    if(!state.selected.size||running())return;
+    if([...state.selected].some(id=>!hasTrust(id))){
+      openDialog('缺少官方校验记录',`<p>所选组件尚无独立保存的 Google 官方校验记录。镜像提供的校验值不能代替官方记录。</p><div class="ad-feedback" data-tone="warn">当前可以浏览目录；补充记录后才能安装这些组件。已有记录的其他组件仍可安装。</div>`,button('返回选择','close')+button('重新获取官方记录','refresh-trust',true));return;
+    }
+    openDialog('确认 SDK 安装计划',`<p>${state.selected.size} 个组件 · 来源 <strong>${esc(getName(state.current,true))}</strong></p><code class="ad-address">${esc(getBase(state.current,true))}</code><div class="ad-checksum">${icon('shield-check')}<div><strong>Google 官方校验记录已就绪</strong><p>下载后校验安装包，全部通过后再安装。</p></div></div><details class="ad-paths"><summary class="cursor-interaction">查看组件与校验值</summary>${items.filter(p=>state.selected.has(p.id)).map(p=>`<p>${p.name} ${p.version}<br><code>SHA-1 ${p.checksum}</code></p>`).join('')}${state.selected.has('platforms;android-36')?'<p>Android SDK Platform 36<br><code>SHA-1 2c1a80dd4d9f7d0e6dd336ec603d9b5c55a6f576</code></p>':''}</details>`,button('返回','close')+button('开始下载','download',true));
+  }
+  function showTrust(){
+    openDialog('官方校验依据',`<div class="ad-task-detail"><span class="ad-muted">记录来源</span><span>Google 官方 HTTPS 仓库</span><span class="ad-muted">保存时间</span><span>2026-10-22 20:34 UTC（演示）</span><span class="ad-muted">当前状态</span><span>${state.scenario==='coverage'?'部分组件待补记录':'所选组件记录已保存'}</span></div><p>记录按组件 ID、版本、操作系统和归档文件匹配。安装包使用 Google 公布的算法与校验值验证。</p><p>官方暂不可达时，使用独立保存的官方记录。新组件缺少记录时暂缓安装。</p>`,button('关闭','close')+button('更新官方记录','refresh-trust',true));
+  }
+  function startTask(){
+    const names=[...state.selected].map(id=>items.find(p=>p.id===id)?.name||'Android SDK Platform 36');
+    state.task={source:getName(state.current,true),base:getBase(state.current,true),names,status:state.scenario==='mismatch'?'failed':'downloading'};
+    state.selected.clear();closeDialog();state.page='tasks';render();persist();
+  }
+  function setScenario(value){
+    if(!['normal','network','coverage','busy','mismatch'].includes(value))return;
+    ++runToken;state.scenario=value;state.check='idle';state.error='';state.task=null;closeDialog();
+    if(value==='mismatch'){state.task={source:getName(state.current,true),base:getBase(state.current,true),names:['Android SDK Platform-Tools'],status:'failed'};state.page='tasks';}
+    else {state.page='sdk';state.tab=value==='coverage'?'tools':'sources';if(value==='coverage')state.selected=new Set(['emulator']);if(value==='busy')state.task={source:getName(state.current,true),base:getBase(state.current,true),names:['Android Emulator'],status:'downloading'};}
+    render();
+  }
+  root.addEventListener('click',event=>{
+    const page=event.target.closest('[data-page]');if(page){state.page=page.dataset.page;render();persist();return;}
+    const tab=event.target.closest('[data-tab]');if(tab){state.tab=tab.dataset.tab;render();root.querySelector(`[data-tab="${state.tab}"]`)?.focus();persist();return;}
+    const target=event.target.closest('[data-action]');if(!target||target.disabled)return;
+    switch(target.dataset.action){
+      case 'sources':state.page='sdk';state.tab='sources';render();persist();break;
+      case 'tools':state.page='sdk';state.tab='tools';render();persist();break;
+      case 'reset':state.draft=state.current;if(state.current==='custom'){state.customName=state.appliedCustomName;state.customBase=state.appliedCustomBase;}state.check='idle';state.error='';render();persist();break;
+      case 'check':check();break;
+      case 'apply':apply();break;
+      case 'commit':commit();break;
+      case 'close':closeDialog();break;
+      case 'trust':showTrust();break;
+      case 'plan':showPlan();break;
+      case 'download':startTask();break;
+      case 'finish':if(state.task){state.task.status=state.scenario==='mismatch'?'failed':'done';render();}break;
+      case 'retry':if(state.task){state.task.status='downloading';render();toast('使用原任务的来源重新下载（演示）。');}break;
+      case 'refresh-trust':if(state.scenario==='coverage'){closeDialog();toast('官方站点暂不可达。已保存的官方记录继续保留。');}else{closeDialog();toast('官方校验记录已更新（演示）。');}break;
+      case 'addon':openDialog('添加附加更新站点','<label class="ad-field"><span>站点名称</span><input class="ad-input" id="ad-addon-name" placeholder="团队扩展组件"></label><label class="ad-field"><span>仓库 XML 地址</span><input class="ad-input" id="ad-addon-url" placeholder="https://example.com/repository.xml"></label><p id="ad-addon-error" class="ad-error" role="alert" hidden></p>',button('取消','close')+button('保存站点','save-addon',true));break;
+      case 'save-addon':{
+        const name=overlay.querySelector('#ad-addon-name').value.trim(),url=overlay.querySelector('#ad-addon-url').value.trim();let ok=false;
+        try{const u=new URL(url);ok=u.protocol==='https:'&&!u.username&&!u.password&&!u.hash&&u.pathname.endsWith('.xml');}catch{}
+        if(!name||!ok){const error=overlay.querySelector('#ad-addon-error');error.textContent='请输入站点名称和无凭据的 HTTPS XML 地址。';error.hidden=false;break;}
+        state.addon={name,url};closeDialog();render();toast('附加站点已保存，不随 SDK 镜像切换（演示）。');break;
+      }
+    }
+  });
+  root.addEventListener('change',event=>{
+    if(event.target.name==='ad-source'){++runToken;state.draft=event.target.value;state.check='idle';state.error='';render();root.querySelector(`input[name="ad-source"][value="${state.draft}"]`)?.focus();persist();}
+    if(event.target.dataset.package){const id=event.target.dataset.package;event.target.checked?state.selected.add(id):state.selected.delete(id);render();root.querySelector(`[data-package="${id}"]`)?.focus();persist();}
+  });
+  root.addEventListener('input',event=>{
+    if(event.target.id==='ad-custom-name'||event.target.id==='ad-custom-base'){
+      state[event.target.id==='ad-custom-name'?'customName':'customBase']=event.target.value;state.check='idle';state.error='';
+      const error=root.querySelector('#ad-field-error');error.hidden=true;event.target.removeAttribute('aria-invalid');root.querySelector('#ad-path-preview').innerHTML=pathPreview();updateFeedback();
+    }
+  });
+  overlay.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();closeDialog();}
+    if(event.key==='Tab'){
+      const controls=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),select:not(:disabled),summary')];
+      if(event.shiftKey&&document.activeElement===controls[0]){event.preventDefault();controls.at(-1).focus();}
+      else if(!event.shiftKey&&document.activeElement===controls.at(-1)){event.preventDefault();controls[0].focus();}
+    }
+  });
+  root.addEventListener('ad-prototype-scenario',event=>setScenario(event.detail));
+  window.addEventListener('openai:set_globals',event=>{if(event.detail?.globals?.widgetState){restore(event.detail.globals.widgetState.privateContent);render();}});
+  restore(window.openai?.widgetState?.privateContent);render();
+  if(globalThis.Tweak){
+    const controls={scenario:'normal'};
+    const tweak=new globalThis.Tweak({container:root,onChange:()=>setScenario(controls.scenario)});
+    tweak.addSelect(controls,'scenario',{label:'预览交互状态',options:[{label:'正常切换',value:'normal'},{label:'连接失败',value:'network'},{label:'缺少官方校验记录',value:'coverage'},{label:'SDK 安装任务进行中',value:'busy'},{label:'安装包校验失败',value:'mismatch'}]});
+  }
+})();
+</script>
+
+<!-- SDK_MIRROR_PROTOTYPE_END -->
+
+    <p class="doc-note" style="margin-top:13px">试用路径：选择腾讯云镜像 → 检查连接 → 应用并刷新 → 确认清空待安装选择 → SDK Tools → 选择组件 → 查看安装计划。也可选择自定义源，填写名称与 HTTPS 根地址。</p>
+  </section>
+  <section id="structure" class="doc-section">
+    <h2>入口与主流程</h2>
+    <div class="doc-grid">
+      <article class="doc-card"><h3>主入口：SDK 管理</h3><p>将现有 <code>SDK Update Sites</code> 页签调整为“下载源与站点”。上半区为 SDK 下载源，下半区保留“附加更新站点”。</p><p>SDK Platforms / SDK Tools 顶部展示当前来源及“更换来源”。用户遇到下载失败时无需离开 SDK 页面查找设置。</p></article>
+      <article class="doc-card"><h3>辅助入口：设置与任务</h3><p>设置 → 网络与下载，只显示当前 SDK 下载源，并通过“管理下载源”进入同一配置页面。</p><p>任务详情固定显示来源、仓库地址和官方校验结果；下载失败时提供“重试下载”与“更换下载源”。</p></article>
+    </div>
+    <div class="doc-flow" aria-label="下载源切换流程"><span>选择来源</span><b>→</b><span>编辑地址（自定义）</span><b>→</b><span>检查连接</span><b>→</b><span>应用并刷新</span><b>→</b><span>重新选择组件</span><b>→</b><span>下载、校验、安装</span></div>
+    <div class="doc-step"><span>1</span><p><strong>选择只产生待应用配置。</strong>三张单选卡分别为 Google 官方、腾讯云镜像、自定义源。当前使用项保留标记，页面顶部始终显示已生效的来源。</p></div>
+    <div class="doc-step"><span>2</span><p><strong>检查所选配置。</strong>检查 4 类仓库索引的获取与解析、一个 Windows 安装包地址的可达性。逐项展示结果；检测中禁用来源和输入，地址或名称变化使旧检测结果失效。</p></div>
+    <div class="doc-step"><span>3</span><p><strong>应用并刷新。</strong>连接检查通过后允许应用。存在待安装选择时才弹出确认，明确清空数量；无选择时直接应用。刷新失败则整体回滚，原来源与原目录继续生效。</p></div>
+    <div class="doc-step"><span>4</span><p><strong>安装前再次确认来源。</strong>安装计划展示组件、下载源和官方校验依据。下载完成逐包校验，通过后才进入 SDK 写入步骤。</p></div>
+  </section>
+  <section id="rules" class="doc-section">
+    <h2>切换与校验规则</h2>
+    <div class="doc-table-wrap"><table class="doc-table"><thead><tr><th>配置</th><th>地址与行为</th></tr></thead><tbody>
+      <tr><td>Google 官方</td><td><code>https://dl.google.com/android/repository/</code><br>新安装与旧配置迁移的默认值。</td></tr>
+      <tr><td>腾讯云镜像</td><td><code>https://mirrors.cloud.tencent.com/AndroidSDK/</code><br>主动选择后生效；不根据 IP 自动切换，不在失败时静默改用其他来源。</td></tr>
+      <tr><td>自定义源</td><td>填写“源名称”与 HTTPS 仓库根地址，例如 <code>https://sdk.example.com/android/repository/</code>。自动补齐尾部 <code>/</code>。不接受 HTTP、用户名/密码、查询参数、片段或单个 XML 地址。当前设计保存一个自定义源。</td></tr>
+      <tr><td>切换范围</td><td>SDK 组件索引、AOSP / Google APIs / Google Play 系统镜像索引，以及相应平台、工具、系统镜像归档文件。包括缺少 SDK 工具时的 Command-line Tools / Platform-Tools 引导下载。JDK、应用更新和第三方附加站点继续沿用自身来源。</td></tr>
+      <tr><td>代理</td><td>三种来源均沿用现有“手动代理”配置。留空时直连。检测详情显示实际使用的网络方式。</td></tr>
+      <tr><td>应用边界</td><td>暂存新配置与目录快照，成功后一起提交；失败均不改变当前来源。确认弹窗、待安装计划和目录缓存绑定配置修订号，源变化后旧计划失效。</td></tr>
+      <tr><td>已有 SDK 任务</td><td>SDK 下载、解压、安装或其他写入任务进行中时，可编辑与检查新来源，“应用并刷新”禁用，文案“SDK 安装任务进行中，结束后可应用”。任务完成后用户手动应用，不后台自动切换。</td></tr>
+      <tr><td>缓存</td><td>目录按来源与配置修订隔离。通过官方校验的完整归档可按组件身份与校验值复用；部分下载文件按任务来源隔离，不跨源拼接。</td></tr>
+    </tbody></table></div>
+    <h3>四类索引共同切换</h3>
+    <div class="doc-table-wrap"><table class="doc-table"><thead><tr><th>分类</th><th>相对根地址的路径</th></tr></thead><tbody><tr><td>SDK 组件</td><td><code>repository2-3.xml</code></td></tr><tr><td>AOSP 系统镜像</td><td><code>sys-img/android/sys-img2-3.xml</code></td></tr><tr><td>Google APIs</td><td><code>sys-img/google_apis/sys-img2-3.xml</code></td></tr><tr><td>Google Play</td><td><code>sys-img/google_apis_playstore/sys-img2-3.xml</code></td></tr></tbody></table></div>
+    <p>归档的相对路径保留层级，与选定根地址组合。元数据中的 Google 官方绝对地址按同一映射替换；未知跨站绝对地址不直接执行下载。检测不能只请求镜像站首页，也不能把 HTTP 200 的 HTML 错误页视为有效索引。</p>
+    <h3>“官方校验值”的来源独立于镜像</h3>
+    <div class="doc-callout"><strong>镜像 XML 能用于展示目录，不能单独证明校验值来自 Google。</strong>只有从 Google 官方 HTTPS 仓库取得并独立保存的记录，或随应用可信发行包附带的官方记录，才可作为安装校验依据。</div>
+    <div class="doc-table-wrap"><table class="doc-table"><thead><tr><th>官方记录状态</th><th>界面文案</th><th>允许行为</th></tr></thead><tbody>
+      <tr><td>官方可访问，记录获取成功</td><td>官方校验记录已就绪</td><td>保存来源、获取时间、组件 ID、修订版本、操作系统、归档路径、体积、算法与校验值。下载后核对实际字节。</td></tr>
+      <tr><td>官方不可达，已有可信本地记录</td><td>使用已保存的官方记录</td><td>与所选组件身份及版本完全匹配时，继续从选定镜像下载并使用该记录校验。</td></tr>
+      <tr><td>官方不可达，所选版本无记录</td><td>缺少官方校验记录</td><td>允许浏览镜像目录与切换来源；阻止缺记录组件的安装计划，提供“重新获取官方记录”。已有记录组件仍可安装。</td></tr>
+      <tr><td>镜像的组件版本、归档或校验字段不匹配</td><td>与官方记录不一致，暂不可安装</td><td>不使用镜像值覆盖官方记录；显示具体组件与版本，等待同步或更新官方记录。</td></tr>
+      <tr><td>下载字节校验不符</td><td>安装包校验失败，已停止安装</td><td>不解压、不安装；隔离或删除失败缓存。重试仍使用原任务来源；更换来源需生成新任务。</td></tr>
+    </tbody></table></div>
+    <p class="doc-note">算法按 Google 对该归档公布的 SHA-1 / SHA-256 记录使用，不把“存在一个校验字段”当成校验成功。详情页展示算法与期望值；默认页面只保留用户需要的结果和操作。</p>
+    <details class="doc-review"><summary>实现阶段需要落实的边界</summary><ul><li>当前普通组件安装调用官方 <code>sdkmanager</code>，添加镜像到 <code>repositories.cfg</code> 不能证明安装归档会走镜像。实现时必须统一控制四类索引与归档传输，并保留许可、依赖、组件注册与官方校验过程。</li><li>通过应用受控下载层或经过验证的 SDK 工具源适配完成镜像安装；验收须观察真实归档请求地址，不能只凭目录列表通过。</li><li>官方校验记录更新属于独立请求；镜像目录与归档始终使用选定来源。官方请求失败时复用可信记录，不把镜像内容升级成官方记录。</li><li>重定向保持 HTTPS，限制可接受的目标；日志记录实际来源。新任务固定配置快照，配置保存与目录刷新不得产生新旧来源混用。</li><li>附加站点继续使用现有自定义仓库能力；与内置包 ID 冲突的处理继续遵循现有规则。自定义镜像根地址与附加 XML 站点在设置模型、校验和文案中分开。</li></ul></details>
+  </section>
+  <section id="states" class="doc-section">
+    <h2>异常状态与恢复动作</h2>
+    <div class="doc-table-wrap"><table class="doc-table"><thead><tr><th>触发条件</th><th>展示位置与文案</th><th>恢复动作</th></tr></thead><tbody>
+      <tr><td>自定义地址不合法</td><td>输入框下逐项说明，例如“请使用 HTTPS 地址”“这里填写仓库根目录，不是单个 XML 文件”。</td><td>修改地址。旧的连接检查结果立即失效。</td></tr>
+      <tr><td>一个或多个索引超时 / 404 / 解析失败</td><td>检测结果逐项失败；显示“当前仍使用 ××，配置尚未切换”。应用按钮禁用。当前方案要求 4 类索引均可用。</td><td>重试、修改地址或检查既有代理。不中途静默回源。</td></tr>
+      <tr><td>检测通过但应用刷新失败</td><td>“刷新失败，已保留原下载源与目录”。保留待应用草稿。</td><td>再次检查后应用。已勾选组件保持原状态。</td></tr>
+      <tr><td>存在 SDK 任务</td><td>来源区提示“SDK 安装任务进行中，结束后可应用”。</td><td>进入任务中心等待或按既有任务流程取消；任务终结后重新应用。</td></tr>
+      <tr><td>官方校验记录不足</td><td>组件行“待补充”，安装计划阻止缺记录组件，保留来源与选择。</td><td>重新获取官方记录，或选择已有记录的版本。没有跳过校验按钮。</td></tr>
+      <tr><td>下载失败 / 校验失败</td><td>任务卡显示固定来源、失败原因；校验失败时明确停止安装。</td><td>原源重试，或更换源后重新选择组件生成安装计划。</td></tr>
+    </tbody></table></div>
+  </section>
+  <section id="acceptance" class="doc-section">
+    <h2>交互与实现验收场景</h2>
+    <ol>
+      <li>Google → 腾讯：未应用前顶部来源不变；检查通过后应用，4 类索引与新任务归档均使用腾讯根地址。</li>
+      <li>腾讯 → Google：恢复官方来源；旧镜像目录不参与新计划，缓存只在官方身份与校验值一致时复用。</li>
+      <li>自定义：尾部 <code>/</code> 自动归一；HTTP、带凭据、查询参数和单个 XML 输入被拒绝；显示完整四类索引地址。</li>
+      <li>编辑已通过检查的自定义地址：检查结果立即失效，必须重新检测；不沿用旧地址的成功结果。</li>
+      <li>连接检查失败或应用刷新失败：保留原来源与目录；失败状态不改变待安装选择，也不自动切换来源。</li>
+      <li>有待安装选择：只在应用时提示清空数量，确认后再失效旧计划；取消确认继续编辑。</li>
+      <li>SDK 任务进行中：允许编辑、检测，阻止应用；任务来源快照可在任务详情查看。</li>
+      <li>官方不可达：有可信缓存记录的版本仍可下载与安装；缺少记录的新版本只允许浏览。</li>
+      <li>提供伪造镜像校验字段或损坏归档：安装停止，不以镜像值覆盖官方值，不提交 SDK 包注册。</li>
+      <li>安装工具缺失的首次引导也使用选定来源；SDK Platforms、SDK Tools 与创建模拟器依赖安装保持一致。</li>
+      <li>附加站点仍使用自身 URL；镜像切换不重复注册同一内置包、不改写全局 Android Studio 配置。</li>
+      <li>窗口宽度 1024 / 736 / 320 px 和明暗主题下，主要按钮与地址无裁切；键盘可选择来源、操作弹窗和返回。</li>
+    </ol>
+    <p class="doc-note">原型演示：正常切换、自定义输入校验、连接失败、任务阻塞、缺少官方记录、校验失败、安装计划与来源追踪。连接时延、官方记录时间和下载进度均为示例。真实网络切换、原子提交、SDK 安装及校验行为仍待产品实现与集成验证。</p>
+  </section>
+  <footer class="doc-footer">相关文档：<a href="00000_20261017232447_Android-DevKit-PRD.html">产品需求与交互方案</a> · <a href="00001_20261017234246_Android-DevKit-Technical-Design.html">Tauri 技术方案</a><br>本文保留最初的交互原型；实际功能已纳入 v0.3.0。官方校验可关闭，下载完整性校验始终保留。</footer>
+</main>
+<script>
+document.getElementById('doc-scenario').addEventListener('change',event=>document.getElementById('ad-sdk-prototype').dispatchEvent(new CustomEvent('ad-prototype-scenario',{detail:event.target.value})));
+document.getElementById('doc-dark').addEventListener('change',event=>{document.documentElement.style.colorScheme=event.target.checked?'dark':'light';});
+</script>
+</body>
+</html>

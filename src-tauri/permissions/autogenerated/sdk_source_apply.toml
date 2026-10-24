@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sdk-source-apply"
+description = "Enables the sdk_source_apply command without any pre-configured scope."
+commands.allow = ["sdk_source_apply"]
+
+[[permission]]
+identifier = "deny-sdk-source-apply"
+description = "Denies the sdk_source_apply command without any pre-configured scope."
+commands.deny = ["sdk_source_apply"]

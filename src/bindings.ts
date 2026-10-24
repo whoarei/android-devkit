@@ -1,10 +1,12 @@
 // Generated from Rust DTOs. Run pnpm bindings to update.
 export type AppError = { code: string, message: string, detail: string, };
-export type Settings = { sdkRoot: string, avdRoots: Array<string>, javaPath: string, proxy: string, bootTimeoutSecs: number, trayEnabled: boolean, sdkSites: Array<SdkSite>, sdkChannel: number, };
+export type Settings = { sdkRoot: string, avdRoots: Array<string>, javaPath: string, proxy: string, bootTimeoutSecs: number, trayEnabled: boolean, sdkSites: Array<SdkSite>, sdkChannel: number, sdkDownload: SdkDownloadSource, };
+export type SdkDownloadSource = { kind: string, name: string, url: string, verifyOfficial: boolean, };
+export type SdkSourceCheck = { sites: Array<SdkSiteStatus>, archiveUrl: string, archiveError: string, checkedAt: number, };
 export type SdkSite = { name: string, url: string, enabled: boolean, };
 export type SdkSiteStatus = { name: string, url: string, enabled: boolean, builtin: boolean, checkedAt: number, packageCount: number, error: string, };
 export type Environment = { path: string, source: string, adb: string, emulator: string, commandTools: string, java: string, writable: boolean, warnings: Array<string>, };
-export type SdkPackage = { id: string, name: string, version: string, category: string, installed: boolean, installedVersion: string, api: string, abi: string, tag: string, size: number, url: string, checksum: string, checksumType: string, licenseId: string, license: string, dependencies: Array<string>, dependencyMinVersions: { [key in string]?: string }, obsolete: boolean, channel: number, sourceUrl: string, };
+export type SdkPackage = { id: string, name: string, version: string, category: string, installed: boolean, installedVersion: string, api: string, abi: string, tag: string, size: number, url: string, checksum: string, checksumType: string, licenseId: string, license: string, dependencies: Array<string>, dependencyMinVersions: { [key in string]?: string }, obsolete: boolean, channel: number, sourceUrl: string, metadataKey: string, officialChecksum: string, officialStatus: string, officialCheckedAt: number, };
 export type Avd = { id: string, name: string, displayName: string, iniPath: string, dataPath: string, image: string, api: string, abi: string, memory: string, disk: string, gpu: string, fingerprint: string, status: string, error: string, serial: string, owned: boolean, config: { [key in string]?: string }, };
 export type Device = { serial: string, transportId: string, serverEpoch: number, model: string, state: string, connection: string, avdName: string, api: string, abi: string, };
 export type Target = { serial: string, transportId: string, serverEpoch: number, };

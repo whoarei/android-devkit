@@ -50,7 +50,7 @@ const { chromium } = require('playwright');
   const catalogResult = await page.evaluate(async () =>
     window.__TAURI_INTERNALS__.invoke('catalog_refresh'),
   );
-  await page.getByRole('button', { name: 'SDK Update Sites', exact: true }).click();
+  await page.getByRole('button', { name: '下载源与站点', exact: true }).click();
   await page.getByLabel('启用 Android SDK', { exact: true }).waitFor();
   assert.equal(await page.locator('.sdk-site').count(), 4);
   await page.screenshot({ path: path.join(output, 'sdk-sites-native.png') });

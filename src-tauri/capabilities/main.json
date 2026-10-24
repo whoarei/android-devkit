@@ -19,6 +19,8 @@
     "allow-settings-save",
     "allow-catalog-refresh",
     "allow-sdk-sites-status",
+    "allow-sdk-source-check",
+    "allow-sdk-source-apply",
     "allow-plan-create",
     "allow-task-submit",
     "allow-task-cancel",

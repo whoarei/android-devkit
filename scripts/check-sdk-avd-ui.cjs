@@ -389,7 +389,7 @@ const path = require('node:path');
     await releaseRefresh();
     assert.equal(await page.getByLabel('显示预览组件').isChecked(), true);
     assert.equal(await page.evaluate(() => window.__fixture.settings.sdkChannel), 3);
-    await page.getByRole('button', { name: 'SDK Update Sites', exact: true }).click();
+    await page.getByRole('button', { name: '下载源与站点', exact: true }).click();
     assert.equal(await page.getByLabel('启用 Android SDK', { exact: true }).isDisabled(), true);
     await page.getByRole('button', { name: '添加站点', exact: true }).click();
     let dialog = page.getByRole('dialog', { name: '添加 SDK 更新站点' });

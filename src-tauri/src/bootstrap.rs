@@ -105,22 +105,34 @@ pub async fn download(
 ) -> Result<PathBuf> {
     let url = reqwest::Url::parse(&pkg.url)
         .map_err(|_| AppError::new("UNTRUSTED_SOURCE", "下载源无效"))?;
+    let sdk = crate::sdk_source::builtin(pkg, settings);
+    let allowed_sdk = sdk && crate::sdk_source::map_archive(settings, &pkg.url).is_ok();
+    let addon = settings.sdk_sites.iter().any(|site| {
+        // Registered add-on feeds may use a CDN. SDK mirrors stay within the selected root.
+        !sdk && site.enabled && site.url == pkg.source_url
+    });
     if url.scheme() != "https"
-        || !matches!(
-            url.host_str(),
-            Some(
-                "dl.google.com"
-                    | "github.com"
-                    | "objects.githubusercontent.com"
-                    | "release-assets.githubusercontent.com"
-            )
-        )
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || !(allowed_sdk
+            || addon
+            || (!sdk
+                && matches!(
+                    url.host_str(),
+                    Some(
+                        "dl.google.com"
+                            | "github.com"
+                            | "objects.githubusercontent.com"
+                            | "release-assets.githubusercontent.com"
+                    )
+                )))
     {
         return Err(AppError::new(
             "UNTRUSTED_SOURCE",
             "下载仅允许受信任的官方发行源",
         ));
     }
+    crate::sdk_source::verify_package(settings, pkg)?;
     if pkg.checksum.is_empty() {
         return Err(AppError::new(
             "CHECKSUM_MISSING",
@@ -128,7 +140,10 @@ pub async fn download(
         ));
     }
     std::fs::create_dir_all(cache)?;
-    let file = cache.join(format!("{}.zip", digest(pkg.url.as_bytes())));
+    let file = cache.join(format!(
+        "{}.zip",
+        digest(format!("{}\n{}\n{}", pkg.url, pkg.checksum, pkg.checksum_type).as_bytes())
+    ));
     let part = file.with_extension("part");
     let mut response = client(settings)?
         .get(url)
@@ -137,6 +152,9 @@ pub async fn download(
         .map_err(|e| AppError::new("DOWNLOAD_FAILED", e.to_string()))?
         .error_for_status()
         .map_err(|e| AppError::new("DOWNLOAD_FAILED", e.to_string()))?;
+    if sdk {
+        crate::sdk_source::map_archive(settings, response.url().as_str())?;
+    }
     let size = response.content_length().unwrap_or(pkg.size);
     if size > 0 && free_space(cache) < size.saturating_mul(3) {
         return Err(AppError::new("DISK_SPACE", "缓存卷空间不足"));
@@ -153,7 +171,16 @@ pub async fn download(
         progress(bytes, size);
     }
     out.sync_all()?;
-    let mut input = std::fs::File::open(&part)?;
+    drop(out);
+    if let Err(error) = verify_archive(pkg, &part) {
+        let _ = std::fs::remove_file(&part);
+        return Err(error);
+    }
+    std::fs::rename(part, &file)?;
+    Ok(file)
+}
+fn verify_archive(pkg: &SdkPackage, path: &Path) -> Result<()> {
+    let mut input = std::fs::File::open(path)?;
     let mut hash = sha2::Sha256::new();
     let mut sha1 = sha1::Sha1::new();
     let mut buf = [0; 65536];
@@ -176,16 +203,34 @@ pub async fn download(
         ));
     };
     if !actual.eq_ignore_ascii_case(&pkg.checksum) {
-        let _ = std::fs::remove_file(&part);
         return Err(AppError::new("CHECKSUM_FAILED", "归档校验失败，文件未安装"));
     }
-    std::fs::rename(part, &file)?;
-    Ok(file)
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn optional_official_verification_never_disables_archive_integrity() {
+        let root = tempfile::tempdir().unwrap();
+        let path = root.path().join("bytes.zip");
+        std::fs::write(&path, b"downloaded bytes").unwrap();
+        let mut package = SdkPackage {
+            checksum: format!("{:x}", sha1::Sha1::digest(b"downloaded bytes")),
+            checksum_type: "sha1".into(),
+            ..Default::default()
+        };
+        assert!(verify_archive(&package, &path).is_ok());
+        std::fs::write(&path, b"corrupted bytes").unwrap();
+        assert_eq!(
+            verify_archive(&package, &path).unwrap_err().code,
+            "CHECKSUM_FAILED"
+        );
+        package.checksum_type = "sha256".into();
+        package.checksum = format!("{:x}", sha2::Sha256::digest(b"corrupted bytes"));
+        assert!(verify_archive(&package, &path).is_ok());
+    }
     #[test]
     fn rejects_zip_path_traversal() {
         let d = tempfile::tempdir().unwrap();

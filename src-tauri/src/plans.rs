@@ -404,6 +404,65 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
         _ => return Err(AppError::new("UNSUPPORTED_OPERATION", "未支持的操作")),
     }
     .to_owned();
+    if matches!(op.kind.as_str(), "sdk_install" | "bootstrap" | "avd_create") {
+        let ids = if op.kind == "avd_create" {
+            op.optional("prerequisitePackages")
+        } else {
+            op.optional("packages")
+        };
+        let mut downloads: Vec<_> = catalog
+            .iter()
+            .filter(|p| ids.lines().any(|id| id == p.id))
+            .cloned()
+            .collect();
+        if op.kind == "bootstrap" {
+            let bootstrap_id = if op.optional("purpose") == "usb" {
+                "platform-tools"
+            } else {
+                "cmdline-tools;22.0"
+            };
+            if !downloads.iter().any(|p| p.id == bootstrap_id) {
+                if let Some(p) = catalog.iter().find(|p| p.id == bootstrap_id) {
+                    downloads.push(p.clone());
+                }
+            }
+        }
+        for package in &downloads {
+            if !local
+                .iter()
+                .any(|p| p.id == package.id && p.version == package.version)
+            {
+                crate::sdk_source::verify_package(&settings, package)?;
+            }
+        }
+        op.args.insert(
+            "downloadPackages".into(),
+            serde_json::to_string(&downloads)?,
+        );
+        op.args.insert(
+            "sdkDownloadSource".into(),
+            crate::sdk_source::name(&settings),
+        );
+        op.args
+            .insert("sdkDownloadUrl".into(), crate::sdk_source::base(&settings)?);
+        op.args.insert(
+            "sdkOfficialVerification".into(),
+            settings.sdk_download.verify_official.to_string(),
+        );
+        effects.push(format!(
+            "下载源：{} · {}",
+            crate::sdk_source::name(&settings),
+            crate::sdk_source::base(&settings)?
+        ));
+        effects.push(
+            if settings.sdk_download.verify_official {
+                "官方校验已开启：仅安装与官方记录匹配的组件"
+            } else {
+                "官方校验已关闭：仍按所选下载源的校验值验证完整性"
+            }
+            .into(),
+        );
+    }
     if let Some(t) = &op.target {
         effects.push(format!(
             "目标 {} · transport {} · 会话 {}",

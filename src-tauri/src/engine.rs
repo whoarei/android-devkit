@@ -37,6 +37,7 @@ impl App {
         token: &str,
         accepted: &[String],
     ) -> Result<Task> {
+        let _configuration_guard = self.configuration_gate.lock().unwrap();
         let _update_guard = self.allow_update_sensitive_work()?;
         if let Some(t) = self.store.request(request_id) {
             return Ok(t);
@@ -712,6 +713,15 @@ impl App {
     ) -> Result<()> {
         bootstrap::assert_writable(Path::new(&settings.sdk_root))?;
         let packages: Vec<_> = ids.lines().filter(|p| !p.is_empty()).collect();
+        let pinned: Vec<SdkPackage> = self
+            .store
+            .task(id)?
+            .operation
+            .args
+            .get("downloadPackages")
+            .map(|raw| serde_json::from_str(raw))
+            .transpose()?
+            .unwrap_or_default();
         let expected: BTreeMap<String, String> = self
             .store
             .task(id)?
@@ -761,40 +771,42 @@ impl App {
                     packages.len()
                 ),
             )?;
-            let mut args = vec![
+            let args = vec![
                 format!("--sdk_root={}", settings.sdk_root),
                 if remove { "--uninstall" } else { "--install" }.into(),
                 pkg.to_string(),
             ];
-            if !settings.proxy.is_empty() {
-                let u = reqwest::Url::parse(&settings.proxy)
-                    .map_err(|_| AppError::new("INVALID_PROXY", "无效代理"))?;
-                args.extend([
-                    format!(
-                        "--proxy={}",
-                        if u.scheme().starts_with("socks") {
-                            "socks"
-                        } else {
-                            "http"
-                        }
-                    ),
-                    format!("--proxy_host={}", u.host_str().unwrap_or("")),
-                    format!("--proxy_port={}", u.port().unwrap_or(8080)),
-                ]);
-            }
             let mut spec = process::java_tool(settings, "sdkmanager", args)?;
-            let package = self
-                .catalog
-                .lock()
-                .unwrap()
-                .iter()
-                .find(|package| package.id == *pkg)
-                .cloned();
-            crate::repository::configure_sdkmanager(
-                &self.data,
-                settings,
-                package.as_ref(),
-                &mut spec,
+            let package = pinned.iter().find(|package| package.id == *pkg);
+            crate::repository::configure_sdkmanager(&self.data, settings, package, &mut spec)?;
+            let repository = if remove {
+                crate::sdk_installer::LocalRepository::empty().await?
+            } else {
+                let package = package.ok_or_else(|| {
+                    AppError::new(
+                        "CATALOG_CHANGED",
+                        "任务缺少固定的组件元数据，请重新确认安装计划",
+                    )
+                })?;
+                crate::sdk_source::verify_package(settings, package)?;
+                let archive = self.download_archive(id, settings, package).await?;
+                crate::sdk_installer::LocalRepository::for_package(
+                    &self.data, settings, package, archive,
+                )
+                .await?
+            };
+            repository.configure(&self.data, settings, &mut spec)?;
+            self.phase(
+                id,
+                "installing",
+                &format!(
+                    "{} {pkg}",
+                    if remove {
+                        "卸载"
+                    } else {
+                        "安装已校验的归档"
+                    }
+                ),
             )?;
             let (tx, rx) = tokio::sync::mpsc::channel(8);
             self.answers.lock().unwrap().insert(id.into(), tx);
@@ -860,10 +872,9 @@ impl App {
         } else {
             "cmdline-tools;22.0"
         };
-        let pkg = self
-            .catalog
-            .lock()
-            .unwrap()
+        let pinned: Vec<SdkPackage> =
+            serde_json::from_str(self.store.task(id)?.operation.optional("downloadPackages"))?;
+        let pkg = pinned
             .iter()
             .find(|p| p.id == tool)
             .cloned()
@@ -874,13 +885,6 @@ impl App {
             "cmdline-tools/latest"
         });
         if !dest.exists() {
-            let mut pkg = pkg;
-            if purpose != "usb" {
-                let fixed = &manifest["commandTools"];
-                pkg.url = fixed["url"].as_str().unwrap().into();
-                pkg.checksum = fixed["checksum"].as_str().unwrap().into();
-                pkg.checksum_type = "sha1".into();
-            }
             self.install_archive(
                 id,
                 &settings,
@@ -926,6 +930,48 @@ impl App {
         dest: &Path,
         inner: &str,
     ) -> Result<()> {
+        let archive = self.download_archive(id, settings, pkg).await?;
+        self.phase(id, "verifying", "校验完成，安全解压并检查结构")?;
+        let parent = dest.parent().unwrap();
+        std::fs::create_dir_all(parent)?;
+        let stage = parent.join(format!(".devkit-stage-{id}"));
+        std::fs::create_dir(&stage)?;
+        bootstrap::extract_zip(&archive, &stage)?;
+        let source = if inner.is_empty() {
+            std::fs::read_dir(&stage)?
+                .flatten()
+                .find(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
+                .map(|e| e.path())
+                .ok_or_else(|| AppError::new("ARCHIVE_STRUCTURE", "运行时目录结构无效"))?
+        } else {
+            stage.join(inner)
+        };
+        if !source.is_dir() {
+            return Err(AppError::new("ARCHIVE_STRUCTURE", "官方包结构不符合预期"));
+        }
+        if dest.exists() {
+            return Err(AppError::new("DEST_EXISTS", "目标目录已出现，不会覆盖"));
+        }
+        std::fs::rename(source, dest)?;
+        let _ = std::fs::remove_dir(&stage);
+        Ok(())
+    }
+    async fn download_archive(
+        self: &Arc<Self>,
+        id: &str,
+        settings: &Settings,
+        pkg: &SdkPackage,
+    ) -> Result<PathBuf> {
+        self.line(id, format!("安装包来源：{}", pkg.url))?;
+        self.line(
+            id,
+            if crate::sdk_source::builtin(pkg, settings) && settings.sdk_download.verify_official {
+                "校验方式：Google 官方记录"
+            } else {
+                "校验方式：下载源归档记录"
+            }
+            .into(),
+        )?;
         self.phase(id, "downloading", &format!("下载 {}", pkg.id))?;
         let app = self.clone();
         let task = id.to_string();
@@ -952,30 +998,8 @@ impl App {
         if self.cancelled(id) {
             return Err(AppError::new("CANCELLED", "下载完成后取消，未提交安装"));
         }
-        self.phase(id, "verifying", "校验完成，安全解压并检查结构")?;
-        let parent = dest.parent().unwrap();
-        std::fs::create_dir_all(parent)?;
-        let stage = parent.join(format!(".devkit-stage-{id}"));
-        std::fs::create_dir(&stage)?;
-        bootstrap::extract_zip(&archive, &stage)?;
-        let source = if inner.is_empty() {
-            std::fs::read_dir(&stage)?
-                .flatten()
-                .find(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-                .map(|e| e.path())
-                .ok_or_else(|| AppError::new("ARCHIVE_STRUCTURE", "运行时目录结构无效"))?
-        } else {
-            stage.join(inner)
-        };
-        if !source.is_dir() {
-            return Err(AppError::new("ARCHIVE_STRUCTURE", "官方包结构不符合预期"));
-        }
-        if dest.exists() {
-            return Err(AppError::new("DEST_EXISTS", "目标目录已出现，不会覆盖"));
-        }
-        std::fs::rename(source, dest)?;
-        let _ = std::fs::remove_dir(&stage);
-        Ok(())
+        self.line(id, "归档校验通过".into())?;
+        Ok(archive)
     }
     async fn create_avd(
         self: &Arc<Self>,

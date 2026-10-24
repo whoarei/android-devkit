@@ -280,7 +280,8 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
             checksum_type: checksum_node
                 .and_then(|n| n.attribute("type"))
                 .unwrap_or("sha1")
-                .into(),
+                .replace('-', "")
+                .to_ascii_lowercase(),
             license: licenses.get(&license_id).cloned().unwrap_or_default(),
             license_id,
             dependencies: node
@@ -314,6 +315,7 @@ pub fn parse_catalog(xml: &str, base: &str, installed: bool) -> Result<Vec<SdkPa
             obsolete: node.attribute("obsolete") == Some("true"),
             channel,
             source_url: String::new(),
+            ..Default::default()
         });
     }
     Ok(packages)

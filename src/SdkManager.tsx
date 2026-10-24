@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, HardDrive, Plus, Search, X } from 'lucide-react';
 import { call, errorText, native, size } from './api';
 import { Button, Field, Modal } from './ui';
+import { SdkDownloadSettings, SdkSourceBar } from './SdkDownloadSettings';
 import {
   hasSdkUpdate as updated,
   imageFamily,
@@ -43,6 +44,7 @@ export function SdkManager({
   refreshing,
   refreshCatalog,
   warnings,
+  startWithSources = false,
 }: {
   data?: Workspace;
   busy: boolean;
@@ -50,10 +52,13 @@ export function SdkManager({
   refreshing: boolean;
   refreshCatalog: (beforeRefresh?: () => Promise<void>) => Promise<string[]>;
   warnings: string[];
+  startWithSources?: boolean;
   prepare: (kind: string, args?: Record<string, string>) => Promise<void>;
 }) {
   const locale = useLocale();
-  const [tab, setTab] = useState<'platforms' | 'tools' | 'sites'>('platforms');
+  const [tab, setTab] = useState<'platforms' | 'tools' | 'sites'>(
+    startWithSources ? 'sites' : 'platforms',
+  );
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [hideObsolete, setHideObsolete] = useState(true);
@@ -200,12 +205,13 @@ export function SdkManager({
           {t('准备模拟器环境')}
         </Button>
       </div>
+      <SdkSourceBar source={data?.settings.sdkDownload} open={() => setTab('sites')} />
       <div className="sdk-tabs tabs" role="group" aria-label={t('SDK 管理分类')}>
         {(
           [
             ['platforms', 'SDK Platforms'],
             ['tools', 'SDK Tools'],
-            ['sites', 'SDK Update Sites'],
+            ['sites', '下载源与站点'],
           ] as const
         ).map(([value, title]) => (
           <button
@@ -214,7 +220,7 @@ export function SdkManager({
             className={tab === value ? 'selected' : ''}
             onClick={() => setTab(value)}
           >
-            {title}
+            {t(title)}
           </button>
         ))}
       </div>
@@ -231,6 +237,28 @@ export function SdkManager({
       )}
       {tab === 'sites' ? (
         <>
+          {data && (
+            <SdkDownloadSettings
+              settings={data.settings}
+              sdkActive={
+                busy ||
+                !!data.tasks?.some(
+                  (task) =>
+                    ['queued', 'running', 'waiting_confirmation'].includes(task.state) &&
+                    ['sdk_install', 'sdk_remove', 'bootstrap', 'avd_create'].includes(
+                      task.operation.kind,
+                    ),
+                )
+              }
+              selectedCount={Object.keys(selected).length}
+              applied={async () => {
+                setSelected({});
+                await refresh();
+                await sites.refetch();
+              }}
+            />
+          )}
+          <h3 className="sdk-extra-sites-heading">{t('附加更新站点与索引状态')}</h3>
           <div className="sdk-browser-toolbar">
             <p className="hint">
               {t(
@@ -546,6 +574,15 @@ function SdkTreeBranch({
             {p.id}
             {p.obsolete ? t(' \u00B7 已过时') : ''}
             {p.channel ? t(' \u00B7 预览') : ''}
+            {p.officialStatus && (
+              <span className="sdk-official-status">
+                {p.officialStatus === 'ready'
+                  ? t(' · 官方记录已就绪')
+                  : p.officialStatus === 'mismatch'
+                    ? t(' · 与官方记录不一致')
+                    : t(' · 待补官方记录')}
+              </span>
+            )}
           </small>
         </div>
         <span>

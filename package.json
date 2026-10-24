@@ -1,7 +1,7 @@
 {
   "name": "android-devkit",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.3.0",
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
@@ -21,6 +21,7 @@
     "test:updater-release": "node scripts/check-updater-release.cjs",
     "test:tasks-ui": "node scripts/check-task-center-ui.cjs",
     "test:sdk-avd-ui": "node scripts/check-sdk-avd-ui.cjs",
+    "test:sdk-mirror-ui": "node scripts/check-sdk-mirror-ui.cjs",
     "bindings": "cargo test --manifest-path src-tauri/Cargo.toml --lib export_typescript_contract -- --ignored",
     "verify:m3": "powershell -NoProfile -File scripts/build-test-apk.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib m3_real_sdk_lifecycle -- --ignored --nocapture",
     "verify:m2": "cargo test --manifest-path src-tauri/Cargo.toml --lib m2_blank_environment -- --ignored --nocapture",

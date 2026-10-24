@@ -42,6 +42,7 @@ import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Obser
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
 import { SdkManager } from './SdkManager';
+import { defaultSdkDownload, sdkSourceName } from './SdkDownloadSettings';
 import { TerminalNewSession, TerminalPage, terminalDeviceName } from './TerminalPage';
 import { openDeviceTerminal, useTerminals } from './terminal';
 import { useSoftwareUpdate, SoftwareUpdateSection, SoftwareUpdateDialog } from './SoftwareUpdate';
@@ -86,6 +87,7 @@ export function App() {
     refetchInterval: 5000,
   });
   const data = query.data;
+  const [sdkSources, setSdkSources] = useState(false);
   const [modal, setModal] = useState<ModalName>(null),
     [plan, setPlan] = useState<Plan | null>(null),
     [accepted, setAccepted] = useState<string[]>([]),
@@ -849,6 +851,7 @@ export function App() {
             refreshing={catalogRefresh.isPending}
             refreshCatalog={(beforeRefresh) => catalogRefresh.mutateAsync(beforeRefresh)}
             warnings={catalogRefresh.isSuccess ? catalogRefresh.data : []}
+            startWithSources={sdkSources}
           />
         )}
         {page === 'tasks' && (
@@ -870,6 +873,10 @@ export function App() {
           <SettingsPanel
             updater={updater}
             initial={data?.settings}
+            manageSdkSources={() => {
+              setSdkSources(true);
+              setPage('sdk');
+            }}
             guard={guard}
             done={() => {
               void refresh();
@@ -1361,8 +1368,10 @@ function SettingsPanel({
   updater,
   guard,
   done,
+  manageSdkSources,
 }: {
   initial?: Settings;
+  manageSdkSources: () => void;
   updater: ReturnType<typeof useSoftwareUpdate>;
   guard: <T>(f: () => Promise<T>) => Promise<T | undefined>;
   done: () => void;
@@ -1379,6 +1388,7 @@ function SettingsPanel({
       trayEnabled: false,
       sdkSites: [],
       sdkChannel: 0,
+      sdkDownload: defaultSdkDownload(),
     },
   );
   useEffect(() => {
@@ -1451,6 +1461,13 @@ function SettingsPanel({
           )}
         </p>
         <h3>{t('网络与启动')}</h3>
+        <div className="sdk-source-setting">
+          <div>
+            <b>{t('SDK 下载源')}</b>
+            <p className="hint">{sdkSourceName(initial?.sdkDownload)}</p>
+          </div>
+          <Button onClick={manageSdkSources}>{t('管理下载源')}</Button>
+        </div>
         <Field
           label={t('手动代理')}
           hint={t('示例 http://127.0.0.1:7890 或 socks5://127.0.0.1:1080；留空直连。')}

@@ -23,6 +23,7 @@ impl Store {
             connection.execute("VACUUM INTO ?1", [backup.to_string_lossy().as_ref()])?;
         }
         connection.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK(id=1),json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,request_id TEXT UNIQUE NOT NULL,json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,created_at INTEGER NOT NULL,task_id TEXT NOT NULL,event TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,json TEXT NOT NULL,path TEXT NOT NULL); PRAGMA user_version=2;")?;
+        connection.execute_batch("CREATE TABLE IF NOT EXISTS sdk_catalog (id INTEGER PRIMARY KEY CHECK(id=1),packages TEXT NOT NULL,sites TEXT NOT NULL);")?;
         let store = Self {
             connection: Mutex::new(connection),
         };
@@ -54,6 +55,39 @@ impl Store {
     }
     pub fn tasks(&self) -> Result<Vec<Task>> {
         self.query_tasks("SELECT json FROM tasks ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT 200")
+    }
+    pub fn sdk_catalog(&self) -> Option<(Vec<SdkPackage>, Vec<SdkSiteStatus>)> {
+        let (packages, sites): (String, String) = self
+            .connection
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT packages,sites FROM sdk_catalog WHERE id=1",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .ok()?;
+        Some((
+            serde_json::from_str(&packages).ok()?,
+            serde_json::from_str(&sites).ok()?,
+        ))
+    }
+    pub fn save_sdk_catalog(
+        &self,
+        settings: Option<&Settings>,
+        packages: &[SdkPackage],
+        sites: &[SdkSiteStatus],
+    ) -> Result<()> {
+        let packages = serde_json::to_string(packages)?;
+        let sites = serde_json::to_string(sites)?;
+        let mut connection = self.connection.lock().unwrap();
+        let transaction = connection.transaction()?;
+        if let Some(settings) = settings {
+            transaction.execute("INSERT INTO settings(id,json) VALUES(1,?1) ON CONFLICT(id) DO UPDATE SET json=excluded.json",[serde_json::to_string(settings)?])?;
+        }
+        transaction.execute("INSERT INTO sdk_catalog(id,packages,sites) VALUES(1,?1,?2) ON CONFLICT(id) DO UPDATE SET packages=excluded.packages,sites=excluded.sites",params![packages,sites])?;
+        transaction.commit()?;
+        Ok(())
     }
     pub fn task_page(&self, query: &TaskQuery) -> Result<TaskPage> {
         let state = query.state.as_str();
@@ -268,6 +302,27 @@ impl Store {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn source_and_catalog_rollback_together_when_the_catalog_write_fails() {
+        use super::*;
+        let root = tempfile::tempdir().unwrap();
+        let store = Store::open(&root.path().join("state.db")).unwrap();
+        let old = Settings::default();
+        let package = SdkPackage {
+            id: "platform-tools".into(),
+            version: "1.0.0".into(),
+            ..Default::default()
+        };
+        store
+            .save_sdk_catalog(Some(&old), std::slice::from_ref(&package), &[])
+            .unwrap();
+        store.connection.lock().unwrap().execute_batch("CREATE TRIGGER reject_catalog BEFORE UPDATE ON sdk_catalog BEGIN SELECT RAISE(ABORT,'fixture failure'); END;").unwrap();
+        let mut changed = old.clone();
+        changed.sdk_download.kind = "tencent".into();
+        assert!(store.save_sdk_catalog(Some(&changed), &[], &[]).is_err());
+        assert_eq!(store.settings().sdk_download, old.sdk_download);
+        assert_eq!(store.sdk_catalog().unwrap().0[0].id, package.id);
+    }
     use super::*;
     #[test]
     fn task_search_reaches_older_history_and_treats_patterns_literally() {

@@ -75,7 +75,14 @@ pub fn sdk_open_directory(app: Service<'_>) -> Result<()> {
 }
 #[tauri::command]
 pub fn settings_save(app: Service<'_>, settings: Settings) -> Result<()> {
+    let _configuration_guard = app.configuration_gate.lock().unwrap();
     crate::repository::validate(&settings)?;
+    if settings.sdk_download != app.store.settings().sdk_download {
+        return Err(AppError::new(
+            "SDK_SOURCE_APPLY_REQUIRED",
+            "请在 SDK 管理中检查并应用下载源",
+        ));
+    }
     if !app.store.active_tasks()?.is_empty() {
         return Err(AppError::new("TASKS_ACTIVE", "任务执行中不能切换工具环境"));
     }
@@ -123,7 +130,21 @@ pub async fn catalog_refresh(app: Service<'_>) -> Result<Vec<String>> {
 }
 #[tauri::command]
 pub fn sdk_sites_status(app: Service<'_>) -> Vec<SdkSiteStatus> {
-    crate::repository::statuses(&app.data, &app.store.settings())
+    app.store
+        .sdk_catalog()
+        .map(|(_, sites)| sites)
+        .unwrap_or_else(|| crate::repository::statuses(&app.data, &app.store.settings()))
+}
+#[tauri::command]
+pub async fn sdk_source_check(
+    app: Service<'_>,
+    source: SdkDownloadSource,
+) -> Result<SdkSourceCheck> {
+    app.check_sdk_source(source).await
+}
+#[tauri::command]
+pub async fn sdk_source_apply(app: Service<'_>, source: SdkDownloadSource) -> Result<Vec<String>> {
+    app.apply_sdk_source(source).await
 }
 #[tauri::command]
 pub fn plan_create(app: Service<'_>, operation: Operation) -> Result<Plan> {
