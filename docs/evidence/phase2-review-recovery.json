@@ -1,0 +1,44 @@
+{
+  "run": ".qa/runtime/phase2-recovery-1792861913",
+  "cases": {
+    "crash-upload": {
+      "backupProtectedFromCleanup": true,
+      "direction": "upload",
+      "killedAfterBackup": true,
+      "originalRestored": true,
+      "publishedExternalEditDetected": false,
+      "sourceTaskId": "c39ad404-bffd-43f5-b05b-7bdd0086d51d"
+    },
+    "crash-download": {
+      "backupProtectedFromCleanup": true,
+      "direction": "download",
+      "killedAfterBackup": true,
+      "originalRestored": true,
+      "publishedExternalEditDetected": false,
+      "sourceTaskId": "3ad1b4b4-7b8a-46ae-bb49-89beeeb9aeca"
+    },
+    "final-verify-upload": {
+      "backupProtectedFromCleanup": true,
+      "direction": "upload",
+      "killedAfterBackup": false,
+      "originalRestored": true,
+      "publishedExternalEditDetected": true,
+      "sourceTaskId": "d9ddaeb7-adc1-4c93-99c0-23e04b1b1796"
+    },
+    "final-verify-download": {
+      "backupProtectedFromCleanup": true,
+      "direction": "download",
+      "killedAfterBackup": false,
+      "originalRestored": true,
+      "publishedExternalEditDetected": true,
+      "sourceTaskId": "e7b1c2e6-6009-429b-8fec-8f6aeaf83f3d"
+    }
+  },
+  "largeDirectoryAssertion": {
+    "sourceEntries": 10001,
+    "expectedError": "TRANSFER_LIMIT",
+    "originalFilesPreserved": true,
+    "executedInPassingSdkTest": true
+  },
+  "completeDirectoryResponseFraming": "validated by actual SDK transfer and unit truncation assertions"
+}

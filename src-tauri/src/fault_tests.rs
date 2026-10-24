@@ -26,6 +26,19 @@ pub(crate) fn checkpoint(name: &str) -> std::io::Result<()> {
     assert!(root.join(".fault-sandbox").is_file());
     fs::write(root.join("reached"), name)?;
     match std::env::var("DEVKIT_FAULT_MODE").unwrap().as_str() {
+        "pause" => {
+            let deadline = Instant::now() + Duration::from_secs(30);
+            while !root.join("continue").is_file() {
+                if Instant::now() >= deadline {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::TimedOut,
+                        "fault parent did not resume worker",
+                    ));
+                }
+                std::thread::park_timeout(Duration::from_millis(50));
+            }
+            Ok(())
+        }
         "kill" => {
             // Bound the worker lifetime even if the test runner is interrupted.
             let deadline = Instant::now() + Duration::from_secs(30);

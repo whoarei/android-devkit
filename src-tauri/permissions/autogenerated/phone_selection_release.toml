@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-phone-selection-release"
+description = "Enables the phone_selection_release command without any pre-configured scope."
+commands.allow = ["phone_selection_release"]
+
+[[permission]]
+identifier = "deny-phone-selection-release"
+description = "Denies the phone_selection_release command without any pre-configured scope."
+commands.deny = ["phone_selection_release"]

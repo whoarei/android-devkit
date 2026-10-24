@@ -13,6 +13,7 @@ use std::{
 
 type Names = BTreeMap<String, String>;
 type Snapshots = BTreeMap<String, Option<String>>;
+type ContentRows = Vec<(String, bool, u64, String)>;
 #[derive(Serialize, Deserialize)]
 struct Journal {
     names: Names,
@@ -60,6 +61,9 @@ fn fingerprint(mut rows: Vec<(String, bool, u64, String)>) -> String {
     digest(&serde_json::to_vec(&rows).unwrap())
 }
 pub fn local_fingerprint(path: &Path) -> Result<Option<String>> {
+    Ok(local_rows(path)?.map(fingerprint))
+}
+fn local_rows(path: &Path) -> Result<Option<ContentRows>> {
     match std::fs::symlink_metadata(path) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
         Err(e) => return Err(e.into()),
@@ -82,11 +86,17 @@ pub fn local_fingerprint(path: &Path) -> Result<Option<String>> {
         let hash = if directory {
             String::new()
         } else {
-            digest_file(&path)?
+            phone_files::bounded_hash(&path, bytes)?
         };
         rows.push((relative.clone(), directory, bytes, hash));
         if directory {
             for entry in std::fs::read_dir(&path)? {
+                if pending.len() + rows.len() >= 10_000 {
+                    return Err(AppError::new(
+                        "OVERWRITE_LIMIT",
+                        "旧目标超过核对上限，请保留或重命名",
+                    ));
+                }
                 let entry = entry?;
                 let name = entry.file_name().to_string_lossy().into_owned();
                 if !safe_component(&name) {
@@ -106,7 +116,7 @@ pub fn local_fingerprint(path: &Path) -> Result<Option<String>> {
             }
         }
     }
-    Ok(Some(fingerprint(rows)))
+    Ok(Some(rows))
 }
 impl App {
     async fn remote_fingerprint(
@@ -115,6 +125,26 @@ impl App {
         target: &Target,
         path: &str,
     ) -> Result<Option<String>> {
+        let Some(rows) = self.remote_rows(settings, target, path).await? else {
+            return Ok(None);
+        };
+        if rows
+            .iter()
+            .any(|(_, directory, _, hash)| !directory && hash.is_empty())
+        {
+            return Err(AppError::new(
+                "OVERWRITE_NEEDS_HASH",
+                "该设备不能核对旧目标摘要，请保留或重命名",
+            ));
+        }
+        Ok(Some(fingerprint(rows)))
+    }
+    async fn remote_rows(
+        &self,
+        settings: &Settings,
+        target: &Target,
+        path: &str,
+    ) -> Result<Option<ContentRows>> {
         let stat=self.remote_shell(settings,target,format!("if [ ! -e {p} ] && [ ! -L {p} ]; then printf MISSING; else [ ! -L {p} ] && stat -c '%f %s' {p}; fi",p=quote(path)),15).await?;
         if stat.text().trim() == "MISSING" {
             return Ok(None);
@@ -149,18 +179,17 @@ impl App {
             let hash = if directory {
                 String::new()
             } else {
-                let hash = self.remote_hash(settings, target, &path).await?;
-                if hash.is_empty() {
-                    return Err(AppError::new(
-                        "OVERWRITE_NEEDS_HASH",
-                        "该设备不能核对旧目标摘要，请保留或重命名",
-                    ));
-                }
-                hash
+                self.remote_hash(settings, target, &path).await?
             };
             rows.push((relative.clone(), directory, bytes, hash));
             if directory {
                 for entry in self.remote_entries_raw(target, &path).await? {
+                    if pending.len() + rows.len() >= 10_000 {
+                        return Err(AppError::new(
+                            "OVERWRITE_LIMIT",
+                            "旧目标超过核对上限，请保留或重命名",
+                        ));
+                    }
                     if entry.link {
                         return Err(AppError::new(
                             "UNSAFE_PATH",
@@ -180,7 +209,7 @@ impl App {
                 }
             }
         }
-        Ok(Some(fingerprint(rows)))
+        Ok(Some(rows))
     }
     async fn target_fingerprint(
         &self,
@@ -342,6 +371,35 @@ impl App {
             published.push(name.clone());
             self.line(id, format!("已发布：{name}"))?;
         }
+        // A successful mv response alone does not prove publication. Older Android mv
+        // can nest a source inside a concurrently created directory; external changes
+        // can also occur between individual root commits. Verify every final root
+        // before any original backup becomes eligible for cleanup.
+        for (root, name) in &names {
+            #[cfg(test)]
+            crate::fault_tests::checkpoint("phone.transfer.before_final_verify")?;
+            let destination = destination(set, name);
+            let matches = if upload {
+                let actual = self.remote_rows(&settings, target, &destination).await?;
+                let expected = local_rows(&local_stage.join(root))?;
+                match (expected, actual) {
+                    (Some(expected), Some(actual))
+                        if fingerprint(expected.clone()) == journal.new[root] =>
+                    {
+                        rows_match(expected, actual)
+                    }
+                    _ => false,
+                }
+            } else {
+                local_fingerprint(Path::new(&destination))?.as_ref() == Some(&journal.new[root])
+            };
+            if !matches {
+                return Err(AppError::new(
+                    "RESULT_UNKNOWN",
+                    format!("发布后的目标内容未核对一致：{name}；保留原件备份，请检查目标"),
+                ));
+            }
+        }
         if protected {
             for (index, (_, name)) in names.iter().enumerate() {
                 if old[name].is_some() {
@@ -378,7 +436,7 @@ impl App {
     }
     pub async fn restore_transfer(&self, op: &Operation) -> Result<String> {
         let source = self.store.task(op.arg("sourceTaskId")?)?;
-        let _source_use = self.use_task_record(&source.id, false)?;
+        let _source_use = self.use_task_record(&source.id, true)?;
         if source.active() || source.operation.optional("conflicts") != "replace" {
             return Err(AppError::new("TRANSFER_RESTORE", "请选择已结束的替换传输"));
         }
@@ -529,6 +587,17 @@ impl App {
         ))
     }
 }
+fn rows_match(mut expected: ContentRows, actual: ContentRows) -> bool {
+    // Size-only devices still require the exact file/directory tree and every size.
+    for (relative, directory, _, hash) in &actual {
+        if !directory && hash.is_empty() {
+            if let Some(row) = expected.iter_mut().find(|row| &row.0 == relative) {
+                row.3.clear();
+            }
+        }
+    }
+    fingerprint(expected) == fingerprint(actual)
+}
 fn destination(set: &TransferSet, name: &str) -> String {
     if set.direction == "upload" {
         format!("{}/{name}", set.directory)
@@ -552,6 +621,32 @@ fn write_journal(app: &App, id: &str, transfer: &str, journal: &Journal) -> Resu
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn publication_verification_requires_the_complete_tree_even_without_hashes() {
+        let expected = vec![
+            ("".into(), true, 0, String::new()),
+            ("file.txt".into(), false, 3, "abc".into()),
+            ("empty".into(), true, 0, String::new()),
+        ];
+        assert!(rows_match(expected.clone(), expected.clone()));
+        let mut size_only = expected.clone();
+        size_only[1].3.clear();
+        assert!(rows_match(expected.clone(), size_only.clone()));
+        size_only[1].2 = 4;
+        assert!(!rows_match(expected.clone(), size_only));
+        let mut nested = expected.clone();
+        nested[1].0 = "file.txt/file.txt".into();
+        assert!(!rows_match(expected.clone(), nested));
+        let mut changed = expected.clone();
+        changed[1].3 = "changed".into();
+        assert!(!rows_match(expected.clone(), changed));
+        let mut extra = expected.clone();
+        extra.push(("unreviewed.txt".into(), false, 1, String::new()));
+        assert!(!rows_match(expected.clone(), extra));
+        let mut missing = expected.clone();
+        missing.pop();
+        assert!(!rows_match(expected, missing));
+    }
     #[test]
     fn unresolved_replacement_backups_protect_the_task_record_until_recovery_is_verified() {
         let temp = tempfile::tempdir().unwrap();

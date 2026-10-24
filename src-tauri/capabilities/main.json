@@ -39,6 +39,7 @@
     "allow-apk-prepare",
     "allow-apk-set-prepare",
     "allow-apk-set-tools",
+    "allow-phone-selection-release",
     "allow-phone-choose",
     "allow-device-files",
     "allow-transfer-prepare",

@@ -457,5 +457,14 @@
   "MP4 没有完整、可播放的视频采样或媒体数据不完整": "MP4 video samples or media data are incomplete; there is no verified playable video.",
   "替换原件尚待处理，请从原设备的文件传输面板恢复或清理": "Original file backups need review. Restore or clean up from the original device's file transfer panel first.",
   "暂存中保留原件备份，请先恢复，不会删除原件": "Staging retains original file backups. Restore them first; originals will not be deleted.",
-  "原件备份已被外部修改，保留备份，未清理": "An original backup was changed externally. The backup was preserved without cleanup."
+  "原件备份已被外部修改，保留备份，未清理": "An original backup was changed externally. The backup was preserved without cleanup.",
+  "录屏原件尚待取回，请从原设备的录屏面板处理": "The original recording needs recovery. Open Screen recording on the original device first.",
+  "split 依赖存在循环，未生成安装计划": "Split dependencies contain a cycle. No installation plan was created.",
+  "发布后的目标内容未核对一致：{0}；保留原件备份，请检查目标": "Published destination did not match: {0}. Original backups are preserved; inspect the destination.",
+  "已恢复本机完整 MP4，无需重录；连接原设备后可清理设备临时文件": "A complete local MP4 was recovered without recording again. Reconnect the original device to clean up its temporary files.",
+  "已清理本任务设备录屏原件；本机 MP4 与待保存文件保留": "Task-owned device recording removed. Local MP4 and Pending files are preserved.",
+  "未取回的设备原录屏将永久删除，不能再恢复；已经保存到本机的 MP4 与待保存文件保留。仍在录制时拒绝清理。": "Device recordings that have not been retrieved will be permanently deleted. Local MP4 and Pending files remain. Cleanup is refused while recording.",
+  "原录屏仍在运行，请等待原定时长结束后清理": "The original recording is still running. Wait for its configured duration to finish before cleanup.",
+  "放弃原任务 {0} 的设备录屏，仅删除本任务的 MP4、PID 与日志；不会停止其他进程": "Discard the device recording from task {0}; remove only its MP4, PID and log files. No other process will be stopped.",
+  "设备列表响应被截断，未使用不完整清单": "The device directory response was truncated. The incomplete list was rejected."
 }

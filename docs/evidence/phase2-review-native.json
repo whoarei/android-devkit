@@ -1,0 +1,25 @@
+{
+  "isolatedProfile": true,
+  "distinctApplicationId": "dev.android-devkit.qa.phase2",
+  "target": {
+    "serial": "emulator-5588",
+    "transportId": "75",
+    "serverEpoch": 1792860928
+  },
+  "nativeSplitInstallation": true,
+  "requestIdIdempotency": true,
+  "nativeRecordingAndVideoPreview": {
+    "width": 720,
+    "height": 1280,
+    "duration": 2.9197
+  },
+  "nativeFileRoundtripSha256": true,
+  "renameAndReplacement": true,
+  "cancellationBeforePublish": true,
+  "stagingCleanup": true,
+  "videoCacheDiscard": true,
+  "selectionReleasePermissions": true,
+  "taskLinkedStagingProtected": true,
+  "deviceRecordingCleanupPreservesLocalMp4": true,
+  "errors": []
+}

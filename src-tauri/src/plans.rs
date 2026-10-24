@@ -398,9 +398,9 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             warnings.push("所有 APK 在一次安装会话中提交；覆盖安装保留数据，冲突时不自动卸载或降级。安装后核对 versionCode 与 split 集合。".into());
             "安装分包 APK"
         }
-        "screen_record" | "screen_recover" => {
+        "screen_record" | "screen_recover" | "screen_cleanup" => {
             crate::phone_record::plan(app, &mut op, &mut effects, &mut warnings)?;
-            if op.kind == "screen_recover" { "取回已有录屏" } else { "录制屏幕" }
+            match op.kind.as_str() { "screen_recover"=>"取回已有录屏", "screen_cleanup"=>"放弃并清理原录屏", _=>"录制屏幕" }
         }
         "file_upload" | "file_download" | "file_cleanup" | "file_restore" => {
             crate::phone_files::plan(app, &mut op, &mut effects, &mut warnings)?;

@@ -287,6 +287,7 @@ impl Operation {
                 | "avd_force_stop"
                 | "app_reinstall"
                 | "adb_restart"
+                | "screen_cleanup"
         ) || (matches!(self.kind.as_str(), "file_upload" | "file_download")
             && self.optional("conflicts") == "replace")
     }

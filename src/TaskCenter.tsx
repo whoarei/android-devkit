@@ -555,7 +555,13 @@ function TaskRow({
                 task.cancelRequested
                   ? t('正在取消')
                   : task.cancellable
-                    ? t(task.operation.kind === 'screen_record' ? '停止并保存录屏' : '取消')
+                    ? t(
+                        task.operation.kind === 'screen_record'
+                          ? task.state === 'queued'
+                            ? '取消等待录屏'
+                            : '停止并保存录屏'
+                          : '取消',
+                      )
                     : t('此步骤完成后取消')
               }
               disabled={disabled || task.cancelRequested}

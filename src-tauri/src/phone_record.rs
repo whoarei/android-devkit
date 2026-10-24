@@ -22,7 +22,9 @@ pub fn plan(
         .target
         .as_ref()
         .ok_or_else(|| AppError::new("TARGET_REQUIRED", "请选择录屏设备"))?;
-    if op.kind == "screen_recover" {
+    op.args.remove("recordingResolved");
+    op.args.remove("deviceCleanupPending");
+    if matches!(op.kind.as_str(), "screen_recover" | "screen_cleanup") {
         let source = app.store.task(op.arg("sourceTaskId")?)?;
         if source.operation.kind != "screen_record"
             || source.active()
@@ -34,6 +36,14 @@ pub fn plan(
             ));
         }
         paths(&source.id)?;
+        if op.kind == "screen_cleanup" {
+            effects.push(format!(
+                "放弃原任务 {} 的设备录屏，仅删除本任务的 MP4、PID 与日志；不会停止其他进程",
+                source.id
+            ));
+            warnings.push("未取回的设备原录屏将永久删除，不能再恢复；已经保存到本机的 MP4 与待保存文件保留。仍在录制时拒绝清理。".into());
+            return Ok(());
+        }
         effects.push(format!(
             "取回原任务 {} 的设备临时 MP4；不会重新录制",
             source.id
@@ -75,6 +85,109 @@ fn process_script(video: &str, pid: &str, stop: bool) -> String {
     format!("set -e; [ ! -L {p} ]; if [ -f {p} ]; then n=$(cat {p}); case \"$n\" in ''|*[!0-9]*) exit 74;; esac; if [ -e /proc/$n/cmdline ]; then c=$(tr '\\000' '\\n' < /proc/$n/cmdline); if [ -z \"$c\" ]; then printf FINISHED; exit 0; fi; printf '%s\\n' \"$c\" | grep -Fx {v} >/dev/null; printf '%s\\n' \"$c\" | grep -E '^(/system/bin/)?screenrecord$' >/dev/null; {action}; else printf FINISHED; fi; else printf FINISHED; fi",p=quote(pid),v=quote(video),action=if stop {"kill -2 \"$n\"; printf STOPPED"} else {"printf ACTIVE"})
 }
 impl App {
+    pub fn recover_committed_phone_recordings(&self) -> Result<()> {
+        for source in self.store.review_tasks()? {
+            if source.operation.kind != "screen_record" || !source.artifact.is_empty() {
+                continue;
+            }
+            let Ok((_, _)) = paths(&source.id) else {
+                continue;
+            };
+            let path = self
+                .data
+                .join("artifacts")
+                .join(format!("{}.mp4", source.id));
+            if !path.is_file()
+                || crate::phone_files::regular_local(&path, false).is_err()
+                || validate_mp4(&path).is_err()
+            {
+                continue;
+            }
+            self.store
+                .register_artifact(&source.id, &path, "video", "设备录屏", &source.id)?;
+            self.update(&source.id, |task| {
+                task.artifact = path.to_string_lossy().into();
+                task.state = "succeeded".into();
+                task.phase = "complete".into();
+                task.progress = Some(100.0);
+                task.cancellable = false;
+                task.operation
+                    .args
+                    .insert("deviceCleanupPending".into(), "true".into());
+                task.message =
+                    "已恢复本机完整 MP4，无需重录；连接原设备后可清理设备临时文件".into();
+            })?;
+        }
+        Ok(())
+    }
+    pub async fn cleanup_phone_recording(
+        &self,
+        op: &Operation,
+        settings: &Settings,
+    ) -> Result<String> {
+        let source = self.store.task(op.arg("sourceTaskId")?)?;
+        let _source_use = self.use_task_record(&source.id, true)?;
+        let target = op
+            .target
+            .as_ref()
+            .ok_or_else(|| AppError::new("TARGET_REQUIRED", "请选择原设备"))?;
+        if source.active()
+            || source.operation.kind != "screen_record"
+            || source
+                .operation
+                .target
+                .as_ref()
+                .map(|target| &target.serial)
+                != Some(&target.serial)
+        {
+            return Err(AppError::new(
+                "RECORDING_SOURCE",
+                "只能清理原设备已结束的本任务录屏",
+            ));
+        }
+        let (video, pid) = paths(&source.id)?;
+        self.check_remote(settings, target, "/sdcard/Movies")
+            .await?;
+        if self
+            .remote_shell(settings, target, process_script(&video, &pid, false), 15)
+            .await?
+            .text()
+            .trim()
+            != "FINISHED"
+        {
+            return Err(AppError::new(
+                "RECORDING_ACTIVE",
+                "原录屏仍在运行，请等待原定时长结束后清理",
+            ));
+        }
+        self.remote_shell(
+            settings,
+            target,
+            format!(
+                "[ ! -L {v} ] && [ ! -L {p} ] && [ ! -L {l} ] && rm -f -- {v} {p} {l}",
+                v = quote(&video),
+                p = quote(&pid),
+                l = quote(&format!("{pid}.log"))
+            ),
+            15,
+        )
+        .await?;
+        self.update(&source.id, |task| {
+            task.operation
+                .args
+                .insert("recordingResolved".into(), "true".into());
+            task.operation.args.remove("deviceCleanupPending");
+            task.state = if task.artifact.is_empty() {
+                "cancelled"
+            } else {
+                "succeeded"
+            }
+            .into();
+            task.phase = "complete".into();
+            task.message = "已清理本任务设备录屏原件；本机 MP4 与待保存文件保留".into();
+        })?;
+        Ok("已清理本任务设备录屏原件；本机 MP4 与待保存文件保留".into())
+    }
     pub async fn screen_record(
         &self,
         id: &str,
@@ -91,7 +204,7 @@ impl App {
             id
         };
         let _source_use = if source_id != id {
-            Some(self.use_task_record(source_id, false)?)
+            Some(self.use_task_record(source_id, true)?)
         } else {
             None
         };
@@ -325,10 +438,10 @@ impl App {
                 t.cancellable = false;
             })?;
         }
-        self.check_remote(settings, target, "/sdcard/Movies")
-            .await?;
-        let cleanup = self
-            .remote_shell(
+        let cleanup = async {
+            self.check_remote(settings, target, "/sdcard/Movies")
+                .await?;
+            self.remote_shell(
                 settings,
                 target,
                 format!(
@@ -339,7 +452,21 @@ impl App {
                 ),
                 15,
             )
-            .await;
+            .await
+        }
+        .await;
+        self.update(source_id, |task| {
+            task.operation
+                .args
+                .insert("recordingResolved".into(), cleanup.is_ok().to_string());
+            if cleanup.is_err() {
+                task.operation
+                    .args
+                    .insert("deviceCleanupPending".into(), "true".into());
+            } else {
+                task.operation.args.remove("deviceCleanupPending");
+            }
+        })?;
         Ok(format!(
             "MP4 已完整保存到待保存文件；已验证 MP4 结构及大小{}",
             if cleanup.is_err() {

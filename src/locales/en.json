@@ -815,5 +815,9 @@
   "替换前复核内容摘要；不合并目录。全部发布成功后清理旧内容，中断时保留原件备份，可从原任务恢复。": "Recheck content hashes before replacing complete destinations. Folders are not merged. Original copies are retained until all items are published and can be restored after an interruption.",
   "恢复被替换的旧目标": "Restore replaced originals",
   "打开共享目录后可拖入文件或目录上传。仅访问共享存储；不跟随链接，同名目标需明确选择保留、重命名或替换。单次最多 10000 个条目、4 GiB。": "Open a shared folder to drop files or folders for upload. Shared storage only; links are not followed. Explicitly keep, rename or replace name conflicts. Up to 10,000 entries and 4 GiB per transfer.",
-  "检查校验工具，缺目录时刷新": "Check verification tools and refresh missing catalog"
+  "检查校验工具，缺目录时刷新": "Check verification tools and refresh missing catalog",
+  "传输进度": "Transfer progress",
+  "取消传输": "Cancel transfer",
+  "取消等待录屏": "Cancel queued recording",
+  "放弃并清理原录屏": "Discard original device recording"
 }

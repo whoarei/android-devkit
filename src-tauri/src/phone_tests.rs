@@ -197,6 +197,24 @@ fn mp4_truncation_and_missing_finalization_are_rejected() {
     let bytes = movie(1, 1000);
     std::fs::write(&path, &bytes).unwrap();
     crate::phone_record::validate_mp4(&path).unwrap();
+    // The MP4 was durably renamed before the app died, but its artifact row was
+    // not committed. Startup must expose the verified local copy without a phone.
+    let app = App::new(temp.path().join("app")).unwrap();
+    let id = uuid::Uuid::new_v4().to_string();
+    let cached = app.data.join("artifacts").join(format!("{id}.mp4"));
+    std::fs::create_dir_all(cached.parent().unwrap()).unwrap();
+    std::fs::copy(&path, &cached).unwrap();
+    let mut source = crate::regression_tests::task(&id, "needs_review");
+    source.operation.kind = "screen_record".into();
+    app.store.save_task(&source).unwrap();
+    app.recover_committed_phone_recordings().unwrap();
+    let recovered = app.store.task(&id).unwrap();
+    assert_eq!(recovered.state, "succeeded");
+    assert_eq!(recovered.artifact, cached.to_string_lossy());
+    assert_eq!(app.store.artifacts().unwrap().len(), 1);
+    assert_eq!(recovered.operation.optional("deviceCleanupPending"), "true");
+    app.recover_committed_phone_recordings().unwrap();
+    assert_eq!(app.store.artifacts().unwrap().len(), 1);
     for bad in [&bytes[..24], &bytes[..35]] {
         std::fs::write(&path, bad).unwrap();
         assert!(crate::phone_record::validate_mp4(&path).is_err());
@@ -217,6 +235,110 @@ fn interrupted_recording_retry_recovers_and_transfers_require_review() {
         app.retry_plan("transfer").unwrap_err().code,
         "TRANSFER_REVIEW_REQUIRED"
     );
+}
+#[test]
+fn split_dependencies_reject_self_and_indirect_cycles() {
+    let mut apk = set();
+    apk.members[1].requires = vec!["config.zh".into()];
+    assert_eq!(
+        crate::phone_apk::validate_set(&apk).unwrap_err().code,
+        "APK_SPLIT_CYCLE"
+    );
+    apk.members.push(member("feature.extra"));
+    apk.members[1].requires = vec!["feature.extra".into()];
+    apk.members[2].requires = vec!["config.zh".into()];
+    assert_eq!(
+        crate::phone_apk::validate_set(&apk).unwrap_err().code,
+        "APK_SPLIT_CYCLE"
+    );
+    apk.members[2].requires = vec!["base".into()];
+    crate::phone_apk::validate_set(&apk).unwrap();
+}
+#[test]
+fn old_phone_recoveries_survive_recent_history_and_cannot_be_deleted() {
+    let temp = tempfile::tempdir().unwrap();
+    let app = App::new(temp.path().join("app")).unwrap();
+    let mut source = crate::regression_tests::task("old-video", "needs_review");
+    source.phase = "reconciled".into();
+    source.operation.kind = "screen_record".into();
+    app.store.save_task(&source).unwrap();
+    for index in 0..205 {
+        app.store
+            .save_task(&crate::regression_tests::task(
+                &format!("done-{index}"),
+                "succeeded",
+            ))
+            .unwrap();
+    }
+    assert!(!app.store.tasks().unwrap().iter().any(|t| t.id == source.id));
+    assert!(app
+        .store
+        .workspace_tasks()
+        .unwrap()
+        .iter()
+        .any(|t| t.id == source.id));
+    assert_eq!(
+        app.delete_task_records(TaskDeleteRequest {
+            task_ids: vec![source.id.clone()],
+            ..Default::default()
+        })
+        .unwrap()
+        .deleted,
+        0
+    );
+    app.update(&source.id, |t| {
+        t.state = "succeeded".into();
+        t.artifact = "retrieved.mp4".into();
+        t.operation
+            .args
+            .insert("deviceCleanupPending".into(), "true".into());
+    })
+    .unwrap();
+    assert!(app
+        .store
+        .workspace_tasks()
+        .unwrap()
+        .iter()
+        .any(|task| task.id == source.id));
+    assert_eq!(
+        app.delete_task_records(TaskDeleteRequest {
+            task_ids: vec![source.id],
+            ..Default::default()
+        })
+        .unwrap()
+        .deleted,
+        1
+    );
+}
+#[test]
+fn abandoned_selections_release_only_app_owned_unreferenced_copies() {
+    let temp = tempfile::tempdir().unwrap();
+    let app = App::new(temp.path().join("app")).unwrap();
+    for kind in ["apk", "transfer"] {
+        let id = uuid::Uuid::new_v4().to_string();
+        let dir = if kind == "apk" {
+            crate::phone_apk::set_dir(&app, &id).unwrap()
+        } else {
+            phone_files::transfer_dir(&app, &id).unwrap()
+        };
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("copy"), b"owned").unwrap();
+        let original = temp.path().join("original");
+        std::fs::write(&original, b"preserve").unwrap();
+        let mut task = crate::regression_tests::task(&format!("linked-{kind}"), "needs_review");
+        task.operation.args.insert(
+            if kind == "apk" { "setId" } else { "transferId" }.into(),
+            id.clone(),
+        );
+        app.store.save_task(&task).unwrap();
+        assert!(!app.release_phone_selection(kind, &id).unwrap());
+        assert!(dir.exists());
+        app.update(&task.id, |t| t.operation.args.clear()).unwrap();
+        assert!(app.release_phone_selection(kind, &id).unwrap());
+        assert!(!dir.exists());
+        assert_eq!(std::fs::read(original).unwrap(), b"preserve");
+    }
+    assert!(app.release_phone_selection("apk", "../escape").is_err());
 }
 async fn submit(
     app: &Arc<App>,
@@ -320,6 +442,15 @@ async fn phone_crash_worker() {
         )
         .await;
         std::fs::write(profile.join("ready-task-id"), &task.id).unwrap();
+        if std::env::var("DEVKIT_FAULT_MODE").ok().as_deref() == Some("pause") {
+            let result = finish(&app, &task.id).await;
+            std::fs::write(
+                profile.join("outcome.json"),
+                serde_json::to_vec(&result).unwrap(),
+            )
+            .unwrap();
+            return;
+        }
         tokio::time::sleep(Duration::from_secs(300)).await;
         return;
     }
@@ -415,7 +546,19 @@ async fn transfer_crash_recovery(
     target: &Target,
     direction: &str,
 ) {
-    let profile = root.join(format!("crash-{direction}"));
+    transfer_replacement_regression(root, settings, target, direction, false).await;
+}
+async fn transfer_replacement_regression(
+    root: &Path,
+    settings: &Settings,
+    target: &Target,
+    direction: &str,
+    final_edit: bool,
+) {
+    let profile = root.join(format!(
+        "{}-{direction}",
+        if final_edit { "final-verify" } else { "crash" }
+    ));
     std::fs::create_dir_all(&profile).unwrap();
     std::fs::write(profile.join(".phase2-owned"), b"owned transfer test").unwrap();
     std::fs::write(profile.join(".fault-sandbox"), b"owned fault sandbox").unwrap();
@@ -505,9 +648,17 @@ async fn transfer_crash_recovery(
         ),
         (
             "DEVKIT_FAULT_CHECKPOINT",
-            "phone.transfer.after_backup".into(),
+            if final_edit {
+                "phone.transfer.before_final_verify"
+            } else {
+                "phone.transfer.after_backup"
+            }
+            .into(),
         ),
-        ("DEVKIT_FAULT_MODE", "kill".into()),
+        (
+            "DEVKIT_FAULT_MODE",
+            if final_edit { "pause" } else { "kill" }.into(),
+        ),
     ] {
         spec.env.insert(key.into(), value);
     }
@@ -533,8 +684,47 @@ async fn transfer_crash_recovery(
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
     let task_id = std::fs::read_to_string(profile.join("ready-task-id")).unwrap();
-    child.kill().await.unwrap();
-    child.wait().await.unwrap();
+    if final_edit {
+        if direction == "upload" {
+            let current = Target {
+                server_epoch: seed.epoch.load(std::sync::atomic::Ordering::SeqCst),
+                ..target.clone()
+            };
+            seed.remote_shell(
+                settings,
+                &current,
+                format!(
+                    "printf external-change > {}",
+                    phone_files::quote(&format!("{destination}/{name}"))
+                ),
+                15,
+            )
+            .await
+            .unwrap();
+        } else {
+            std::fs::write(Path::new(&destination).join(&name), b"external-change").unwrap();
+        }
+        std::fs::write(profile.join("continue"), b"resume final verification").unwrap();
+        assert!(tokio::time::timeout(Duration::from_secs(30), child.wait())
+            .await
+            .unwrap()
+            .unwrap()
+            .success());
+        let outcome: Task =
+            serde_json::from_slice(&std::fs::read(profile.join("outcome.json")).unwrap()).unwrap();
+        assert_eq!(outcome.state, "needs_review");
+        assert!(
+            outcome
+                .log
+                .iter()
+                .any(|line| line.contains("发布后的目标内容未核对一致")),
+            "{:?}",
+            outcome.log
+        );
+    } else {
+        child.kill().await.unwrap();
+        child.wait().await.unwrap();
+    }
     let app = App::new(profile.join("app")).unwrap();
     assert_eq!(app.store.task(&task_id).unwrap().state, "needs_review");
     let current = Target {
@@ -571,6 +761,38 @@ async fn transfer_crash_recovery(
         "{}",
         cleanup.message
     );
+    if final_edit {
+        let rejected = submit(
+            &app,
+            "file_restore",
+            args(&[("sourceTaskId", &task_id)]),
+            Some(current.clone()),
+        )
+        .await;
+        let rejected = finish(&app, &rejected.id).await;
+        assert!(
+            rejected.message.contains("EXTERNAL_CHANGE"),
+            "{}",
+            rejected.message
+        );
+        // Simulate the user's explicit reconciliation back to the reviewed new bytes.
+        if direction == "upload" {
+            app.remote_shell(
+                settings,
+                &current,
+                format!(
+                    "printf %s {} > {}",
+                    phone_files::quote(std::str::from_utf8(new).unwrap()),
+                    phone_files::quote(&format!("{destination}/{name}"))
+                ),
+                15,
+            )
+            .await
+            .unwrap();
+        } else {
+            std::fs::write(Path::new(&destination).join(&name), new).unwrap();
+        }
+    }
     execute(
         &app,
         "file_restore",
@@ -592,7 +814,7 @@ async fn transfer_crash_recovery(
         );
     }
     assert_eq!(app.store.task(&task_id).unwrap().state, "cancelled");
-    std::fs::write(profile.join("recovery.json"),serde_json::to_vec_pretty(&serde_json::json!({"direction":direction,"sourceTaskId":task_id,"killedAfterBackup":true,"originalRestored":true,"backupProtectedFromCleanup":true})).unwrap()).unwrap();
+    std::fs::write(profile.join("recovery.json"),serde_json::to_vec_pretty(&serde_json::json!({"direction":direction,"sourceTaskId":task_id,"killedAfterBackup":!final_edit,"publishedExternalEditDetected":final_edit,"originalRestored":true,"backupProtectedFromCleanup":true})).unwrap()).unwrap();
 }
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "real SDK; creates two disposable isolated AVDs and writes only their shared storage and .qa/runtime"]
@@ -641,6 +863,11 @@ async fn phase2_real_sdk_workflows() {
             targets.push(Target::from(devices.iter().find(|d|d.avd_name==name && d.state=="ready").unwrap()));
         }
         let target=&targets[0];
+        let discard_id=uuid::Uuid::new_v4().to_string();let mut discard=crate::regression_tests::task(&discard_id,"needs_review");discard.operation.kind="screen_record".into();discard.operation.target=Some(target.clone());app.store.save_task(&discard).unwrap();
+        let (discard_video,_)=crate::phone_record::paths(&discard_id).unwrap();
+        app.remote_shell(&settings,target,format!("mkdir -p /sdcard/Movies; printf discard > {v}; printf neighbor > /sdcard/Movies/DevKit-neighbor.mp4",v=phone_files::quote(&discard_video)),15).await.unwrap();
+        execute(&app,"screen_cleanup",args(&[("sourceTaskId",&discard_id)]),Some(target.clone())).await;
+        app.remote_shell(&settings,target,format!("[ ! -e {v} ] && [ -f /sdcard/Movies/DevKit-neighbor.mp4 ]",v=phone_files::quote(&discard_video)),15).await.unwrap();assert_eq!(app.store.task(&discard_id).unwrap().state,"cancelled");
         execute(&app,"apk_set_install",args(&[("setId",&set.id)]),Some(target.clone())).await;
         app.remote_shell(&settings,target,"run-as dev.androiddevkit.fixture sh -c 'mkdir -p files; printf retained-phase2 > files/retained.txt'".into(),15).await.unwrap();
         let directory_set=app.prepare_apk_set(vec![fixture.join("valid")]).await.unwrap();assert_eq!(directory_set.members.len(),2);
@@ -803,6 +1030,27 @@ async fn phase2_replacement_recovery_regression() {
         }
         transfer_crash_recovery(&root, &settings, &target, "upload").await;
         transfer_crash_recovery(&root, &settings, &target, "download").await;
+        let too_many = root.join("too-many-source");
+        std::fs::create_dir(&too_many).unwrap();
+        for index in 0..10_000 {
+            std::fs::write(too_many.join(format!("{index}.txt")), b"").unwrap();
+        }
+        assert_eq!(
+            app.prepare_transfer(
+                "upload",
+                vec![too_many.to_string_lossy().into()],
+                target.clone(),
+                "/sdcard/Download".into()
+            )
+            .await
+            .unwrap_err()
+            .code,
+            "TRANSFER_LIMIT"
+        );
+        assert_eq!(std::fs::read_dir(&too_many).unwrap().count(), 10_000);
+        std::fs::remove_dir_all(too_many).unwrap();
+        transfer_replacement_regression(&root, &settings, &target, "upload", true).await;
+        transfer_replacement_regression(&root, &settings, &target, "download", true).await;
     })
     .await;
     for avd in crate::android::avds(&settings)

@@ -1,0 +1,215 @@
+{
+  "apkSet": {
+    "id": "36f78ad1-500c-48a8-aaa3-a789a5cd1cc3",
+    "members": [
+      {
+        "abis": [],
+        "bytes": 8523,
+        "fileName": "base.apk",
+        "minSdk": 23,
+        "requires": [],
+        "sha256": "50ba8aa89f2d958e1b298e1e74a3978bf1a3f446dfad549ea4803b28048a0a17",
+        "split": ""
+      },
+      {
+        "abis": [],
+        "bytes": 8466,
+        "fileName": "config.zh.apk",
+        "minSdk": 23,
+        "requires": [],
+        "sha256": "6ac77f6a82b5f59cdf35cfeeaedbbf838fe06bf98535e22eef5e6501cfbe1453",
+        "split": "config.zh"
+      }
+    ],
+    "package": "dev.androiddevkit.fixture",
+    "signers": [
+      "c1ea53ad588e57cd1faf3098f728b189c1f0f0565730143e12e3c4674ec262b6"
+    ],
+    "version": "1.0",
+    "versionCode": "1"
+  },
+  "conflictPreserved": true,
+  "downgradeAndSignatureConflictPreserveData": true,
+  "download": {
+    "conflicts": [],
+    "direction": "download",
+    "directory": "E:\\codex-proj\\Android DevKit\\.qa/runtime\\phase2-1792861048\\roundtrip",
+    "id": "53f248de-dbf4-42ae-a7f4-281e5dbcf0fb",
+    "items": [
+      {
+        "bytes": 0,
+        "directory": false,
+        "relative": "empty.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "bytes": 0,
+        "directory": true,
+        "relative": "中文 空格'$()目录",
+        "sha256": ""
+      },
+      {
+        "bytes": 27,
+        "directory": false,
+        "relative": "中文 空格'$()目录/测试 空格'$();.txt",
+        "sha256": "3454468f982d45a87e2c086820d35f7785ceb715618ff516e4864ce013db00fe"
+      },
+      {
+        "bytes": 6,
+        "directory": false,
+        "relative": "中文 空格'$()目录/.hidden",
+        "sha256": "e564b4081d7a9ea4b00dada53bdae70c99b87b6fce869f0c3dd4d2bfa1e53e1c"
+      },
+      {
+        "bytes": 0,
+        "directory": true,
+        "relative": "中文 空格'$()目录/空目录",
+        "sha256": ""
+      }
+    ],
+    "roots": [
+      "中文 空格'$()目录",
+      "empty.bin"
+    ],
+    "target": {
+      "serial": "emulator-5554",
+      "serverEpoch": 1792861048,
+      "transportId": "76"
+    }
+  },
+  "earlyStoppedVideo": "E:\\codex-proj\\Android DevKit\\.qa/runtime\\phase2-1792861048\\state\\artifacts\\2f3f5bab-adce-40ac-aef8-2e952e4a6932.mp4",
+  "frozenTarget": true,
+  "maximum180SecondVideo": "E:\\codex-proj\\Android DevKit\\.qa/runtime\\phase2-1792861048\\state\\artifacts\\051172d4-23c5-4773-b2fc-046aa2fdf86c.mp4",
+  "recoveredAfterProcessKill": "E:\\codex-proj\\Android DevKit\\.qa/runtime\\phase2-1792861048\\crash-profile\\app\\artifacts\\9d7d5c2d-b634-4620-bb5a-0d0724f3fb0d.mp4",
+  "roundtripSha256": true,
+  "tamperRejected": true,
+  "targets": [
+    {
+      "serial": "emulator-5554",
+      "serverEpoch": 1792861048,
+      "transportId": "76"
+    },
+    {
+      "serial": "emulator-5556",
+      "serverEpoch": 1792861048,
+      "transportId": "77"
+    }
+  ],
+  "upgradeRetainsData": true,
+  "upgradeVersionCode": "2",
+  "upload": {
+    "conflicts": [],
+    "direction": "upload",
+    "directory": "/sdcard/Download",
+    "id": "b316d3e1-1517-41ef-80f8-c65a67e85f9c",
+    "items": [
+      {
+        "bytes": 0,
+        "directory": true,
+        "relative": "中文 空格'$()目录",
+        "sha256": ""
+      },
+      {
+        "bytes": 0,
+        "directory": true,
+        "relative": "中文 空格'$()目录/空目录",
+        "sha256": ""
+      },
+      {
+        "bytes": 27,
+        "directory": false,
+        "relative": "中文 空格'$()目录/测试 空格'$();.txt",
+        "sha256": "3454468f982d45a87e2c086820d35f7785ceb715618ff516e4864ce013db00fe"
+      },
+      {
+        "bytes": 6,
+        "directory": false,
+        "relative": "中文 空格'$()目录/.hidden",
+        "sha256": "e564b4081d7a9ea4b00dada53bdae70c99b87b6fce869f0c3dd4d2bfa1e53e1c"
+      },
+      {
+        "bytes": 0,
+        "directory": false,
+        "relative": "empty.bin",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "roots": [
+      "中文 空格'$()目录",
+      "empty.bin"
+    ],
+    "target": {
+      "serial": "emulator-5554",
+      "serverEpoch": 1792861048,
+      "transportId": "76"
+    }
+  },
+  "uploadAndDownloadReplacementCrashRecovery": true,
+  "video": "E:\\codex-proj\\Android DevKit\\.qa/runtime\\phase2-1792861048\\state\\artifacts\\07275d8b-de8f-48f9-a27e-0aac4fdc5781.mp4",
+  "mediaChecks": {
+    "video": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 720,
+          "height": 1280,
+          "nb_frames": "11"
+        }
+      ],
+      "format": {
+        "duration": "5.355300"
+      }
+    },
+    "earlyStoppedVideo": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 720,
+          "height": 1280,
+          "nb_frames": "11"
+        }
+      ],
+      "format": {
+        "duration": "5.042722"
+      }
+    },
+    "recoveredAfterProcessKill": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 720,
+          "height": 1280,
+          "nb_frames": "21"
+        }
+      ],
+      "format": {
+        "duration": "10.406667"
+      }
+    },
+    "maximum180SecondVideo": {
+      "programs": [],
+      "stream_groups": [],
+      "streams": [
+        {
+          "codec_name": "h264",
+          "codec_type": "video",
+          "width": 720,
+          "height": 1280,
+          "nb_frames": "366"
+        }
+      ],
+      "format": {
+        "duration": "180.723467"
+      }
+    }
+  }
+}

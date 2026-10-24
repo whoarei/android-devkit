@@ -66,6 +66,15 @@ impl App {
             return Ok(Some(("files", "有待保存文件，请先处理")));
         }
         if task.state == "needs_review"
+            && task.operation.kind == "screen_record"
+            && task.artifact.is_empty()
+        {
+            return Ok(Some((
+                "files",
+                "录屏原件尚待取回，请从原设备的录屏面板处理",
+            )));
+        }
+        if task.state == "needs_review"
             && matches!(
                 task.operation.kind.as_str(),
                 "file_upload" | "file_download"

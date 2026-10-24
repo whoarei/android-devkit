@@ -1,0 +1,34 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Android DevKit · 二期循环审核与修复报告</title><style>*{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#243647;font:15px/1.8 'Segoe UI','Microsoft YaHei',sans-serif}main{max-width:1180px;margin:24px auto;padding:32px;background:#fff}h1{font-size:28px;line-height:1.4}h2{font-size:21px;margin-top:30px}.note{background:#eef5fb;border-left:4px solid #397eb6;padding:16px}.pending{background:#fff5e8;border-left-color:#bf803b}.meta{font-size:13px;color:#627589}a{color:#23699e}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px;border:1px solid #d9e1e9;text-align:left;vertical-align:top}th{background:#eef4f9}.table{overflow:auto}code{overflow-wrap:anywhere}li{margin:6px 0}img{max-width:100%;height:auto;border:1px solid #d9e1e9}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f3f5f7;padding:16px}@media(max-width:700px){main{margin:0;padding:16px}table{min-width:720px}}@media print{main{margin:0}tr{break-inside:avoid}.table{overflow:visible}table{min-width:0}}</style></head><body><main>
+<p class="meta">创建北京时间 2026-10-25 01:01:36 · 审核前提交 84d2e31 · 版本仍为 0.4.0</p>
+<h1>二期循环审核与修复报告</h1>
+<div class="note"><strong>审核交互设计、用户体验、架构边界与代码实现，共修复 18 组问题。</strong><br>按“审查 → 修复 → 针对性回归 → 再审查”推进。末轮静态复审未发现新的可复现、可在当前环境修复的问题；这不等于覆盖所有手机和厂商系统。本报告复核时尚未另行发布。</div>
+<h2>1. 审核与收敛记录</h2><ol><li>首轮检查三条操作链及计划 / 任务交接，修复重复提交、错误可见性、旧清单、进度刷新与焦点问题。</li><li>第二轮复核存储发布、原件备份和恢复入口，修复最终内容核对、源任务互斥、旧历史可达性及孤立缓存管理，并增加提交点注入。</li><li>第三轮检查录屏落盘与登记的断点、依赖工具及输入边界，修复本机 MP4 恢复、明确放弃入口、工具排序、循环依赖与有限读取；修复后再次复核并运行完整回归。</li><li>收尾补审大目录与长响应：流式筛选 APK，提前限制待遍历队列，要求目录列表首尾标记完整；新增实际 SDK 的 10001 条目拒绝用例，并重跑最终发布核对与恢复专项。</li></ol>
+<h2>2. 已修复问题</h2><div class="table"><table><thead><tr><th>编号</th><th>级别</th><th>问题与用户影响</th><th>最终处理及证据</th></tr></thead><tbody><tr><td>R01</td><td>P1</td><td>提交重试会生成新请求 ID，响应丢失后可能重复执行</td><td>同一计划保留 requestId，提交入口加同步防重锁，提交期间禁用返回 / 关闭；已验证丢失响应后重试 ID 相同。</td></tr>
+<tr><td>R02</td><td>P1</td><td>发布响应成功后缺少最终内容复查，可能过早清理原件备份</td><td>提交全部根节点后再核对最终类型、目录树、大小与可用摘要；异常保留备份。上传 / 下载分别在最终复查前注入外部修改，验证检测、拒绝覆盖和原件恢复。</td></tr>
+<tr><td>R03</td><td>P1</td><td>完整 MP4 在文件落盘与登记之间强退，可能无法离线取回</td><td>启动时识别并验证本机已完成的 MP4，幂等登记到待保存文件，无需重录或连接手机；不把 .part 当成完整视频。</td></tr>
+<tr><td>R04</td><td>P1</td><td>未取回录屏的任务记录可被删除，丢失恢复入口</td><td>未处理录屏原件保护任务记录；提供独立、明确确认的放弃原录屏计划，只清理本任务设备文件，保留本机 MP4，仍在录制时拒绝清理。</td></tr>
+<tr><td>R05</td><td>P2</td><td>旧待恢复任务被最近 200 条工作台列表截断</td><td>工作台额外保留未处理的二期待检查任务；用 205 条后续记录验证旧录屏恢复入口仍可达。</td></tr>
+<tr><td>R06</td><td>P2</td><td>计划创建错误被全局 guard 吞掉，错误显示在弹窗背后</td><td>二期调用使用可传播错误的统一计划入口；错误落在发起面板，操作进行时阻止重复创建计划，新计划清除旧错误。</td></tr>
+<tr><td>R07</td><td>P2</td><td>新文件校验失败时仍展示旧的可提交清单</td><td>重新选择后先释放未使用的缓存、清除旧清单，再显示本次结果；APK 校验失败后旧安装按钮消失。</td></tr>
+<tr><td>R08</td><td>P2</td><td>传输提交后旧清单可再次提交，进度 / 完成反馈不连续</td><td>提交成功立即补入任务回执，清除已提交清单；面板展示进度与取消，结束后刷新当前目录并核对选择项。</td></tr>
+<tr><td>R09</td><td>P2</td><td>已清理失败任务仍持续显示恢复 / 清理卡片</td><td>仅运行时写入清理完成标记；普通计划移除伪造标记，成功清理后移除无效入口。</td></tr>
+<tr><td>R10</td><td>P2</td><td>放弃的 APK / 上传暂存持续占用空间</td><td>关闭、重新选择、导航时释放未关联任务的应用缓存；启动清理超过 24 小时的孤立缓存。已关联任务的清单、载荷和恢复日志保留。</td></tr>
+<tr><td>R11</td><td>P2</td><td>清理、恢复和缓存处理缺少对同一源任务的互斥</td><td>对源任务使用独占使用权，防止不同连接或动作交错删除 / 恢复同一原件；同设备执行队列继续保留。</td></tr>
+<tr><td>R12</td><td>P2</td><td>MP4 已安全保存后，设备清理失败会误报整体取回失败</td><td>保留成功的本地结果，记录设备清理待办，并提供手动清理计划；清理后本机 MP4 仍能播放。</td></tr>
+<tr><td>R13</td><td>P2</td><td>Build-Tools 按字符串排序，可能优先使用 9.x 而非 35.x</td><td>改为数字版本排序，新增 9.0.0 / 35.0.0 / 35.0.1 用例；依赖任务结束后面板自动复查工具。</td></tr>
+<tr><td>R14</td><td>P2</td><td>先选择 split 时，版本名称可能取自没有标签的 split</td><td>版本名称以 base Manifest 为准，整组包名、版本码和证书仍须一致。</td></tr>
+<tr><td>R15</td><td>P2</td><td>split 自依赖或间接循环未被预校验拦截</td><td>加入有界依赖图检测；自环、间接环拒绝，合法依赖链通过。</td></tr>
+<tr><td>R16</td><td>P2</td><td>目录权限失败可能被当成空目录，目标指纹读取缺少有限读取</td><td>列目录先核对读 / 执行权限；本地内容摘要按已知大小加一字节有限读取，变化时拒绝；修正 10000 条目的边界。</td></tr>
+<tr><td>R17</td><td>P2</td><td>弹窗及视频缺少键盘焦点约束，忙碌时焦点可能逃出</td><td>设备操作、确认计划、视频弹窗开启焦点约束；忙碌且没有可用控件时仍保持在顶层对话框，包含视频原生控件，关闭后恢复原焦点。</td></tr><tr><td>R18</td><td>P2</td><td>超限目录可能先被全部读入内存，长目录响应被截断后可能误用残缺清单</td><td>APK 目录最多保留 257 个候选，文件 / 备份遍历的待处理队列提前限额；设备列表加入首尾帧标记，前后截断均拒绝。工作台额外恢复条目不携带历史日志。新增实际 SDK 的 10001 条目拒绝与原文件保留检查。</td></tr></tbody></table></div>
+<h2>3. 验证结果</h2><ul><li>默认 Rust 测试：131 通过，14 项显式忽略；本轮相关隔离 SDK 测试另行执行。</li><li>TypeScript / Vite 构建、Clippy 全目标 -D warnings、Rust 格式、IPC 契约、版本一致性和 Git whitespace：通过。</li><li>10 组生产界面回归：通过；包含慢响应、丢失提交响应后的同 ID 重试、错误定位、旧清单作废、取消、焦点与中文 / 英文窄屏。</li><li>独立桌面 QA 实例：通过真实 IPC / 权限、分包安装、MP4 解码回放、中文文件往返、重命名 / 替换、取消、暂存释放及清理后本机视频保留；pageerror 为空。</li><li>原件恢复专项：上传 / 下载分别在备份后强杀；另分别在发布后、最终核对前注入外部修改。四条路径全部通过，并在大目录 / 响应边界修复后再次运行；10001 个源条目被拒绝且原文件保留。普通清理拒绝删除原件备份，外部编辑未被自动覆盖，核对后恢复原件。</li><li>完整 SDK 流程及 180 秒录屏：通过（本轮完整回归 301.50 秒）。ffprobe 确认 H.264、无音轨及非零视频帧；上限录屏媒体时长约 180.72 秒，含设备编码封口余量。</li><li>一期故障专项 35 场景 / 14 次子进程强杀：通过。</li></ul>
+<p>结构化证据：<a href="evidence/phase2-review-native.json">真实桌面</a>、<a href="evidence/phase2-review-recovery.json">最终核对与备份恢复</a>、<a href="evidence/phase2-review-validation.json">最终验证汇总</a>、<a href="evidence/phase2-review-sdk.json">本轮完整 SDK 与视频元数据</a>。初始二期实施与手机待验矩阵见 <a href="00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html">实施与验收报告</a>。</p>
+<h2>4. 仍需人工 / 实机确认</h2><div class="note pending">手机 USB / 无线安装与文件往返、OEM 权限和安装限制、锁屏 / 旋转 / 受保护画面、真实手机 10 / 180 秒录屏与外部播放器回放，以及 Windows 原生选择 / 另存对话框仍待登记。当前测试只使用隔离模拟器与桌面 QA 实例，不代签手机验收。</div>
+<p>一期已暂缓矩阵继续保留在 <a href="00008_20261024164440_Android-DevKit-Phase1-TODO.html">一期 TODO</a>，没有恢复其他项目范围。</p>
+<h2>5. 复验入口</h2><pre>pnpm.cmd check
+pnpm.cmd test
+$env:PLAYWRIGHT_CHANNEL='chromium'
+pnpm.cmd test:ui-fixtures
+pnpm.cmd verify:faults
+pnpm.cmd verify:phase2
+pnpm.cmd verify:phase2-recovery</pre><p>所有实际 SDK 测试均限定为自己的 <code>.qa/runtime</code> 专用 AVD。桌面验证使用 <code>dev.android-devkit.qa.phase2</code> 与独立中文数据目录；测试后清理专用模拟器，保留 SDK 镜像和验证证据。</p>
+<h2>6. 真实桌面验证证据</h2><p>本轮独立桌面 QA 实例实际播放设备录屏，视频帧持续变化，页面未捕获异常；真实 IPC、文件往返和清理结果详见 <a href="evidence/phase2-review-native.json">结构化桌面验证记录</a>。原始截图保留在本地 QA 目录，不随源码发布。</p></main></body></html>

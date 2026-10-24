@@ -45,7 +45,17 @@ fn tool(settings: &Settings) -> Result<PathBuf> {
         .map(|e| e.path().join("lib/apksigner.jar"))
         .filter(|p| p.is_file())
         .collect();
-    paths.sort_by(|a, b| b.cmp(a));
+    paths.sort_by_key(|path| {
+        path.ancestors()
+            .nth(2)
+            .and_then(Path::file_name)
+            .unwrap_or_default()
+            .to_string_lossy()
+            .split('.')
+            .map(|part| part.parse::<u32>().unwrap_or(0))
+            .collect::<Vec<_>>()
+    });
+    paths.reverse();
     paths.into_iter().next().ok_or_else(|| {
         AppError::new(
             "APK_TOOLS_MISSING",
@@ -132,6 +142,36 @@ pub fn validate_set(set: &ApkSet) -> Result<()> {
             }
         }
     }
+    fn visit<'a>(
+        name: &'a str,
+        members: &'a [ApkMember],
+        visiting: &mut BTreeSet<&'a str>,
+        done: &mut BTreeSet<&'a str>,
+    ) -> Result<()> {
+        if done.contains(name) {
+            return Ok(());
+        }
+        if !visiting.insert(name) {
+            return Err(AppError::new(
+                "APK_SPLIT_CYCLE",
+                "split 依赖存在循环，未生成安装计划",
+            ));
+        }
+        if let Some(member) = members.iter().find(|member| member.split == name) {
+            for dependency in &member.requires {
+                if dependency != "base" {
+                    visit(dependency, members, visiting, done)?;
+                }
+            }
+        }
+        visiting.remove(name);
+        done.insert(name);
+        Ok(())
+    }
+    let mut done = BTreeSet::new();
+    for member in &set.members {
+        visit(&member.split, &set.members, &mut BTreeSet::new(), &mut done)?;
+    }
     Ok(())
 }
 fn metadata(path: &Path) -> Result<(BTreeMap<String, String>, Vec<String>)> {
@@ -187,12 +227,20 @@ impl App {
             .await
             .require()?;
         if paths.len() == 1 && paths[0].is_dir() {
-            paths = std::fs::read_dir(&paths[0])?
-                .map(|e| e.map(|e| e.path()))
-                .collect::<std::io::Result<Vec<_>>>()?
-                .into_iter()
-                .filter(|p| p.extension().is_some_and(|s| s.eq_ignore_ascii_case("apk")))
-                .collect();
+            crate::phone_files::regular_local(&paths[0], true)?;
+            let directory = paths.remove(0);
+            for entry in std::fs::read_dir(directory)? {
+                let path = entry?.path();
+                if path
+                    .extension()
+                    .is_some_and(|extension| extension.eq_ignore_ascii_case("apk"))
+                {
+                    paths.push(path);
+                    if paths.len() > 256 {
+                        break;
+                    }
+                }
+            }
         }
         if paths.is_empty() || paths.len() > 256 {
             return Err(AppError::new(
@@ -267,6 +315,12 @@ impl App {
                         .cloned()
                         .unwrap_or_default();
                     set.signers = signers.clone();
+                }
+                if attrs.get("manifest:split").is_none_or(String::is_empty) {
+                    set.version = attrs
+                        .get("manifest:versionName")
+                        .cloned()
+                        .unwrap_or_default();
                 }
                 if set.package != package
                     || set.version_code != version_code
@@ -444,4 +498,25 @@ pub fn verify_installed(set: &ApkSet, text: &str) -> Result<()> {
         ));
     }
     Ok(())
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn verification_tool_uses_numeric_build_tools_versions() {
+        let temp = tempfile::tempdir().unwrap();
+        for version in ["9.0.0", "35.0.0", "35.0.1"] {
+            let dir = temp.path().join("build-tools").join(version).join("lib");
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("apksigner.jar"), b"fixture").unwrap();
+        }
+        let settings = Settings {
+            sdk_root: temp.path().to_string_lossy().into(),
+            ..Default::default()
+        };
+        assert_eq!(
+            tool(&settings).unwrap(),
+            temp.path().join("build-tools/35.0.1/lib/apksigner.jar")
+        );
+    }
 }

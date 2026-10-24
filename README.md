@@ -172,7 +172,7 @@ pnpm.cmd tauri dev
 
 ### 二期开发源码的设备操作
 
-选择可用设备后，详情提供“分包 APK 安装”“录屏”“文件传输”。录屏默认 30 秒，可选 1–180 秒，停止后完整取回至待保存文件；可预览、另存或清理缓存。中断后选择“取回原录屏”，不会自动重录。
+选择可用设备后，详情提供“分包 APK 安装”“录屏”“文件传输”。录屏默认 30 秒，可选 1–180 秒，停止后完整取回至待保存文件；可预览、另存或清理缓存。中断后选择“取回原录屏”，不会自动重录；已完整缓存的 MP4 会在重启后恢复到待保存文件。也可通过明确的确认计划放弃设备原件，保留已经取回的本机视频。
 
 文件传输支持共享存储浏览、多选文件或目录、拖入上传；同名目标必须明确选择保留、重命名或替换。先写入任务专属暂存，校验后发布；替换中断会保留旧目标备份，可从文件面板恢复，普通清理不会删除受保护原件。传输只访问 Download、Pictures、Movies、DCIM，不跟随链接或绕过私有目录。
 
@@ -222,6 +222,8 @@ powershell -NoProfile -File scripts/package-release.ps1
 [GitHub Actions](https://github.com/whoarei/android-devkit/actions/workflows/ci.yml) 仅在推送 `v*` 标签或在 Actions 页面手动运行时执行检查、测试和 Windows 打包。标签推送在检查通过后自动发布对应版本；手动运行用于检查和打包。维护者的版本确认、标签发布与产物核验步骤见 [版本发布 skill](.agents/skills/android-devkit-release/SKILL.md)。
 
 ## 更多资料
+
+- [二期循环审核与修复报告](docs/00011_20261025010136_Android-DevKit-Phase2-Review-Report.html)
 
 - [二期范围与验收基线：真机使用效率](docs/00009_20261024174538_Android-DevKit-Phase2-Scope.html)
 - [二期实施、自动验证与实机待验报告](docs/00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html)

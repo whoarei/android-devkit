@@ -9,32 +9,33 @@ use std::{
 };
 
 const MAX_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+pub fn bounded_hash(path: &Path, expected: u64) -> Result<String> {
+    let mut input = std::fs::File::open(path)?.take(expected + 1);
+    let mut bytes = 0u64;
+    let mut digest = sha2::Sha256::new();
+    let mut buffer = vec![0; 65536];
+    loop {
+        let n = input.read(&mut buffer)?;
+        if n == 0 {
+            break;
+        }
+        bytes += n as u64;
+        digest.update(&buffer[..n]);
+    }
+    if bytes != expected {
+        return Err(AppError::new(
+            "SOURCE_CHANGED",
+            "文件在暂存期间改变，请停止写入后重新选择",
+        ));
+    }
+    Ok(format!("{:x}", digest.finalize()))
+}
+
 /// Finite reads prevent a concurrently growing source from consuming unbounded staging space.
 pub fn stage_file(source: &Path, destination: &Path, expected: u64) -> Result<String> {
     regular_local(source, false)?;
     if expected > MAX_BYTES {
         return Err(AppError::new("TRANSFER_LIMIT", "文件超过暂存上限"));
-    }
-    fn hash(path: &Path, expected: u64) -> Result<String> {
-        let mut input = std::fs::File::open(path)?.take(expected + 1);
-        let mut bytes = 0u64;
-        let mut digest = sha2::Sha256::new();
-        let mut buffer = vec![0; 65536];
-        loop {
-            let n = input.read(&mut buffer)?;
-            if n == 0 {
-                break;
-            }
-            bytes += n as u64;
-            digest.update(&buffer[..n]);
-        }
-        if bytes != expected {
-            return Err(AppError::new(
-                "SOURCE_CHANGED",
-                "文件在暂存期间改变，请停止写入后重新选择",
-            ));
-        }
-        Ok(format!("{:x}", digest.finalize()))
     }
     let temporary = destination.with_extension(format!("{}.part", uuid::Uuid::new_v4()));
     let result = (|| {
@@ -53,8 +54,8 @@ pub fn stage_file(source: &Path, destination: &Path, expected: u64) -> Result<St
                 "文件在暂存期间改变，请停止写入后重新选择",
             ));
         }
-        let staged = hash(&temporary, expected)?;
-        if hash(source, expected)? != staged {
+        let staged = bounded_hash(&temporary, expected)?;
+        if bounded_hash(source, expected)? != staged {
             return Err(AppError::new(
                 "SOURCE_CHANGED",
                 "文件在暂存期间改变，请停止写入后重新选择",
@@ -170,6 +171,74 @@ pub fn owned_remote(directory: &str, id: &str) -> Result<String> {
     Ok(format!("{}/.devkit-transfer-{id}", remote_path(directory)?))
 }
 impl App {
+    /// Releases only unsubmitted copies owned by this app. Task-linked manifests and
+    /// journals remain available for retries and recovery, including old history pages.
+    pub fn release_phone_selection(&self, kind: &str, id: &str) -> Result<bool> {
+        let _guard = self.configuration_gate.lock().unwrap();
+        let (key, path) = match kind {
+            "apk" => ("setId", crate::phone_apk::set_dir(self, id)?),
+            "transfer" => ("transferId", transfer_dir(self, id)?),
+            _ => return Err(AppError::new("STAGING_KIND", "暂存类型无效")),
+        };
+        if self
+            .store
+            .matching_task_records(&TaskQuery::default())?
+            .iter()
+            .any(|task| task.operation.optional(key) == id)
+        {
+            return Ok(false);
+        }
+        if !path.exists() {
+            return Ok(true);
+        }
+        let mut pending = vec![path.clone()];
+        let mut count = 0;
+        while let Some(item) = pending.pop() {
+            regular_local(&item, item.is_dir())?;
+            if item.is_dir() {
+                for entry in std::fs::read_dir(&item)? {
+                    if pending.len() + count >= 20_000 {
+                        return Err(AppError::new("TRANSFER_LIMIT", "暂存条目超限，未清理"));
+                    }
+                    pending.push(entry?.path());
+                }
+            }
+            count += 1;
+            if count > 20_000 {
+                return Err(AppError::new("TRANSFER_LIMIT", "暂存条目超限，未清理"));
+            }
+        }
+        // Explicitly abandoning a selection also invalidates its old review plans.
+        self.plans
+            .lock()
+            .unwrap()
+            .retain(|_, plan| plan.operation.optional(key) != id);
+        std::fs::remove_dir_all(path)?;
+        Ok(true)
+    }
+    pub fn prune_phone_selections(&self) -> Result<()> {
+        for (kind, folder) in [("apk", "apk-sets"), ("transfer", "transfers")] {
+            let root = self.data.join(folder);
+            if !root.exists() {
+                continue;
+            }
+            regular_local(&root, true)?;
+            for entry in std::fs::read_dir(root)? {
+                let entry = entry?;
+                let metadata = entry.metadata()?;
+                if metadata.modified()?.elapsed().unwrap_or_default().as_secs() > 86_400 {
+                    if let Some(id) = entry
+                        .file_name()
+                        .to_str()
+                        .filter(|id| uuid::Uuid::parse_str(id).is_ok())
+                    {
+                        self.release_phone_selection(kind, id)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
     pub async fn remote_shell(
         &self,
         settings: &Settings,
@@ -239,9 +308,9 @@ impl App {
         path: &str,
     ) -> Result<Vec<RemoteEntry>> {
         let settings = self.store.settings();
-        let script=format!("set -e; [ -d {d} ]; for p in {d}/* {d}/.[!.]* {d}/..?*; do [ -e \"$p\" ] || [ -L \"$p\" ] || continue; printf '%s\\000' \"$p\"; stat -c '%f %s %Y' \"$p\"; done",d=quote(path));
+        let script=format!("set -e; [ -d {d} ] && [ -r {d} ] && [ -x {d} ]; printf 'DEVKIT_LIST_BEGIN\\000'; for p in {d}/* {d}/.[!.]* {d}/..?*; do [ -e \"$p\" ] || [ -L \"$p\" ] || continue; printf '%s\\000' \"$p\"; stat -c '%f %s %Y' \"$p\"; done; printf 'DEVKIT_LIST_END\\000'",d=quote(path));
         let out = self.remote_shell(&settings, target, script, 30).await?;
-        parse_listing(&out.stdout)
+        parse_remote_listing(&out.stdout)
     }
     pub(crate) async fn remote_hash(
         &self,
@@ -319,6 +388,12 @@ impl App {
                             });
                             std::fs::create_dir_all(dir.join("payload").join(&relative))?;
                             for entry in std::fs::read_dir(&source)? {
+                                if pending.len() + set.items.len() >= 10_000 {
+                                    return Err(AppError::new(
+                                        "TRANSFER_LIMIT",
+                                        "单次最多 10000 个条目、4 GiB",
+                                    ));
+                                }
                                 let entry = entry?;
                                 let name = entry.file_name().to_string_lossy().into_owned();
                                 if !safe_component(&name) {
@@ -391,6 +466,12 @@ impl App {
                     });
                     if entry.directory {
                         for child in self.remote_entries(&target, &entry.path).await? {
+                            if pending.len() + set.items.len() >= 10_000 {
+                                return Err(AppError::new(
+                                    "TRANSFER_LIMIT",
+                                    "单次最多 10000 个条目、4 GiB",
+                                ));
+                            }
                             let child_relative = format!("{relative}/{}", child.name);
                             pending.push((child, child_relative));
                         }
@@ -705,6 +786,13 @@ impl App {
         } else {
             Ok(())
         };
+        if cleanup.is_ok() {
+            self.update(id, |t| {
+                t.operation
+                    .args
+                    .insert("backupsResolved".into(), "true".into());
+            })?;
+        }
         if let Err(error) = cleanup {
             self.line(
                 id,
@@ -759,7 +847,7 @@ impl App {
     }
     pub async fn cleanup_transfer(&self, op: &Operation, settings: &Settings) -> Result<String> {
         let source = self.store.task(op.arg("sourceTaskId")?)?;
-        let _source_use = self.use_task_record(&source.id, false)?;
+        let _source_use = self.use_task_record(&source.id, true)?;
         if source.active()
             || !matches!(
                 source.operation.kind.as_str(),
@@ -868,7 +956,7 @@ pub(crate) fn cleanup_local(stage: &Path, id: &str, allow_backups: bool) -> Resu
     Ok(())
 }
 fn check_limits(items: &[TransferItem], extra: u64) -> Result<()> {
-    if items.len() >= 10_000
+    if items.len() > 10_000
         || items
             .iter()
             .map(|m| m.bytes)
@@ -1023,6 +1111,13 @@ pub fn plan(
     warnings.push("传输至任务专属暂存区，验证后发布；仅操作共享存储，不跟随链接。设备不支持 SHA-256 时明确报告仅校验大小。中断不自动重放；已发布项目保留在任务日志。".into());
     Ok(())
 }
+fn parse_remote_listing(bytes: &[u8]) -> Result<Vec<RemoteEntry>> {
+    let records = bytes
+        .strip_prefix(b"DEVKIT_LIST_BEGIN\0")
+        .and_then(|bytes| bytes.strip_suffix(b"DEVKIT_LIST_END\0"))
+        .ok_or_else(|| AppError::new("FILE_LIST_FORMAT", "设备列表响应被截断，未使用不完整清单"))?;
+    parse_listing(records)
+}
 fn parse_listing(bytes: &[u8]) -> Result<Vec<RemoteEntry>> {
     let mut remaining = bytes;
     let mut result = vec![];
@@ -1089,6 +1184,10 @@ mod tests {
     }
     #[test]
     fn listing_is_framed_and_blocks_links_special_files_and_windows_aliases() {
+        let framed = b"DEVKIT_LIST_BEGIN\0/sdcard/Download/file\x0081b6 4 12\nDEVKIT_LIST_END\0";
+        assert_eq!(parse_remote_listing(framed).unwrap().len(), 1);
+        assert!(parse_remote_listing(&framed[18..]).is_err());
+        assert!(parse_remote_listing(&framed[..framed.len() - 1]).is_err());
         let entries=parse_listing(b"/sdcard/Download/empty\x0041fd 4096 12\n/sdcard/Download/Link\x00a1ff 12 13\n/sdcard/Download/CON.txt\x0081b6 1 14\n").unwrap();
         assert!(entries
             .iter()

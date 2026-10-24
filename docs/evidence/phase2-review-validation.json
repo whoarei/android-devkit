@@ -1,0 +1,402 @@
+{
+  "baseline": "84d2e31",
+  "completedAt": "2026-10-24T17:17:11.867Z",
+  "scope": "Phase 2 interaction, UX, architecture and implementation review",
+  "reviewedGroups": 18,
+  "rust": {
+    "passed": 131,
+    "failed": 0,
+    "ignored": 14
+  },
+  "buildAndClippy": "passed",
+  "formatAndVersionAndContracts": "passed",
+  "ui": {
+    "suites": 10,
+    "status": "passed",
+    "addedCases": [
+      "plan errors inside initiating dialog",
+      "same requestId after lost response",
+      "slow request duplicate guard",
+      "invalid replacement clears old APK",
+      "submitted transfer cannot replay",
+      "task progress and cancellation",
+      "resolved cleanup cards disappear",
+      "busy and normal keyboard focus",
+      "dependency completion refreshes verification tools"
+    ]
+  },
+  "native": {
+    "status": "passed",
+    "run": ".qa/phase2-ui/native-audit-1792860924",
+    "evidence": "phase2-review-native.json"
+  },
+  "sdk": {
+    "status": "passed",
+    "seconds": 301.5,
+    "run": ".qa/runtime/phase2-1792861048",
+    "evidence": "phase2-review-sdk.json"
+  },
+  "replacementRecovery": {
+    "status": "passed",
+    "run": ".qa/runtime/phase2-recovery-1792861913",
+    "osKilledChildren": 2,
+    "externalEditBeforeFinalVerifyCases": 2,
+    "evidence": "phase2-review-recovery.json",
+    "largeDirectoryGuard": "passed",
+    "directoryResponseFraming": "passed"
+  },
+  "faults": {
+    "startedAt": "2026-10-24T17:03:13.895Z",
+    "completedAt": "2026-10-24T17:03:26.559Z",
+    "platform": "win32",
+    "passed": true,
+    "cargoExitCode": 0,
+    "expectedCases": 35,
+    "passedCases": 35,
+    "osKilledChildren": 14,
+    "cases": [
+      {
+        "case": "apk.after_response",
+        "details": {
+          "frozenTarget": "epoch7/transport41",
+          "remoteSideEffects": 1,
+          "state": "needs_review",
+          "termination": "OS child kill",
+          "transport": "sandbox response fixture"
+        },
+        "passed": true
+      },
+      {
+        "case": "avd.after_data",
+        "details": {
+          "committed": true,
+          "duplicateAvds": 0,
+          "repeatedRecovery": "stable",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "avd.after_index",
+        "details": {
+          "committed": true,
+          "duplicateAvds": 0,
+          "repeatedRecovery": "stable",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "avd.after_journal-denied",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "denied"
+        },
+        "passed": true
+      },
+      {
+        "case": "avd.after_journal-disk-full",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "disk-full"
+        },
+        "passed": true
+      },
+      {
+        "case": "avd.after_journal",
+        "details": {
+          "committed": false,
+          "duplicateAvds": 0,
+          "repeatedRecovery": "stable",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "avd.before_journal",
+        "details": {
+          "committed": false,
+          "duplicateAvds": 0,
+          "repeatedRecovery": "stable",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "download.after_chunk-denied",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "denied"
+        },
+        "passed": true
+      },
+      {
+        "case": "download.after_chunk-disk-full",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "disk-full"
+        },
+        "passed": true
+      },
+      {
+        "case": "download.after_chunk",
+        "details": {
+          "retry": "verified archive",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "download.after_verify",
+        "details": {
+          "retry": "verified archive",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "download.before_create-denied",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "denied"
+        },
+        "passed": true
+      },
+      {
+        "case": "download.before_create-disk-full",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "disk-full"
+        },
+        "passed": true
+      },
+      {
+        "case": "export.after_copy-denied",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "denied"
+        },
+        "passed": true
+      },
+      {
+        "case": "export.after_copy-disk-full",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "disk-full"
+        },
+        "passed": true
+      },
+      {
+        "case": "export.after_copy",
+        "details": {
+          "acknowledged": false,
+          "destination": "whole old or whole new",
+          "retry": "passed",
+          "source": "preserved",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "export.after_rename",
+        "details": {
+          "acknowledged": false,
+          "destination": "whole old or whole new",
+          "retry": "passed",
+          "source": "preserved",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "export.after_verify",
+        "details": {
+          "acknowledged": false,
+          "destination": "whole old or whole new",
+          "retry": "passed",
+          "source": "preserved",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "export.before_copy-denied",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "denied"
+        },
+        "passed": true
+      },
+      {
+        "case": "export.before_copy-disk-full",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "disk-full"
+        },
+        "passed": true
+      },
+      {
+        "case": "network-checksum-retry",
+        "details": {
+          "error": "CHECKSUM_FAILED",
+          "retry": "verified bytes only"
+        },
+        "passed": true
+      },
+      {
+        "case": "network-disconnect-retry",
+        "details": {
+          "error": "DOWNLOAD_FAILED",
+          "retry": "verified bytes only"
+        },
+        "passed": true
+      },
+      {
+        "case": "network-proxy-407-retry",
+        "details": {
+          "error": "DOWNLOAD_FAILED",
+          "retry": "verified bytes only"
+        },
+        "passed": true
+      },
+      {
+        "case": "proxy-connection-refused",
+        "details": {
+          "error": "DOWNLOAD_FAILED",
+          "productionDownload": true
+        },
+        "passed": true
+      },
+      {
+        "case": "record.after_flush",
+        "details": {
+          "repeatedRecovery": "byte-identical manifest",
+          "retainedBytes": 14,
+          "state": "interrupted",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "record.after_rename",
+        "details": {
+          "repeatedRecovery": "byte-identical manifest",
+          "retainedBytes": 14,
+          "state": "interrupted",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "record.before_write-denied",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "denied"
+        },
+        "passed": true
+      },
+      {
+        "case": "record.before_write-disk-full",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "disk-full"
+        },
+        "passed": true
+      },
+      {
+        "case": "sdk.after_extract-denied",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "denied"
+        },
+        "passed": true
+      },
+      {
+        "case": "sdk.after_extract-disk-full",
+        "details": {
+          "error": "IO_ERROR",
+          "falseSuccess": false,
+          "injection": "disk-full"
+        },
+        "passed": true
+      },
+      {
+        "case": "sdk.after_extract",
+        "details": {
+          "allComponents": "succeeded",
+          "existingComponent": "preserved",
+          "partial": "needs_review",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "sdk.after_publish",
+        "details": {
+          "allComponents": "succeeded",
+          "existingComponent": "preserved",
+          "partial": "needs_review",
+          "termination": "OS child kill"
+        },
+        "passed": true
+      },
+      {
+        "case": "sqlite-full-rollback",
+        "details": {
+          "realSqlitePagerLimit": true,
+          "reopen": "passed",
+          "settingsAndCatalog": "atomic rollback",
+          "task": "rollback then retry"
+        },
+        "passed": true
+      },
+      {
+        "case": "sqlite-read-only",
+        "details": {
+          "falseSuccess": false,
+          "realReadOnlyConnection": true,
+          "retry": "passed"
+        },
+        "passed": true
+      },
+      {
+        "case": "windows-file-lock",
+        "details": {
+          "lockedDestination": "preserved",
+          "realWindowsHandle": true,
+          "retry": "passed",
+          "temporary": "removed"
+        },
+        "passed": true
+      }
+    ],
+    "scope": {
+      "sdk": "Real bootstrap archive commit; multi-component reconciliation uses isolated installed metadata.",
+      "apk": "Real install-response validation and task recovery, using a sandbox transport response; no physical device.",
+      "io": "Native disk-full/permission errors injected at test-only boundaries, real SQLite pager-full/read-only failures and Windows handle lock.",
+      "interruption": "OS process termination, not sudden power loss or physical filesystem corruption."
+    },
+    "cargoLog": "E:\\codex-proj\\Android DevKit\\.qa\\faults\\run-1792861393894\\cargo.log"
+  },
+  "physicalPhoneAcceptance": "pending",
+  "windowsNativeDialogs": "pending",
+  "newRelease": false,
+  "reviewRounds": 4,
+  "finalBoundariesReverifiedAfterMainSdkRun": true,
+  "localDebugBuild": "passed",
+  "qaEmulatorsRemoved": true,
+  "gitWhitespace": "passed"
+}

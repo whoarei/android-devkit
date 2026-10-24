@@ -54,7 +54,17 @@ import { Button, Badge, Modal, Field } from './ui';
 import { EnvironmentSetup } from './EnvironmentSetup';
 import { AvdUsage, defaultRow, preferenceKey, useDefaultTarget } from './DeviceUtilities';
 import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
-import type { Settings, Workspace, Device, Avd, Plan, Operation, ApkInfo, Target } from './types';
+import type {
+  Settings,
+  Workspace,
+  Device,
+  Avd,
+  Plan,
+  Operation,
+  ApkInfo,
+  Target,
+  Task,
+} from './types';
 type Page = 'devices' | 'terminal' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
 const useUi = create<{
   page: Page;
@@ -91,6 +101,13 @@ export function App() {
     refetchInterval: 5000,
   });
   const data = query.data;
+  const [submittedPhoneTask, setSubmittedPhoneTask] = useState<Task | null>(null);
+  const submitting = useRef(false);
+  const submissionIdentity = useRef({ planId: '', requestId: '' });
+  useEffect(() => {
+    if (submittedPhoneTask && data?.tasks.some((task) => task.id === submittedPhoneTask.id))
+      setSubmittedPhoneTask(null);
+  }, [data?.tasks, submittedPhoneTask]);
   const [defaultTarget, setDefaultTarget] = useDefaultTarget();
   const [environmentOpen, setEnvironmentOpen] = useState(false);
   const environmentPrompted = useRef(false);
@@ -168,9 +185,11 @@ export function App() {
     kind: string,
     args: Record<string, string> = {},
     target: Target | null = null,
+    propagateError = false,
   ) => {
     setBusy(true);
-    await guard(async () => {
+    setError('');
+    const work = async () => {
       const operation = { kind, args, target } satisfies Operation;
       let p: Plan;
       try {
@@ -186,8 +205,13 @@ export function App() {
       setPlan(p);
       setAccepted([]);
       if (['sdk_install', 'sdk_remove', 'avd_create'].includes(kind)) setJavaOperation(null);
-    });
-    setBusy(false);
+    };
+    try {
+      if (propagateError) await work();
+      else await guard(work);
+    } finally {
+      setBusy(false);
+    }
   };
   const chooseApk = async (path?: string, requestedTarget?: string) => {
     if (apkPickerBusy.current) return;
@@ -344,22 +368,35 @@ export function App() {
       notify(t('已复制'));
     });
   const submit = async () => {
-    if (!plan) return;
+    if (!plan || submitting.current) return;
+    submitting.current = true;
+    if (submissionIdentity.current.planId !== plan.id)
+      submissionIdentity.current = { planId: plan.id, requestId: crypto.randomUUID() };
     setBusy(true);
-    await guard(async () => {
-      await call('task_submit', {
-        planId: plan.id,
-        planHash: plan.hash,
-        requestId: crypto.randomUUID(),
-        confirmationToken: plan.confirmationToken,
-        acceptedLicenses: accepted,
+    try {
+      await guard(async () => {
+        const submitted = await call<Task>('task_submit', {
+          planId: plan.id,
+          planHash: plan.hash,
+          requestId: submissionIdentity.current.requestId,
+          confirmationToken: plan.confirmationToken,
+          acceptedLicenses: accepted,
+        });
+        if (
+          ['file_upload', 'file_download', 'screen_record', 'screen_recover'].includes(
+            plan.operation.kind,
+          )
+        )
+          setSubmittedPhoneTask(submitted);
+        setPlan(null);
+        setModal(null);
+        await refresh();
+        notify(t('任务已提交，可在任务中心查看'));
       });
-      setPlan(null);
-      setModal(null);
-      await refresh();
-      notify(t('任务已提交，可在任务中心查看'));
-    });
-    setBusy(false);
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
   };
   return (
     <div className="app-shell">
@@ -927,9 +964,14 @@ export function App() {
                     <PhoneTools
                       key={deviceKey(target)}
                       target={target}
-                      tasks={data?.tasks ?? []}
-                      prepare={prepare}
-                      planOpen={Boolean(plan)}
+                      tasks={
+                        submittedPhoneTask &&
+                        !data?.tasks.some((task) => task.id === submittedPhoneTask.id)
+                          ? [...(data?.tasks ?? []), submittedPhoneTask]
+                          : (data?.tasks ?? [])
+                      }
+                      prepare={(kind, args, target) => prepare(kind, args, target, true)}
+                      planOpen={Boolean(plan) || javaOpen}
                     />
                   )}
                 </aside>
@@ -1199,7 +1241,7 @@ export function App() {
         />
       )}
       {plan && (
-        <Modal title={plan.title} onClose={() => setPlan(null)} wide>
+        <Modal title={plan.title} onClose={() => setPlan(null)} wide trapFocus dismissible={!busy}>
           {error && (
             <p className="error-banner" role="alert">
               {t(error)}
@@ -1238,12 +1280,15 @@ export function App() {
             </div>
           ))}
           <div className="modal-actions">
-            <Button onClick={() => setPlan(null)}>{t('返回修改')}</Button>
+            <Button disabled={busy} onClick={() => setPlan(null)}>
+              {t('返回修改')}
+            </Button>
             <Button
               primary
               danger={
                 plan.operation.kind.includes('delete') ||
                 plan.operation.kind.includes('wipe') ||
+                plan.operation.kind === 'screen_cleanup' ||
                 (['file_upload', 'file_download'].includes(plan.operation.kind) &&
                   plan.operation.args.conflicts === 'replace')
               }

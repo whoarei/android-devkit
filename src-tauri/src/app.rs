@@ -181,7 +181,7 @@ impl App {
             packages,
             avds,
             devices,
-            tasks: self.store.tasks()?,
+            tasks: self.store.workspace_tasks()?,
             server,
             server_epoch: epoch,
         })

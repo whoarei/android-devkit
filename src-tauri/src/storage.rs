@@ -79,6 +79,21 @@ impl Store {
     pub fn tasks(&self) -> Result<Vec<Task>> {
         self.query_tasks("SELECT json FROM tasks WHERE id NOT IN (SELECT task_id FROM deleted_task_records) ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT 200")
     }
+    pub fn workspace_tasks(&self) -> Result<Vec<Task>> {
+        let mut tasks = self.tasks()?;
+        // Recovery entry points must survive the bounded recent-history window.
+        for task in self.query_tasks("SELECT json_set(json,'$.log',json('[]')) FROM tasks WHERE id NOT IN (SELECT task_id FROM deleted_task_records) AND (json_extract(json,'$.state')='needs_review' OR json_extract(json,'$.operation.args.deviceCleanupPending')='true') ORDER BY rowid")? {
+            if matches!(
+                task.operation.kind.as_str(),
+                "screen_record" | "file_upload" | "file_download"
+            ) && task.operation.optional("backupsResolved") != "true"
+                && !tasks.iter().any(|recent| recent.id == task.id)
+            {
+                tasks.push(task);
+            }
+        }
+        Ok(tasks)
+    }
     pub fn sdk_catalog(&self) -> Option<(Vec<SdkPackage>, Vec<SdkSiteStatus>)> {
         let (packages, sites): (String, String) = self
             .connection

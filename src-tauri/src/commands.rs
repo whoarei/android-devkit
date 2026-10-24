@@ -362,6 +362,13 @@ pub fn apk_set_tools(app: Service<'_>) -> Result<String> {
     crate::phone_apk::tool_package(&app)
 }
 #[tauri::command]
+pub async fn phone_selection_release(app: Service<'_>, kind: String, id: String) -> Result<bool> {
+    let app = app.inner().clone();
+    tokio::task::spawn_blocking(move || app.release_phone_selection(&kind, &id))
+        .await
+        .map_err(|e| AppError::new("STAGING_RELEASE", e.to_string()))?
+}
+#[tauri::command]
 pub async fn phone_choose(kind: String) -> Result<Vec<String>> {
     tokio::task::spawn_blocking(move || {
         let dialog = rfd::FileDialog::new();
@@ -745,6 +752,11 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     let state = App::new(root)?;
     state.recover_commits()?;
     state.recover_recordings()?;
+    state.recover_committed_phone_recordings()?;
+    // Cache cleanup is best effort; it must never prevent opening recovery UI.
+    if let Err(error) = state.prune_phone_selections() {
+        eprintln!("Unsubmitted phone cache cleanup: {error}");
+    }
     *state.handle.lock().unwrap() = Some(app.handle().clone());
     state.monitor();
     app.manage(state);

@@ -776,6 +776,7 @@ impl App {
             "screen_record" | "screen_recover" => {
                 Box::pin(self.screen_record(id, op, settings)).await
             }
+            "screen_cleanup" => Box::pin(self.cleanup_phone_recording(op, settings)).await,
             "file_upload" | "file_download" => {
                 Box::pin(self.transfer_files(id, op, settings)).await
             }

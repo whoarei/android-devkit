@@ -31,6 +31,7 @@ const path = require('node:path');
       window.__holdPicker = false;
       window.__rejectApk = false;
       window.__device = target;
+      window.__tasks = [];
       const apk = {
         id: 'set-one',
         package: 'dev.androiddevkit.fixture',
@@ -68,7 +69,7 @@ const path = require('node:path');
               packages: [],
               avds: [],
               devices: [structuredClone(window.__device)],
-              tasks: [],
+              tasks: structuredClone(window.__tasks),
               server: 'fixture',
               serverEpoch: 1,
               freeBytes: 20 * 1024 ** 3,
@@ -141,7 +142,7 @@ const path = require('node:path');
                 ];
           if (command === 'transfer_prepare')
             return {
-              id: 'transfer-one',
+              id: `transfer-${(window.__transferCount = (window.__transferCount || 0) + 1)}`,
               direction: args.direction,
               target: args.target,
               directory: args.directory,
@@ -149,8 +150,10 @@ const path = require('node:path');
               items: [{ bytes: 8 }],
               conflicts: ['中文 空格.txt'],
             };
-          if (command === 'plan_create')
-            return {
+          if (command === 'plan_create') {
+            if (window.__rejectPlan)
+              throw { code: 'FILE_CONFLICT', message: 'Fixture target changed' };
+            const plan = {
               id: 'plan-one',
               hash: 'hash',
               title: 'Fixture plan',
@@ -162,6 +165,43 @@ const path = require('node:path');
               createdAt: 1,
               settingsHash: 'hash',
             };
+            window.__lastOperation = structuredClone(args.operation);
+            if (window.__holdPlan)
+              return new Promise((resolve) => {
+                window.__resolvePlan = () => resolve(plan);
+              });
+            return plan;
+          }
+          if (command === 'task_submit') {
+            if (window.__loseSubmitResponse) {
+              window.__loseSubmitResponse = false;
+              throw { code: 'IPC_DISCONNECTED', message: 'Fixture response lost after submission' };
+            }
+            const task = {
+              id: 'submitted-transfer',
+              requestId: args.requestId,
+              title: '上传文件',
+              operation: window.__lastOperation,
+              state: 'running',
+              phase: 'transferring',
+              message: 'Fixture transfer in progress',
+              progress: 25,
+              cancelRequested: false,
+              cancellable: true,
+              artifact: '',
+              log: [],
+              createdAt: 1,
+              updatedAt: 1,
+              confirmedLicenses: [],
+              licensePrompt: '',
+            };
+            window.__tasks = [task];
+            return structuredClone(task);
+          }
+          if (command === 'task_cancel') {
+            window.__tasks[0].cancelRequested = true;
+            return null;
+          }
           if (command === 'plugin:event|listen') {
             window.__listeners[args.event] = args.handler;
             return args.handler;
@@ -177,7 +217,44 @@ const path = require('node:path');
     await apkDialog.getByRole('button', { name: '选择多个 APK…' }).click();
     await apkDialog.locator('[data-apk-set]').waitFor();
     assert.match(await apkDialog.innerText(), /config.zh.apk/);
+    // Failed re-selection must not leave the previous APK ready to install.
+    await page.evaluate(() => {
+      window.__rejectApk = true;
+    });
+    await apkDialog.getByRole('button', { name: '选择多个 APK…' }).click();
+    await apkDialog.getByRole('alert').filter({ hasText: 'Fixture signature mismatch' }).waitFor();
+    assert.equal(await apkDialog.locator('[data-apk-set]').count(), 0);
+    await page.evaluate(() => {
+      window.__rejectApk = false;
+    });
+    await apkDialog.getByRole('button', { name: '选择多个 APK…' }).click();
+    await apkDialog.locator('[data-apk-set]').waitFor();
+    // Plan failures belong inside the initiating dialog; slow requests disable resubmission.
+    await page.evaluate(() => {
+      window.__rejectPlan = true;
+    });
     await apkDialog.getByRole('button', { name: '确认分包安装计划' }).click();
+    await apkDialog.getByRole('alert').filter({ hasText: 'Fixture target changed' }).waitFor();
+    await page.evaluate(() => {
+      window.__rejectPlan = false;
+      window.__holdPlan = true;
+    });
+    await apkDialog.getByRole('button', { name: '确认分包安装计划' }).click();
+    await page.waitForFunction(() => !!window.__resolvePlan);
+    assert.equal(
+      await apkDialog.getByRole('button', { name: '确认分包安装计划' }).isDisabled(),
+      true,
+    );
+    await page.keyboard.press('Tab');
+    assert.equal(
+      await apkDialog.evaluate((el) => el.contains(document.activeElement)),
+      true,
+      'Busy dialogs keep keyboard focus inside',
+    );
+    await page.evaluate(() => {
+      window.__holdPlan = false;
+      window.__resolvePlan();
+    });
     await page.getByRole('dialog', { name: 'Fixture plan' }).waitFor();
     let operation = await page.evaluate(
       () => window.__calls.filter((c) => c.command === 'plan_create').at(-1).args.operation,
@@ -185,6 +262,13 @@ const path = require('node:path');
     assert.equal(operation.kind, 'apk_set_install');
     assert.equal(operation.target.transportId, '7');
     await page.getByRole('button', { name: '返回修改', exact: true }).click();
+    await apkDialog.getByRole('button', { name: '确认分包安装计划' }).waitFor({ state: 'visible' });
+    const controls = apkDialog.locator(
+      'button:not(:disabled),input:not(:disabled),select:not(:disabled)',
+    );
+    await controls.last().focus();
+    await page.keyboard.press('Tab');
+    assert.equal(await controls.first().evaluate((el) => el === document.activeElement), true);
     await apkDialog.getByRole('button', { name: '关闭面板' }).click();
     await page.getByRole('button', { name: '录屏', exact: true }).click();
     const record = page.getByRole('dialog', { name: '录屏', exact: true });
@@ -245,6 +329,47 @@ const path = require('node:path');
     await page.waitForFunction(() =>
       window.__calls.some((c) => c.command === 'transfer_prepare' && c.args.direction === 'upload'),
     );
+    await files.getByLabel('跳过全部同名冲突项，保留现有文件').check();
+    await review.click();
+    const execution = page.getByRole('dialog', { name: 'Fixture plan' });
+    await page.evaluate(() => {
+      window.__loseSubmitResponse = true;
+    });
+    await execution.getByRole('button', { name: 'Fixture plan', exact: true }).click();
+    await execution
+      .getByRole('alert')
+      .filter({ hasText: 'Fixture response lost after submission' })
+      .waitFor();
+    await execution.getByRole('button', { name: 'Fixture plan', exact: true }).click();
+    await files.getByText('Fixture transfer in progress', { exact: true }).waitFor();
+    assert.equal(await files.locator('[data-transfer-id]').count(), 0);
+    const submissions = await page.evaluate(() =>
+      window.__calls.filter((c) => c.command === 'task_submit').map((c) => c.args.requestId),
+    );
+    assert.equal(submissions.length, 2);
+    assert.equal(submissions[0], submissions[1]);
+    assert.equal(await files.getByRole('progressbar').getAttribute('value'), '25');
+    await files.getByRole('button', { name: '取消传输', exact: true }).click();
+    assert.equal(
+      await page.evaluate(() => window.__calls.filter((c) => c.command === 'task_cancel').length),
+      1,
+    );
+    const readsBefore = await page.evaluate(
+      () => window.__calls.filter((c) => c.command === 'device_files').length,
+    );
+    await page.evaluate(() => {
+      window.__tasks[0].state = 'cancelled';
+      window.__tasks[0].operation.args.backupsResolved = 'true';
+      window.__callbacks[window.__listeners['workspace-changed']]({ payload: 2 });
+    });
+    await page.waitForFunction(
+      (before) => window.__calls.filter((c) => c.command === 'device_files').length > before,
+      readsBefore,
+    );
+    assert.equal(
+      await files.getByRole('button', { name: '清理原传输暂存', exact: true }).count(),
+      0,
+    );
     for (const width of [480, 1280]) {
       await page.setViewportSize({ width, height: 800 });
       assert.equal(await files.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), true);
@@ -300,6 +425,24 @@ const path = require('node:path');
     );
     assert.equal(operation.kind, 'sdk_install');
     assert.equal(operation.args.packages, 'build-tools;35.0.0');
+    await page.getByRole('button', { name: 'Back to editing', exact: true }).click();
+    await page.evaluate(() => {
+      window.__toolPackage = '';
+      window.__tasks.push({
+        id: 'tools-completed',
+        operation: { kind: 'sdk_install', args: {} },
+        state: 'succeeded',
+      });
+      window.__callbacks[window.__listeners['workspace-changed']]({ payload: 3 });
+    });
+    await englishApk
+      .getByRole('button', { name: 'Choose APK files…', exact: true })
+      .waitFor({ state: 'visible' });
+    await page.waitForFunction(() => !document.querySelector('.phone-modal .button')?.disabled);
+    assert.equal(
+      await englishApk.getByRole('button', { name: 'Prepare Build-Tools plan' }).count(),
+      0,
+    );
     assert.deepEqual(errors, []);
     console.log(
       'Phone UI: split review, recording bounds/options, frozen target, shared-storage navigation, multiselect, link blocking, keep/rename/replace, native drop, reconnect, English and 480/1280 layouts passed.',

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Folder, Layers, Video, Upload, Download, RefreshCw, ArrowUp } from 'lucide-react';
 import { call, errorText, size, taskActive } from './api';
 import { t } from './i18n';
@@ -24,6 +24,7 @@ export function PhoneTools({
 }) {
   const [mode, setMode] = useState<'apk' | 'record' | 'files' | null>(null);
   const [busy, setBusy] = useState(false);
+  const working = useRef(false);
   const [error, setError] = useState('');
   const [apk, setApk] = useState<ApkSet | null>(null);
   const [toolPackage, setToolPackage] = useState('');
@@ -69,7 +70,8 @@ export function PhoneTools({
   };
   const ready = target.state === 'ready';
   const run = async (work: () => Promise<void>) => {
-    if (busy) return;
+    if (working.current) return;
+    working.current = true;
     setBusy(true);
     setError('');
     try {
@@ -77,11 +79,13 @@ export function PhoneTools({
     } catch (e) {
       setError(errorText(e));
     } finally {
+      working.current = false;
       setBusy(false);
     }
   };
   const browse = async (next = path) => {
     const list = await call<RemoteEntry[]>('device_files', { target, path: next });
+    if (transfer) await call('phone_selection_release', { kind: 'transfer', id: transfer.id });
     setEntries(list);
     setSelected([]);
     setPath(next);
@@ -90,6 +94,8 @@ export function PhoneTools({
   const prepareUpload = async (paths: string[]) => {
     if (!paths.length) return;
     if (path === '/sdcard') throw new Error(t('请先打开一个共享存储目录'));
+    if (transfer) await call('phone_selection_release', { kind: 'transfer', id: transfer.id });
+    setTransfer(null);
     reviewTransfer(
       await call<TransferSet>('transfer_prepare', {
         direction: 'upload',
@@ -116,7 +122,6 @@ export function PhoneTools({
     setError('');
     setTransfer(null);
     if (next === 'files') void run(() => browse('/sdcard'));
-    if (next === 'apk') void run(() => checkTools());
   };
   const activeRecording = tasks.find(
     (task) =>
@@ -127,16 +132,62 @@ export function PhoneTools({
   const recoverable = tasks.filter(
     (task) =>
       task.operation.kind === 'screen_record' &&
-      task.state === 'needs_review' &&
-      !task.artifact &&
+      !taskActive(task.state) &&
+      ((task.state === 'needs_review' && !task.artifact) ||
+        task.operation.args.deviceCleanupPending === 'true') &&
       task.operation.target?.serial === target.serial,
   );
   const interruptedTransfers = tasks.filter(
     (task) =>
       ['file_upload', 'file_download'].includes(task.operation.kind) &&
       ['needs_review', 'cancelled', 'failed'].includes(task.state) &&
+      task.operation.args.backupsResolved !== 'true' &&
       task.operation.target?.serial === target.serial,
   );
+  const fileTasks = tasks.filter(
+    (task) =>
+      ['file_upload', 'file_download'].includes(task.operation.kind) &&
+      task.operation.target?.serial === target.serial,
+  );
+  const transferSubmitted =
+    !!transfer && fileTasks.some((task) => task.operation.args.transferId === transfer.id);
+  const preparedDependencies = tasks
+    .filter(
+      (task) =>
+        ['sdk_install', 'java_prepare'].includes(task.operation.kind) && !taskActive(task.state),
+    )
+    .map((task) => task.id)
+    .sort()
+    .join(',');
+  useEffect(() => {
+    if (mode === 'apk' && !planOpen) void run(() => checkTools());
+  }, [mode, planOpen, preparedDependencies]);
+  const settledTransfers = fileTasks
+    .filter((task) => !taskActive(task.state))
+    .map((task) => task.id)
+    .sort()
+    .join(',');
+  useEffect(() => {
+    if (transferSubmitted) setTransfer(null);
+  }, [transferSubmitted]);
+  useEffect(() => {
+    if (mode !== 'files' || planOpen || busy || !ready) return;
+    let current = true;
+    void call<RemoteEntry[]>('device_files', { target, path })
+      .then((list) => {
+        if (!current) return;
+        setEntries(list);
+        setSelected((previous) =>
+          previous.filter((p) => list.some((entry) => entry.path === p && !entry.link)),
+        );
+      })
+      .catch((e) => {
+        if (current) setError(errorText(e));
+      });
+    return () => {
+      current = false;
+    };
+  }, [settledTransfers, mode, planOpen, ready, path, busy]);
   return (
     <>
       <div className="detail-actions phone-tools" aria-label={t('设备常用操作')}>
@@ -157,12 +208,21 @@ export function PhoneTools({
         <Modal
           title={t(mode === 'apk' ? '分包 APK 安装' : mode === 'record' ? '录屏' : '文件传输')}
           onClose={() => {
-            if (!busy) setMode(null);
+            if (!busy)
+              void run(async () => {
+                if (apk) await call('phone_selection_release', { kind: 'apk', id: apk.id });
+                if (transfer)
+                  await call('phone_selection_release', { kind: 'transfer', id: transfer.id });
+                setApk(null);
+                setTransfer(null);
+                setMode(null);
+              });
           }}
           wide
           hidden={planOpen}
           dismissible={!busy}
           className="phone-modal"
+          trapFocus
         >
           <p className="hint phone-target">
             {t('目标设备')}：{target.model} · {target.serial}
@@ -192,7 +252,12 @@ export function PhoneTools({
                     onClick={() =>
                       void run(async () => {
                         const paths = await call<string[]>('phone_choose', { kind });
-                        if (paths.length) setApk(await call<ApkSet>('apk_set_prepare', { paths }));
+                        if (paths.length) {
+                          if (apk)
+                            await call('phone_selection_release', { kind: 'apk', id: apk.id });
+                          setApk(null);
+                          setApk(await call<ApkSet>('apk_set_prepare', { paths }));
+                        }
                       })
                     }
                   >
@@ -202,12 +267,14 @@ export function PhoneTools({
                 {toolPackage && (
                   <Button
                     disabled={busy}
-                    onClick={() => void prepare('sdk_install', { packages: toolPackage })}
+                    onClick={() =>
+                      void run(() => prepare('sdk_install', { packages: toolPackage }))
+                    }
                   >
                     {t('准备 Build-Tools 依赖计划')}
                   </Button>
                 )}
-                <Button disabled={busy} onClick={() => void prepare('java_prepare')}>
+                <Button disabled={busy} onClick={() => void run(() => prepare('java_prepare'))}>
                   {t('准备 Java 运行时')}
                 </Button>
                 <Button disabled={busy} onClick={() => void run(() => checkTools(true))}>
@@ -235,7 +302,9 @@ export function PhoneTools({
                   <Button
                     primary
                     disabled={busy || !ready}
-                    onClick={() => void prepare('apk_set_install', { setId: apk.id }, target)}
+                    onClick={() =>
+                      void run(() => prepare('apk_set_install', { setId: apk.id }, target))
+                    }
                   >
                     {t('确认分包安装计划')}
                   </Button>
@@ -283,7 +352,7 @@ export function PhoneTools({
                       })
                     }
                   >
-                    {t('停止并保存录屏')}
+                    {t(activeRecording.state === 'queued' ? '取消等待录屏' : '停止并保存录屏')}
                   </Button>
                 </div>
               ) : (
@@ -293,7 +362,9 @@ export function PhoneTools({
                     busy || !ready || !Number.isInteger(seconds) || seconds < 1 || seconds > 180
                   }
                   onClick={() =>
-                    void prepare('screen_record', { seconds: String(seconds), resolution }, target)
+                    void run(() =>
+                      prepare('screen_record', { seconds: String(seconds), resolution }, target),
+                    )
                   }
                 >
                   {t('确认录屏计划')}
@@ -302,13 +373,40 @@ export function PhoneTools({
               {recoverable.map((task) => (
                 <div className="phone-review" key={task.id}>
                   <p>{t(task.message)}</p>
+                  {!task.artifact && (
+                    <Button
+                      disabled={
+                        busy ||
+                        !ready ||
+                        tasks.some(
+                          (related) =>
+                            taskActive(related.state) &&
+                            related.operation.args.sourceTaskId === task.id,
+                        )
+                      }
+                      onClick={() =>
+                        void run(() => prepare('screen_recover', { sourceTaskId: task.id }, target))
+                      }
+                    >
+                      {t('取回原录屏')}
+                    </Button>
+                  )}
                   <Button
-                    disabled={busy || !ready}
+                    danger
+                    disabled={
+                      busy ||
+                      !ready ||
+                      tasks.some(
+                        (related) =>
+                          taskActive(related.state) &&
+                          related.operation.args.sourceTaskId === task.id,
+                      )
+                    }
                     onClick={() =>
-                      void prepare('screen_recover', { sourceTaskId: task.id }, target)
+                      void run(() => prepare('screen_cleanup', { sourceTaskId: task.id }, target))
                     }
                   >
-                    {t('取回原录屏')}
+                    {t('放弃并清理原录屏')}
                   </Button>
                 </div>
               ))}
@@ -316,6 +414,27 @@ export function PhoneTools({
           )}
           {mode === 'files' && (
             <>
+              {fileTasks
+                .filter((task) => taskActive(task.state))
+                .map((task) => (
+                  <div className="phone-review" role="status" key={task.id}>
+                    <strong>{t(task.title)}</strong>
+                    <p>{t(task.message)}</p>
+                    {task.progress !== null && (
+                      <progress max={100} value={task.progress} aria-label={t('传输进度')} />
+                    )}
+                    <Button
+                      disabled={busy || task.cancelRequested || !task.cancellable}
+                      onClick={() =>
+                        void run(async () => {
+                          await call('task_cancel', { taskId: task.id });
+                        })
+                      }
+                    >
+                      {t('取消传输')}
+                    </Button>
+                  </div>
+                ))}
               {interruptedTransfers.map((task) => (
                 <div className="phone-review" key={task.id}>
                   <p>{t(task.message)}</p>
@@ -377,7 +496,13 @@ export function PhoneTools({
                       const [directory] = await call<string[]>('phone_choose', {
                         kind: 'download_directory',
                       });
-                      if (directory)
+                      if (directory) {
+                        if (transfer)
+                          await call('phone_selection_release', {
+                            kind: 'transfer',
+                            id: transfer.id,
+                          });
+                        setTransfer(null);
                         reviewTransfer(
                           await call<TransferSet>('transfer_prepare', {
                             direction: 'download',
@@ -386,6 +511,7 @@ export function PhoneTools({
                             directory,
                           }),
                         );
+                      }
                     })
                   }
                 >
@@ -416,7 +542,7 @@ export function PhoneTools({
                           <input
                             type="checkbox"
                             aria-label={t('选择：{0}', entry.name)}
-                            disabled={busy || entry.link || path === '/sdcard'}
+                            disabled={busy || !ready || entry.link || path === '/sdcard'}
                             checked={selected.includes(entry.path)}
                             onChange={(e) =>
                               setSelected((previous) =>
@@ -431,7 +557,7 @@ export function PhoneTools({
                           {entry.directory && !entry.link ? (
                             <button
                               className="text-button"
-                              disabled={busy}
+                              disabled={busy || !ready}
                               onClick={() => void run(() => browse(entry.path))}
                             >
                               <Folder size={14} />

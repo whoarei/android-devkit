@@ -95,6 +95,7 @@ pub fn run() {
             commands::apk_prepare,
             commands::apk_set_prepare,
             commands::apk_set_tools,
+            commands::phone_selection_release,
             commands::phone_choose,
             commands::device_files,
             commands::transfer_prepare,

@@ -630,7 +630,7 @@ export function ArtifactsPanel({
         </Modal>
       )}
       {video && (
-        <Modal title={tr('录屏预览')} onClose={() => setVideo('')} wide>
+        <Modal title={tr('录屏预览')} onClose={() => setVideo('')} wide trapFocus>
           <video className="phone-video" controls src={video} />
           <p className="hint">{tr('确认画面后可返回待保存文件另存 MP4。')}</p>
         </Modal>

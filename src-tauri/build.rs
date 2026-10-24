@@ -38,6 +38,7 @@ fn main() {
         "apk_prepare",
         "apk_set_prepare",
         "apk_set_tools",
+        "phone_selection_release",
         "phone_choose",
         "device_files",
         "transfer_prepare",

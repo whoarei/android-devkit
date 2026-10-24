@@ -96,14 +96,27 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
       throw Error(`Native ${kind} timeout`);
     };
     assert.equal(await invoke('apk_set_tools'), '');
+    assert.equal(
+      await invoke('phone_selection_release', {
+        kind: 'apk',
+        id: require('node:crypto').randomUUID(),
+      }),
+      true,
+    );
     const apk = await invoke('apk_set_prepare', {
       paths: ['base.apk', 'config.zh.apk'].map((name) =>
         path.resolve('.qa/runtime/fixture/splits', name),
       ),
     });
     await execute('apk_set_install', { setId: apk.id });
+    assert.equal(
+      await invoke('phone_selection_release', { kind: 'apk', id: apk.id }),
+      false,
+      'Task-linked APKs remain recoverable',
+    );
     await execute('app_launch', { package: apk.package });
     const video = await execute('screen_record', { seconds: '3', resolution: '720p' });
+    await execute('screen_cleanup', { sourceTaskId: video.id });
     const data = await invoke('video_preview', { artifactId: video.id });
     assert(data.startsWith('data:video/mp4;base64,'));
     // The real artifact inbox opens a video element under the application's production CSP.
@@ -256,6 +269,9 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
           cancellationBeforePublish: true,
           stagingCleanup: true,
           videoCacheDiscard: true,
+          selectionReleasePermissions: true,
+          taskLinkedStagingProtected: true,
+          deviceRecordingCleanupPreservesLocalMp4: true,
           errors,
         },
         null,

@@ -75,14 +75,21 @@ export function Modal({
     const controls = () =>
       [
         ...panel.querySelectorAll<HTMLElement>(
-          'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,a[href]',
+          'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,a[href],video[controls]',
         ),
       ].filter((node) => node.getClientRects().length > 0);
-    controls()[0]?.focus();
+    (controls()[0] || panel).focus();
     const trap = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return;
+      const top = [...document.querySelectorAll<HTMLElement>('.modal-backdrop')]
+        .filter((node) => node.getClientRects().length > 0)
+        .at(-1);
+      if (!top?.contains(panel)) return;
       const nodes = controls();
-      if (event.shiftKey && document.activeElement === nodes[0]) {
+      if (!nodes.length || !panel.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? nodes.at(-1) || panel : nodes[0] || panel).focus();
+      } else if (event.shiftKey && document.activeElement === nodes[0]) {
         event.preventDefault();
         nodes.at(-1)?.focus();
       } else if (!event.shiftKey && document.activeElement === nodes.at(-1)) {
@@ -90,9 +97,9 @@ export function Modal({
         nodes[0]?.focus();
       }
     };
-    panel.addEventListener('keydown', trap);
+    document.addEventListener('keydown', trap);
     return () => {
-      panel.removeEventListener('keydown', trap);
+      document.removeEventListener('keydown', trap);
       if (previous instanceof HTMLElement && previous.isConnected) previous.focus();
     };
   }, [trapFocus, hidden]);
@@ -114,6 +121,7 @@ export function Modal({
     >
       <section
         ref={dialog}
+        tabIndex={trapFocus ? -1 : undefined}
         role="dialog"
         aria-modal="true"
         aria-label={t(title)}
