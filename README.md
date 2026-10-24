@@ -4,7 +4,7 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.2.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.2.1** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
 ## 产品特性
 
@@ -15,7 +15,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **明确每次 APK 安装的目标**：选择或拖入 APK，核对目标设备和应用信息后安装；默认保留应用数据，设备断线后不会自动改投其他设备。
 - **集中排查设备与应用问题**：过滤实时日志、采集问题发生时的日志片段、截取设备画面，预览并导出排查资料。
 - **查进度、找结果、保存文件**：在任务中心搜索历史操作，按状态筛选任务、查看失败原因；通过带角标的待保存文件入口预览、另存或清理缓存副本。
-- **按自己的习惯使用界面**：随时切换中英文和亮暗主题，偏好自动保存，下次启动继续使用。
+- **按自己的习惯使用界面**：随时切换中英文和亮暗主题，偏好自动保存，下次启动继续使用；支持 `Ctrl` + `+` / `-` 放大或缩小整个界面，`Ctrl` + `0` 恢复默认大小。
 - **在应用内检查更新**：启动时静默检查新版本，也可手动查看更新说明；安装版支持验证更新签名后安装并重新打开，便携版提供下载入口。
 
 以下使用说明对应当前源码，发行版的具体功能与变更以对应 Release 说明为准。

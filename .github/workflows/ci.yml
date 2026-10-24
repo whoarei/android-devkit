@@ -15,19 +15,11 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RELEASE_NOTES: |
-    Android DevKit v0.2.0 for Windows x64 — changes since v0.1.0.
-
-    新增
-    - 软件更新：启动时静默检查，也可在设置中手动检查并查看更新说明。
-    - 安装版支持下载进度、更新包签名校验和安装后重新打开；便携版提供手动下载入口。
-    - 安装更新前检查运行中任务、日志采集和待保存文件，避免中断工作或丢失文件。
+    Android DevKit v0.2.1 for Windows x64 — changes since v0.2.0.
 
     改进与修复
-    - 待保存文件收纳为带角标的图标入口，弹框中统一预览、另存和忽略并清理缓存。
-    - 修复关闭文件预览后未返回待保存文件列表的问题。
-    - 修复设备卡片快捷安装 APK 的交互，支持再次点击取消选中设备并关闭详情。
-    - README 重写为产品介绍、用户指南和开发入门；补充版本发布与签名产物核验流程。
-    - CI 仅在推送 v* 标签或 Actions 页面手动运行时触发。
+    - 支持 Ctrl + + / Ctrl + - 放大或缩小整个界面，文字、按钮和布局同步缩放；Ctrl + 0 恢复默认大小。
+    - README 补充界面缩放快捷键说明。
 
     Installation and compatibility
     - Download the setup executable to install, or extract the portable ZIP. Requires Windows 11 x64 and WebView2 Runtime. Android SDK components are downloaded separately under their own licenses.
