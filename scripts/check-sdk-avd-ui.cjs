@@ -77,6 +77,11 @@ const path = require('node:path');
             { tag: 'page_size_16kb' },
           ),
           pkg('system-images;android-35;vendor_custom;x86_64', 'Vendor System Image'),
+          // Deliberately unordered, including a single-digit API and a minor API version.
+          pkg('system-images;android-29;default;x86_64', 'Android API 29 x86_64', { api: '' }),
+          pkg('system-images;android-9;default;x86_64', 'Android API 9 x86_64'),
+          pkg('system-images;android-36.1;default;x86_64', 'Android API 36.1 x86_64'),
+          pkg('system-images;android-36;default;x86_64', 'Android API 36 x86_64'),
           pkg('platforms;android-29', 'Android SDK Platform 29'),
           pkg('build-tools;35.0.0', 'Build-Tools 35', { version: '35.0.0' }),
           pkg('build-tools;19.0.0', 'Build-Tools 19', { obsolete: true }),
@@ -280,6 +285,7 @@ const path = require('node:path');
       () => !document.querySelector('.page-actions button[aria-busy="true"]'),
     );
     const group = page.locator('.sdk-group').filter({ hasText: 'Android · API 35' });
+    await group.getByRole('button', { name: 'Android · API 35', exact: true }).click();
     const api35Count = await page.evaluate(
       () => window.__fixture.packages.filter((p) => p.id.split(';')[1] === 'android-35').length,
     );
@@ -492,12 +498,46 @@ const path = require('node:path');
     dialog = page.getByRole('dialog', { name: '新建模拟器' });
     await dialog.getByRole('button', { name: '平板', exact: false }).click();
     await dialog.getByRole('button', { name: '下一步', exact: true }).click();
+    assert.deepEqual(await dialog.locator('.image-api-heading > b').allTextContents(), [
+      'Android · API 36.1',
+      'Android · API 36',
+      'Android · API 35',
+      'Android · API 29',
+      'Android · API 9',
+    ]);
+    const installedImages = dialog.getByRole('region', { name: 'Android · API 35', exact: true });
+    assert.equal(await installedImages.getByRole('button').getAttribute('aria-expanded'), 'true');
+    assert.equal(await installedImages.getByRole('radio').count(), 4);
+    assert.equal(await installedImages.locator('input:checked').count(), 1);
+    assert.equal(await dialog.locator('input[name="image"]').count(), 8);
+    assert.equal(await dialog.getByRole('radio').count(), 4);
+    await installedImages.getByRole('button').click();
+    assert.equal(await dialog.getByRole('radio').count(), 0);
+    const newerImages = dialog.getByRole('region', { name: 'Android · API 36', exact: true });
+    await newerImages.getByRole('button').focus();
+    await page.keyboard.press('Enter');
+    await newerImages.getByRole('radio').check();
+    await dialog.getByRole('button', { name: '上一步', exact: true }).click();
+    await dialog.getByRole('button', { name: '下一步', exact: true }).click();
+    assert.equal(await newerImages.getByRole('radio').isChecked(), true);
+    await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    dialog = page.getByRole('dialog', { name: 'Create emulator', exact: true });
+    await dialog.getByText('Selected', { exact: true }).waitFor();
+    await dialog.getByText('1 images', { exact: true }).first().waitFor();
+    await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
+    dialog = page.getByRole('dialog', { name: '新建模拟器', exact: true });
+    await page.screenshot({ path: path.join(output, 'avd-image-api-groups.png') });
+    await page.setViewportSize({ width: 480, height: 640 });
+    assert.equal(await dialog.evaluate((el) => el.scrollWidth > el.clientWidth), false);
+    await page.screenshot({ path: path.join(output, 'avd-image-api-groups-compact.png') });
+    await page.setViewportSize({ width: 1280, height: 800 });
     await dialog.getByRole('button', { name: '下一步', exact: true }).click();
     assert.equal(await dialog.getByLabel('屏幕宽度（px）', { exact: true }).inputValue(), '1536');
     await dialog.getByRole('button', { name: '查看创建计划' }).click();
     await page.getByRole('dialog', { name: 'Fixture plan' }).waitFor();
     const created = await page.evaluate(() => window.__operations.at(-1));
     assert.equal(created.kind, 'avd_create');
+    assert.equal(created.args.image, 'system-images;android-36;default;x86_64');
     assert.equal(created.args.profile, 'Nexus 9');
     assert.equal(created.args.storageMiB, '8192');
     assert.equal(created.args.screenHeight, '2048');
@@ -635,7 +675,7 @@ const path = require('node:path');
     await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
     assert.deepEqual(errors, []);
     console.log(
-      'SDK/AVD UI: refresh lifecycle, hierarchy, site CRUD, configuration, language/theme switching and persistence, input preservation, contrast and compact layout passed.',
+      'SDK/AVD UI: refresh lifecycle, hierarchy, site CRUD, image API grouping and ordering, configuration, language/theme switching and persistence, input preservation, contrast and compact layout passed.',
     );
   } finally {
     await browser.close();

@@ -48,7 +48,7 @@ import { TerminalNewSession, TerminalPage, terminalDeviceName } from './Terminal
 import { openDeviceTerminal, useTerminals } from './terminal';
 import { useSoftwareUpdate, SoftwareUpdateSection, SoftwareUpdateDialog } from './SoftwareUpdate';
 import { AvdSettingsFields, AvdPreview, EditAvd, newAvdSettings, type AvdForm } from './AvdEditor';
-import { hasSdkUpdate } from './sdk';
+import { avdImageGroups, hasSdkUpdate } from './sdk';
 import { Button, Badge, Modal, Field } from './ui';
 import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
 import type { Settings, Workspace, Device, Avd, Plan, Operation, ApkInfo, Target } from './types';
@@ -1116,10 +1116,8 @@ function CreateAvd({
           ?.id ?? '',
     });
   const set = (key: string, v: string) => setForm((f) => ({ ...f, [key]: v }));
-  const images =
-    data?.packages.filter(
-      (p) => p.category === 'image' && (p.abi === 'x86_64' || p.id.endsWith(';x86_64')),
-    ) ?? [];
+  const [expandedImageApis, setExpandedImageApis] = useState<Record<string, boolean>>({});
+  const imageGroups = avdImageGroups(data?.packages ?? []);
   return (
     <Modal title={t('新建模拟器')} onClose={close} wide className="avd-modal" hidden={hidden}>
       <div className="avd-modal-body">
@@ -1175,28 +1173,52 @@ function CreateAvd({
               {t('首发 Windows x64 优先选择 x86_64 镜像。缺失镜像会加入创建任务。')}
             </p>
             <div className="image-options">
-              {images.map((p) => (
-                <label key={p.id} className={form.image === p.id ? 'selected' : ''}>
-                  <input
-                    type="radio"
-                    name="image"
-                    checked={form.image === p.id}
-                    onChange={() => set('image', p.id)}
-                  />
-                  <div>
-                    <b>{p.name || p.id}</b>
-                    <small>
-                      {p.id} ·{' '}
-                      {p.installed
-                        ? hasSdkUpdate(p)
-                          ? t('有可选更新')
-                          : t('已安装')
-                        : size(p.size)}
-                    </small>
-                  </div>
-                </label>
-              ))}
-              {!images.length && (
+              {imageGroups.map(([api, images], index) => {
+                const selected = images.some((p) => form.image === p.id);
+                const expanded = expandedImageApis[api] ?? (form.image ? selected : index === 0);
+                const title = api ? `Android · API ${api}` : t('API 未知');
+                return (
+                  <section className="image-api-group" key={api} aria-label={title}>
+                    <button
+                      className="image-api-heading"
+                      aria-expanded={expanded}
+                      aria-controls={`avd-images-${api || 'unknown'}`}
+                      onClick={() =>
+                        setExpandedImageApis((values) => ({ ...values, [api]: !expanded }))
+                      }
+                    >
+                      <ChevronRight size={15} aria-hidden="true" />
+                      <b>{title}</b>
+                      <span>{t('{0} 个镜像', images.length)}</span>
+                      {selected && <span className="image-api-selected">{t('已选择')}</span>}
+                    </button>
+                    <div id={`avd-images-${api || 'unknown'}`} hidden={!expanded}>
+                      {images.map((p) => (
+                        <label key={p.id} className={form.image === p.id ? 'selected' : ''}>
+                          <input
+                            type="radio"
+                            name="image"
+                            checked={form.image === p.id}
+                            onChange={() => set('image', p.id)}
+                          />
+                          <div>
+                            <b>{p.name || p.id}</b>
+                            <small>
+                              {p.id} ·{' '}
+                              {p.installed
+                                ? hasSdkUpdate(p)
+                                  ? t('有可选更新')
+                                  : t('已安装')
+                                : size(p.size)}
+                            </small>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </section>
+                );
+              })}
+              {!imageGroups.length && (
                 <p>{t('尚无镜像目录，请先关闭向导并在 SDK 页面刷新官方仓库。')}</p>
               )}
             </div>

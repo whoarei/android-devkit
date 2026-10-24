@@ -24,6 +24,18 @@ export function imageFamily(p: SdkPackage) {
   return { key: `other:${tag}`, title: t('其他镜像 \u00B7 {0}', tag), order: 3 };
 }
 export const imageAbi = (p: SdkPackage) => p.id.split(';')[3] || p.abi || '未标注 ABI';
+export function avdImageGroups(packages: SdkPackage[]) {
+  const groups = new Map<string, SdkPackage[]>();
+  for (const p of packages) {
+    if (p.category !== 'image' || imageAbi(p) !== 'x86_64') continue;
+    const api = p.id.match(/^system-images;android-([^;]+)/)?.[1] || p.api;
+    if (!groups.has(api)) groups.set(api, []);
+    groups.get(api)!.push(p);
+  }
+  return [...groups.entries()].sort(
+    ([a], [b]) => Number(!a) - Number(!b) || b.localeCompare(a, 'en', { numeric: true }),
+  );
+}
 export function imageNodes(packages: SdkPackage[], parent: string): SdkTreeNode[] {
   const families = new Map<
     string,

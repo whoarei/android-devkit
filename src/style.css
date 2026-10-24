@@ -1185,6 +1185,32 @@ h1 {
   max-height: 300px;
   overflow: auto;
 }
+.image-api-group + .image-api-group {
+  margin-top: 8px;
+}
+.image-api-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface-muted);
+  text-align: left;
+}
+.image-api-heading[aria-expanded='true'] > svg {
+  transform: rotate(90deg);
+}
+.image-api-heading > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.image-api-heading > .image-api-selected {
+  margin-left: auto;
+  color: var(--success);
+}
 .image-options label {
   display: flex;
   align-items: center;
@@ -1195,6 +1221,13 @@ h1 {
   padding: 16px;
   margin: 9px 0;
   cursor: pointer;
+}
+.image-options label > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.image-options input {
+  flex-shrink: 0;
 }
 .image-options label.selected {
   border-color: var(--focus);
