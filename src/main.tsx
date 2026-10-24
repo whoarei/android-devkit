@@ -5,6 +5,10 @@ import { App } from './App';
 import './theme.css';
 import './style.css';
 import './compact.css';
+
+// Suppress the WebView's default menu throughout the application.
+document.addEventListener('contextmenu', (event) => event.preventDefault(), { capture: true });
+
 const client = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
 });
