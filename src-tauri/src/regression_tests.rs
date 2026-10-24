@@ -66,6 +66,35 @@ fn cancellation_survives_an_in_flight_progress_update() {
 }
 
 #[test]
+fn reconciled_or_recovered_start_retry_only_waits() {
+    let dir = tempfile::tempdir().unwrap();
+    let app = crate::app::App::new(dir.path().join("state")).unwrap();
+    let root = dir.path().join("avd");
+    let data = root.join("A.avd");
+    std::fs::create_dir_all(&data).unwrap();
+    std::fs::write(root.join("A.ini"), format!("path={}\n", data.display())).unwrap();
+    std::fs::write(data.join("config.ini"), "avd.ini.displayname=A\n").unwrap();
+    let settings = Settings {
+        avd_roots: vec![root.to_string_lossy().into()],
+        ..Default::default()
+    };
+    app.store.save_settings(&settings).unwrap();
+    let avd = crate::android::avds(&settings).remove(0);
+    for phase in ["waiting_boot", "reconciled", "recovery"] {
+        let mut current = task(phase, "needs_review");
+        current.phase = phase.into();
+        current.operation.kind = "avd_start".into();
+        current
+            .operation
+            .args
+            .insert("avdId".into(), avd.id.clone());
+        app.store.save_task(&current).unwrap();
+        let plan = app.retry_plan(&current.id).unwrap();
+        assert_eq!(plan.operation.kind, "avd_wait");
+    }
+}
+
+#[test]
 fn concurrent_task_updates_preserve_all_changes() {
     let dir = tempfile::tempdir().unwrap();
     let app = App::new(dir.path().into()).unwrap();

@@ -24,7 +24,11 @@ pub fn atomic_copy_verified(source: &Path, destination: &Path, expected: &str) -
             .write(true)
             .create_new(true)
             .open(&tmp)?;
+        #[cfg(test)]
+        crate::fault_tests::checkpoint("export.before_copy")?;
         std::io::copy(&mut File::open(source)?, &mut out)?;
+        #[cfg(test)]
+        crate::fault_tests::checkpoint("export.after_copy")?;
         out.sync_all()?;
         drop(out);
         if digest_file(&tmp)? != expected {
@@ -33,7 +37,11 @@ pub fn atomic_copy_verified(source: &Path, destination: &Path, expected: &str) -
                 "保存过程中产物内容发生变化，未覆盖目标文件",
             ));
         }
+        #[cfg(test)]
+        crate::fault_tests::checkpoint("export.after_verify")?;
         std::fs::rename(&tmp, destination)?;
+        #[cfg(test)]
+        crate::fault_tests::checkpoint("export.after_rename")?;
         Ok(())
     })();
     if result.is_err() {

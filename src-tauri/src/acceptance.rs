@@ -280,7 +280,73 @@ async fn run_lifecycle(include_m4: bool) {
     assert_eq!(edited["hw.cpu.ncore"], "3");
     assert_eq!(edited["runtime.network.speed"], "lte");
     assert_eq!(edited["runtime.network.latency"], "20:100");
+    if include_m4 {
+        // Waiting for a stopped, isolated AVD must be cancellable and must never launch it.
+        let plan = app
+            .prepare_plan(Operation {
+                kind: "avd_wait".into(),
+                args: args(&[("avdId", &a.id)]),
+                target: None,
+            })
+            .unwrap();
+        let task = app
+            .submit(
+                &plan.id,
+                &plan.hash,
+                "p0-cancel-wait",
+                &plan.confirmation_token,
+                &[],
+            )
+            .unwrap();
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(15);
+        loop {
+            let current = app.store.task(&task.id).unwrap();
+            if current.phase == "waiting_adb" && current.cancellable {
+                break;
+            }
+            assert!(current.active(), "{}", current.message);
+            assert!(tokio::time::Instant::now() < deadline);
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        app.cancel_task(&task.id).unwrap();
+        while app.store.task(&task.id).unwrap().active() {
+            assert!(tokio::time::Instant::now() < deadline);
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert_eq!(app.store.task(&task.id).unwrap().state, "cancelled");
+        assert!(!crate::app::avd_locked(std::path::Path::new(&a.data_path)));
+        let mut short = settings.clone();
+        short.boot_timeout_secs = 1;
+        app.store.save_settings(&short).unwrap();
+        let plan = app
+            .prepare_plan(Operation {
+                kind: "avd_wait".into(),
+                args: args(&[("avdId", &a.id)]),
+                target: None,
+            })
+            .unwrap();
+        let task = app
+            .submit(
+                &plan.id,
+                &plan.hash,
+                "p0-timeout-wait",
+                &plan.confirmation_token,
+                &[],
+            )
+            .unwrap();
+        while app.store.task(&task.id).unwrap().active() {
+            assert!(tokio::time::Instant::now() < deadline);
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+        assert_eq!(app.store.task(&task.id).unwrap().state, "needs_review");
+        assert!(!crate::app::avd_locked(std::path::Path::new(&a.data_path)));
+        app.store.save_settings(&settings).unwrap();
+        println!("P0 stopped-AVD wait: cancellation and timeout passed; no emulator launched");
+    }
     execute(&app, "avd_start", args(&[("avdId", &a.id)]), None).await;
+    if include_m4 {
+        execute(&app, "avd_wait", args(&[("avdId", &a.id)]), None).await;
+    }
     let snapshot = app.snapshot().await.unwrap();
     let device = snapshot
         .devices
@@ -301,6 +367,16 @@ async fn run_lifecycle(include_m4: bool) {
     if fixture.is_file() {
         let apk = app.prepare_apk(&fixture).unwrap();
         assert_eq!(apk.package, "dev.androiddevkit.fixture");
+        if include_m4 {
+            let task = execute(
+                &app,
+                "apk_install_wait",
+                args(&[("apkId", &apk.id), ("avdId", &a.id)]),
+                Some(target.clone()),
+            )
+            .await;
+            assert_eq!(task.operation.target, Some(target.clone()));
+        }
         execute(
             &app,
             "apk_install",

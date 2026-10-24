@@ -65,6 +65,13 @@ impl Store {
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default()
     }
+    pub fn has_settings(&self) -> Result<bool> {
+        Ok(self.connection.lock().unwrap().query_row(
+            "SELECT EXISTS(SELECT 1 FROM settings WHERE id=1)",
+            [],
+            |row| row.get(0),
+        )?)
+    }
     pub fn save_settings(&self, settings: &Settings) -> Result<()> {
         self.connection.lock().unwrap().execute("INSERT INTO settings(id,json) VALUES(1,?1) ON CONFLICT(id) DO UPDATE SET json=excluded.json",[serde_json::to_string(settings)?])?;
         Ok(())
@@ -360,6 +367,103 @@ impl Store {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn fault_sqlite_full_rolls_back_task_and_catalog_settings_atomically() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("db");
+        let store = Store::open(&path).unwrap();
+        let old = crate::regression_tests::task("full", "failed");
+        store.save_task(&old).unwrap();
+        let settings = Settings {
+            sdk_root: "before".into(),
+            ..Default::default()
+        };
+        let package = SdkPackage {
+            id: "old-package".into(),
+            ..Default::default()
+        };
+        store
+            .save_sdk_catalog(Some(&settings), &[package], &[])
+            .unwrap();
+        {
+            let connection = store.connection.lock().unwrap();
+            let pages: u32 = connection
+                .query_row("PRAGMA page_count", [], |row| row.get(0))
+                .unwrap();
+            connection
+                .pragma_update(None, "max_page_count", pages)
+                .unwrap();
+        }
+        let mut enlarged = old.clone();
+        enlarged.message = "new value requiring more database pages".repeat(65536);
+        let error = store.save_task(&enlarged).unwrap_err();
+        assert_eq!(error.code, "DATABASE_ERROR");
+        assert!(error.message.contains("full"), "{error}");
+        assert_eq!(store.task("full").unwrap().message, old.message);
+        let changed = Settings {
+            sdk_root: "after".into(),
+            ..settings
+        };
+        let large = SdkPackage {
+            id: "new-package".into(),
+            name: "x".repeat(2 * 1024 * 1024),
+            ..Default::default()
+        };
+        let error = store
+            .save_sdk_catalog(Some(&changed), &[large], &[])
+            .unwrap_err();
+        assert_eq!(error.code, "DATABASE_ERROR");
+        assert!(error.message.contains("full"), "{error}");
+        assert_eq!(store.settings().sdk_root, "before");
+        assert_eq!(store.sdk_catalog().unwrap().0[0].id, "old-package");
+        store
+            .connection
+            .lock()
+            .unwrap()
+            .pragma_update(None, "max_page_count", 1_000_000)
+            .unwrap();
+        store.save_task(&enlarged).unwrap();
+        drop(store);
+        let reopened = Store::open(&path).unwrap();
+        assert_eq!(reopened.task("full").unwrap().message, enlarged.message);
+        assert_eq!(reopened.settings().sdk_root, "before");
+        crate::fault_tests::receipt(
+            "sqlite-full-rollback",
+            serde_json::json!({"realSqlitePagerLimit":true,"task":"rollback then retry","settingsAndCatalog":"atomic rollback","reopen":"passed"}),
+        );
+    }
+
+    #[test]
+    fn fault_sqlite_read_only_failure_preserves_persisted_task() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("db");
+        let store = Store::open(&path).unwrap();
+        let mut task = crate::regression_tests::task("read-only", "failed");
+        store.save_task(&task).unwrap();
+        drop(store);
+        let store = Store {
+            connection: Mutex::new(
+                Connection::open_with_flags(&path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+                    .unwrap(),
+            ),
+        };
+        task.state = "succeeded".into();
+        let error = store.save_task(&task).unwrap_err();
+        assert_eq!(error.code, "DATABASE_ERROR");
+        assert_eq!(store.task("read-only").unwrap().state, "failed");
+        drop(store);
+        let reopened = Store::open(&path).unwrap();
+        assert_eq!(reopened.task("read-only").unwrap().state, "failed");
+        reopened.save_task(&task).unwrap();
+        assert_eq!(reopened.task("read-only").unwrap().state, "succeeded");
+        crate::fault_tests::receipt(
+            "sqlite-read-only",
+            serde_json::json!({"realReadOnlyConnection":true,"falseSuccess":false,"retry":"passed"}),
+        );
+    }
+
     #[test]
     fn partial_task_deletion_rolls_back_diagnostics_and_only_retries_failures() {
         let dir = tempfile::tempdir().unwrap();

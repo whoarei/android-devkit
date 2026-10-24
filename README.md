@@ -6,6 +6,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 当前版本：**0.3.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
+一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，其余验收与发布事项暂缓执行，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
+
 0.3.0 新增 SDK 下载源切换：支持 Google 官方、腾讯云镜像和自定义 HTTPS 源，仓库索引与安装包同步切换。官方校验默认开启，也可关闭并按所选源的校验值检查完整性。本版本同时包含交互式 ADB 终端与双击打开 SDK 目录功能。
 
 ## 产品特性
@@ -37,9 +39,9 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 ### 1. 配置 Android SDK
 
-打开“设置”，选择“当前 SDK 根目录”并保存。已有 Android Studio 环境时，可以选择同一个 SDK 目录；应用的路径配置不修改系统 `PATH`、`JAVA_HOME` 或 Android Studio 设置。
+首次使用会发现当前配置、Android 环境变量和标准用户目录下的 SDK，显示来源、工具路径、可写状态和可用空间。选择“复用已有环境”后应用所选目录；也可以按用途准备真机或模拟器的最小环境，安装前仍需确认计划与许可。之后可从“设置 → 发现并选择 SDK 环境”重新选择，或手动保存“当前 SDK 根目录”。应用不修改系统 PATH、JAVA_HOME 或 Android Studio 配置。
 
-当前默认 SDK 路径是 `E:\Android\sdk`。如果你的 SDK 位于其他位置，或电脑没有 E 盘，请先选择适合的目录。下载遇到网络问题时，可以在设置中配置手动代理。
+新配置默认使用当前用户的 `%LOCALAPPDATA%\Android\Sdk`，已保存的 SDK 路径继续沿用；环境发现仍会检查 `E:\Android\sdk`。多个目录由用户明确选择，不自动合并或迁移。下载遇到网络问题时，可以在设置中配置手动代理。
 
 进入“SDK 管理”并点击“刷新”，按需要选择组件：
 
@@ -71,6 +73,10 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 设备状态显示“可用”后即可操作。显示“未授权”时，请解锁手机确认授权。点击设备卡片查看详情，再次点击同一卡片取消选中并关闭详情。
 
+设备列表支持方向键、Home / End 切换和 Escape 取消选择。详情可复制设备标识、AVD 完整数据路径，并将设备设为默认目标；未选择查看目标时，APK 面板使用当前可识别的默认目标。默认设备不在线时仍要求明确选择，不自动改投。AVD 实际占用按需统计，排除共享镜像、外部存储和链接；删除计划展示预计可释放空间。
+
+启动超过提醒阈值时模拟器继续运行，可从详情或原启动任务选择“继续等待系统就绪”。安装面板可选择“就绪后安装 APK”，最多等待设置中的阈值，可在任务中心取消；等待不会启动新实例，已识别连接断开或 ADB 会话变化后不会改投其他设备。
+
 ### 3. 安装 APK
 
 点击目标设备卡片上的“安装 APK”并选择文件，或将单个 APK 拖到该设备行。在安装面板核对设备名称、序列号和 APK 信息，点击“确认安装计划”，确认后提交任务。
@@ -86,6 +92,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 选中设备后，在 Logcat 区域点击“开始查看”，按日志级别、Tag、关键词、PID 或应用包名过滤。需要保留一段日志时可启动文件采集；切换页面后采集仍继续，在任务中心停止采集并导出。
 
 在设备详情中点击“截图”，完成后查看或保存截图。任务中心工具栏的“待保存文件”图标通过角标显示数量，点击后可以预览、另存或“忽略并清理”。忽略会删除对应的本地缓存副本，已另存文件、原始采集段和任务记录保留。日志导出默认脱敏，保存前仍可检查预览内容。
+
+“环境诊断 → 预览并复制环境摘要”默认脱敏，核对预览后可直接复制，不产生待保存导出副本；需要原始设备标识时先显式勾选包含原始标识。
 
 标题栏和“设置 → 界面偏好”均可切换语言与主题，选择会自动保存。
 
@@ -109,7 +117,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 | 内容                           | 默认位置                                           |
 | ------------------------------ | -------------------------------------------------- |
-| Android SDK                    | 设置中选择的目录，初始值为 `E:\Android\sdk`        |
+| Android SDK | 设置中选择的目录，新配置默认为 `%LOCALAPPDATA%\Android\Sdk` |
 | 新建 AVD                       | `%LOCALAPPDATA%\AndroidDevKit\avd`，可在设置中调整 |
 | 应用状态、任务、下载缓存与截图 | `%LOCALAPPDATA%\AndroidDevKit`                     |
 
@@ -182,6 +190,14 @@ $env:PLAYWRIGHT_CHANNEL = 'chromium'
 pnpm.cmd test:ui-fixtures
 ```
 
+故障专项可独立复现，包含 35 个场景、14 次测试子进程强杀，报告写入 `.qa/faults/run-*/report.json`：
+
+```powershell
+pnpm.cmd verify:faults
+```
+
+专项使用临时目录、本地 HTTP 响应、测试专用 I/O 故障点、SQLite 页数限制 / 只读连接和 Windows 文件锁。SDK 覆盖真实引导归档提交与多组件清单复查；APK 使用隔离响应夹具验证结果落库前的中断恢复。测试不操作用户设备或已选 SDK，进程终止也不等同于断电验收。
+
 真实 SDK / AVD 集成测试按需运行，入口见 [package.json](package.json) 中的 `verify:*` 命令；运行前检查脚本使用的 SDK 和测试目录。测试应用数据可通过 `ANDROID_DEVKIT_DATA_DIR` 隔离，该变量不改变所选 SDK。
 
 ### 构建发行文件
@@ -199,6 +215,8 @@ powershell -NoProfile -File scripts/package-release.ps1
 
 ## 更多资料
 
+- [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)
+- [一期功能收口与验收记录](docs/00007_20261024162627_Android-DevKit-Phase1-Completion-Report.html)
 - [产品需求与交互方案](docs/00000_20261017232447_Android-DevKit-PRD.html)
 - [Tauri 技术方案](docs/00001_20261017234246_Android-DevKit-Technical-Design.html)
 - [M3 实现与验证报告](docs/00002_20261018011008_Android-DevKit-M3-Implementation-Report.html)

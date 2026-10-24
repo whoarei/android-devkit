@@ -39,6 +39,68 @@ pub fn environment_scan(app: Service<'_>) -> Vec<Environment> {
     android::scan(&app.store.settings())
 }
 #[tauri::command]
+pub async fn avd_usage(app: Service<'_>, avd_id: String) -> Result<crate::capacity::Usage> {
+    let settings = app.store.settings();
+    tokio::task::spawn_blocking(move || {
+        let avd = android::avds(&settings)
+            .into_iter()
+            .find(|avd| avd.id == avd_id)
+            .ok_or_else(|| AppError::new("AVD_NOT_FOUND", "AVD 已不存在"))?;
+        Ok(crate::capacity::usage(Path::new(&avd.data_path)))
+    })
+    .await
+    .map_err(|error| AppError::new("USAGE_FAILED", error.to_string()))?
+}
+#[tauri::command]
+pub fn text_copy(text: String) -> Result<()> {
+    if text.len() > 256 * 1024 {
+        return Err(AppError::new(
+            "CLIPBOARD_LIMIT",
+            "复制内容超过 256 KiB，请改用文件导出",
+        ));
+    }
+    arboard::Clipboard::new()
+        .and_then(|mut clipboard| clipboard.set_text(text))
+        .map_err(|error| {
+            AppError::new("CLIPBOARD_FAILED", "复制失败，请重试").detail(error.to_string())
+        })
+}
+#[tauri::command]
+pub async fn environment_summary(app: Service<'_>, redacted: Option<bool>) -> Result<String> {
+    let snapshot = app.snapshot().await?;
+    let tasks: Vec<_> = snapshot
+        .tasks
+        .iter()
+        .take(20)
+        .map(|task| {
+            serde_json::json!({
+                "kind": task.operation.kind, "state": task.state, "message": task.message
+            })
+        })
+        .collect();
+    let summary = serde_json::json!({"product":"Android DevKit", "version":env!("CARGO_PKG_VERSION"),
+        "os":std::env::consts::OS, "arch":std::env::consts::ARCH, "sdk":snapshot.environment,
+        "server":snapshot.server, "devices":snapshot.devices,
+        "installed":snapshot.packages.iter().filter(|p|p.installed).map(|p|(&p.id,&p.installed_version)).collect::<Vec<_>>(),
+        "recentTasks":tasks});
+    let content = serde_json::to_string_pretty(&summary)?;
+    if !redacted.unwrap_or(true) {
+        return Ok(content);
+    }
+    let ids = snapshot
+        .devices
+        .iter()
+        .map(|device| device.serial.clone())
+        .chain(snapshot.tasks.iter().filter_map(|task| {
+            task.operation
+                .target
+                .as_ref()
+                .map(|target| target.serial.clone())
+        }))
+        .collect();
+    Ok(crate::privacy::Redactor::new(ids).redact(&content))
+}
+#[tauri::command]
 pub async fn task_delete(app: Service<'_>, request: TaskDeleteRequest) -> Result<TaskDeleteResult> {
     let app = app.inner().clone();
     tokio::task::spawn_blocking(move || app.delete_task_records(request))
@@ -215,6 +277,29 @@ pub async fn plan_create(app: Service<'_>, mut operation: Operation) -> Result<P
             .args
             .insert("prepareJava".into(), needs_java.to_string());
     }
+    if operation.kind == "avd_create" {
+        let emulator = Path::new(&settings.sdk_root).join("emulator/emulator.exe");
+        let check = if emulator.is_file() {
+            let mut spec = crate::process::Spec::new(emulator, vec!["-accel-check".into()]);
+            spec.timeout = 10;
+            match crate::process::run(spec).await {
+                Ok(output) => format!(
+                    "{}：{}{}",
+                    if output.code == 0 {
+                        "可用"
+                    } else {
+                        "不可用"
+                    },
+                    output.text(),
+                    output.stderr
+                ),
+                Err(error) => error.to_string(),
+            }
+        } else {
+            "待检查：安装 Emulator 后在启动前检测，不自动修改系统虚拟化功能。".into()
+        };
+        operation.args.insert("accelerationCheck".into(), check);
+    }
     app.prepare_plan(operation)
 }
 #[tauri::command]
@@ -240,15 +325,7 @@ pub fn task_cancel(app: Service<'_>, task_id: String) -> Result<()> {
 }
 #[tauri::command]
 pub fn task_retry(app: Service<'_>, task_id: String) -> Result<Plan> {
-    let _task_use = app.use_task_record(&task_id, false)?;
-    let t = app.store.task(&task_id)?;
-    if t.active() {
-        return Err(AppError::new("TASK_ACTIVE", "任务仍在运行"));
-    }
-    if t.operation.kind == "wireless_pair" {
-        return Err(AppError::new("PAIR_CODE_REQUIRED", "请重新获取配对码"));
-    }
-    app.prepare_plan(t.operation)
+    app.retry_plan(&task_id)
 }
 #[tauri::command]
 pub async fn file_choose(kind: String) -> Result<Option<String>> {

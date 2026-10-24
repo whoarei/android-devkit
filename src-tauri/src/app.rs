@@ -174,6 +174,7 @@ impl App {
             .unwrap_or_else(|_| "ADB 服务未运行".into());
         self.reconcile(&packages, &avds, &devices)?;
         Ok(Workspace {
+            setup_required: !self.store.has_settings()?,
             environment: android::environment(&settings),
             free_bytes: bootstrap::free_space(Path::new(&settings.sdk_root)),
             settings,
@@ -220,6 +221,28 @@ impl App {
     pub fn prepare_plan(&self, operation: Operation) -> Result<Plan> {
         let _guard = self.configuration_gate.lock().unwrap();
         crate::plans::build(self, operation)
+    }
+    pub fn retry_plan(&self, task_id: &str) -> Result<Plan> {
+        let _task_use = self.use_task_record(task_id, false)?;
+        let task = self.store.task(task_id)?;
+        if task.active() {
+            return Err(AppError::new("TASK_ACTIVE", "任务仍在运行"));
+        }
+        if task.operation.kind == "wireless_pair" {
+            return Err(AppError::new("PAIR_CODE_REQUIRED", "请重新获取配对码"));
+        }
+        let mut operation = task.operation;
+        // Reconciliation replaces the phase. Uncertain starts must never be
+        // replayed, including after a restart or a background snapshot.
+        if task.state == "needs_review"
+            && matches!(
+                operation.kind.as_str(),
+                "avd_start" | "avd_cold" | "avd_wait"
+            )
+        {
+            operation.kind = "avd_wait".into();
+        }
+        self.prepare_plan(operation)
     }
     pub fn sdk_tasks_active(&self) -> Result<bool> {
         Ok(self.store.active_tasks()?.iter().any(|task| {

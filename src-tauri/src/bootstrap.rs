@@ -140,25 +140,40 @@ pub async fn download(
         ));
     }
     std::fs::create_dir_all(cache)?;
+    let response = client(settings)?
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| AppError::new("DOWNLOAD_FAILED", e.to_string()))?;
+    if sdk {
+        crate::sdk_source::map_archive(settings, response.url().as_str())?;
+    }
+    receive_archive(pkg, cache, response, progress).await
+}
+
+// Transport validation belongs to download(); the same body/commit path is
+// exercised by local fault fixtures without weakening production HTTPS rules.
+pub(crate) async fn receive_archive(
+    pkg: &SdkPackage,
+    cache: &Path,
+    response: reqwest::Response,
+    progress: impl Fn(u64, u64),
+) -> Result<PathBuf> {
+    std::fs::create_dir_all(cache)?;
     let file = cache.join(format!(
         "{}.zip",
         digest(format!("{}\n{}\n{}", pkg.url, pkg.checksum, pkg.checksum_type).as_bytes())
     ));
     let part = file.with_extension("part");
-    let mut response = client(settings)?
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| AppError::new("DOWNLOAD_FAILED", e.to_string()))?
+    let mut response = response
         .error_for_status()
         .map_err(|e| AppError::new("DOWNLOAD_FAILED", e.to_string()))?;
-    if sdk {
-        crate::sdk_source::map_archive(settings, response.url().as_str())?;
-    }
     let size = response.content_length().unwrap_or(pkg.size);
     if size > 0 && free_space(cache) < size.saturating_mul(3) {
         return Err(AppError::new("DISK_SPACE", "缓存卷空间不足"));
     }
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("download.before_create")?;
     let mut out = std::fs::File::create(&part)?;
     let mut bytes = 0u64;
     while let Some(chunk) = response
@@ -169,6 +184,8 @@ pub async fn download(
         out.write_all(&chunk)?;
         bytes += chunk.len() as u64;
         progress(bytes, size);
+        #[cfg(test)]
+        crate::fault_tests::checkpoint("download.after_chunk")?;
     }
     out.sync_all()?;
     drop(out);
@@ -176,8 +193,47 @@ pub async fn download(
         let _ = std::fs::remove_file(&part);
         return Err(error);
     }
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("download.after_verify")?;
     std::fs::rename(part, &file)?;
     Ok(file)
+}
+
+pub(crate) fn install_verified_archive(
+    archive: &Path,
+    dest: &Path,
+    inner: &str,
+    id: &str,
+) -> Result<()> {
+    let parent = dest
+        .parent()
+        .ok_or_else(|| AppError::new("INVALID_PATH", "安装目录无父目录"))?;
+    std::fs::create_dir_all(parent)?;
+    let stage = parent.join(format!(".devkit-stage-{id}"));
+    std::fs::create_dir(&stage)?;
+    extract_zip(archive, &stage)?;
+    let source = if inner.is_empty() {
+        std::fs::read_dir(&stage)?
+            .flatten()
+            .find(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+            .map(|entry| entry.path())
+            .ok_or_else(|| AppError::new("ARCHIVE_STRUCTURE", "运行时目录结构无效"))?
+    } else {
+        stage.join(inner)
+    };
+    if !source.is_dir() {
+        return Err(AppError::new("ARCHIVE_STRUCTURE", "官方包结构不符合预期"));
+    }
+    if dest.exists() {
+        return Err(AppError::new("DEST_EXISTS", "目标目录已出现，不会覆盖"));
+    }
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("sdk.after_extract")?;
+    std::fs::rename(source, dest)?;
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("sdk.after_publish")?;
+    let _ = std::fs::remove_dir(&stage);
+    Ok(())
 }
 fn verify_archive(pkg: &SdkPackage, path: &Path) -> Result<()> {
     let mut input = std::fs::File::open(path)?;

@@ -1,7 +1,7 @@
 import { t, useLocale, setLocale, type Locale } from './i18n';
 import { useTheme, setTheme, type Theme } from './theme';
 import { version } from '../package.json';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
 import { listen } from '@tauri-apps/api/event';
@@ -50,6 +50,8 @@ import { useSoftwareUpdate, SoftwareUpdateSection, SoftwareUpdateDialog } from '
 import { AvdSettingsFields, AvdPreview, EditAvd, newAvdSettings, type AvdForm } from './AvdEditor';
 import { avdImageGroups, hasSdkUpdate } from './sdk';
 import { Button, Badge, Modal, Field } from './ui';
+import { EnvironmentSetup } from './EnvironmentSetup';
+import { AvdUsage, defaultRow, preferenceKey, useDefaultTarget } from './DeviceUtilities';
 import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
 import type { Settings, Workspace, Device, Avd, Plan, Operation, ApkInfo, Target } from './types';
 type Page = 'devices' | 'terminal' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
@@ -88,6 +90,15 @@ export function App() {
     refetchInterval: 5000,
   });
   const data = query.data;
+  const [defaultTarget, setDefaultTarget] = useDefaultTarget();
+  const [environmentOpen, setEnvironmentOpen] = useState(false);
+  const environmentPrompted = useRef(false);
+  useEffect(() => {
+    if (data?.setupRequired && !environmentPrompted.current) {
+      environmentPrompted.current = true;
+      setEnvironmentOpen(true);
+    }
+  }, [data?.setupRequired]);
   const [sdkSources, setSdkSources] = useState(0);
   const [javaOpen, setJavaOpen] = useState(false);
   const [javaOperation, setJavaOperation] = useState<Operation | null>(null);
@@ -103,12 +114,13 @@ export function App() {
     [preview, setPreview] = useState('');
   const [exportPreview, setExportPreview] = useState<ExportPreview | null>(null);
   const [apkDevice, setApkDevice] = useState<Device | null>(null);
+  const [apkAvd, setApkAvd] = useState<Avd | null>(null);
   const [choosingApk, setChoosingApk] = useState(false);
   const apkPickerBusy = useRef(false);
-  const apkContext = useRef({ data, selected });
+  const apkContext = useRef({ data, selected, defaultTarget });
   useEffect(() => {
-    apkContext.current = { data, selected };
-  }, [data, selected]);
+    apkContext.current = { data, selected, defaultTarget };
+  }, [data, selected, defaultTarget]);
   const requestExport = (request: ExportRequest) => {
     void guard(async () => setExportPreview(await call<ExportPreview>('export_prepare', request)));
   };
@@ -179,7 +191,8 @@ export function App() {
   const chooseApk = async (path?: string, requestedTarget?: string) => {
     if (apkPickerBusy.current) return;
     const context = apkContext.current;
-    const key = requestedTarget ?? context.selected;
+    const key =
+      requestedTarget ?? (context.selected || defaultRow(context.data, context.defaultTarget));
     const avd = context.data?.avds.find((a) => a.id === key);
     const sessions =
       avd && context.data?.avds.filter((a) => a.name === avd.name).length === 1
@@ -196,6 +209,11 @@ export function App() {
         if (file) {
           setApk(await call<ApkInfo>('apk_prepare', { path: file }));
           setApkDevice(initialTarget ? { ...initialTarget } : null);
+          setApkAvd(
+            avd && initialTarget?.state !== 'ready' && ['booting', 'busy'].includes(avd.status)
+              ? { ...avd }
+              : null,
+          );
           setModal('apk');
         }
       });
@@ -291,6 +309,33 @@ export function App() {
   const active = data?.tasks.filter((t) => taskActive(t.state)) ?? [];
   const avdAction = (kind: string, a: Avd, args: Record<string, string> = {}) =>
     prepare(kind, { avdId: a.id, ...args });
+  const deviceKeyboard = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Escape') {
+      select('');
+      return;
+    }
+    if (!['ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+    const rows = [
+      ...event.currentTarget.parentElement!.querySelectorAll<HTMLElement>('.device-row'),
+    ];
+    const index = rows.indexOf(event.currentTarget);
+    const next =
+      event.key === 'Home'
+        ? 0
+        : event.key === 'End'
+          ? rows.length - 1
+          : Math.max(0, Math.min(rows.length - 1, index + (event.key === 'ArrowDown' ? 1 : -1)));
+    event.preventDefault();
+    rows[next]?.focus();
+    const key = rows[next]?.dataset.deviceKey;
+    if (key) select(key);
+  };
+  const copyText = (text: string) =>
+    guard(async () => {
+      await call('text_copy', { text });
+      notify(t('已复制'));
+    });
   const submit = async () => {
     if (!plan) return;
     setBusy(true);
@@ -512,6 +557,12 @@ export function App() {
         )}
         {page === 'devices' && (
           <>
+            {data && !data.environment.adb && (
+              <div className="notice environment-setup-hint">
+                <p>{t('当前环境缺少设备工具，可复用已有 SDK 或准备最小环境。')}</p>
+                <Button onClick={() => setEnvironmentOpen(true)}>{t('选择或创建 SDK 环境')}</Button>
+              </div>
+            )}
             <div className="section-toolbar">
               <div className="tabs">
                 {[
@@ -556,6 +607,7 @@ export function App() {
                       tabIndex={0}
                       title={selected === deviceKey(d) ? t('取消选中设备') : t('选中设备')}
                       onKeyDown={(e) => {
+                        deviceKeyboard(e);
                         if (['Enter', ' '].includes(e.key) && e.target === e.currentTarget) {
                           e.preventDefault();
                           toggleSelection(deviceKey(d));
@@ -609,6 +661,7 @@ export function App() {
                       tabIndex={0}
                       title={selected === a.id ? t('取消选中设备') : t('选中设备')}
                       onKeyDown={(e) => {
+                        deviceKeyboard(e);
                         if (['Enter', ' '].includes(e.key) && e.target === e.currentTarget) {
                           e.preventDefault();
                           toggleSelection(a.id);
@@ -717,6 +770,7 @@ export function App() {
                       </>
                     )}
                   </dl>
+                  {selectedAvd && <AvdUsage key={selectedAvd.id} avd={selectedAvd} />}
                   {selectedDevice?.state === 'unauthorized' && (
                     <p className="hint">
                       {t('请解锁设备并允许此电脑进行 ADB 调试；授权后将自动更新。')}
@@ -724,8 +778,37 @@ export function App() {
                   )}
                   <div className="detail-actions">
                     <Button
+                      onClick={() => void copyText(target?.serial ?? selectedAvd?.name ?? '')}
+                    >
+                      {t('复制设备标识')}
+                    </Button>
+                    {selectedAvd && (
+                      <Button onClick={() => void copyText(selectedAvd.dataPath)}>
+                        {t('复制完整路径')}
+                      </Button>
+                    )}
+                    <Button
+                      onClick={() =>
+                        void guard(async () => {
+                          const key = preferenceKey(selectedAvd, selectedDevice);
+                          setDefaultTarget(defaultTarget === key ? '' : key);
+                          notify(t(defaultTarget === key ? '已取消默认目标' : '已保存默认目标'));
+                        })
+                      }
+                    >
+                      {t(
+                        defaultTarget === preferenceKey(selectedAvd, selectedDevice)
+                          ? '取消默认目标'
+                          : '设为默认目标',
+                      )}
+                    </Button>
+                    <Button
                       primary
-                      disabled={target?.state !== 'ready' || choosingApk}
+                      disabled={
+                        (target?.state !== 'ready' &&
+                          !selectedAvd?.status.match(/^(booting|busy)$/)) ||
+                        choosingApk
+                      }
                       onClick={() => void chooseApk()}
                     >
                       <Download size={15} />
@@ -764,6 +847,14 @@ export function App() {
                     </Button>
                     {selectedAvd && (
                       <>
+                        {['booting', 'busy'].includes(selectedAvd.status) && (
+                          <Button
+                            disabled={busy}
+                            onClick={() => void avdAction('avd_wait', selectedAvd)}
+                          >
+                            {t('继续等待系统就绪')}
+                          </Button>
+                        )}
                         <Button
                           disabled={selectedAvd.status !== 'stopped'}
                           onClick={() => void avdAction('avd_cold', selectedAvd)}
@@ -882,6 +973,7 @@ export function App() {
         {page === 'settings' && (
           <SettingsPanel
             updater={updater}
+            chooseEnvironment={() => setEnvironmentOpen(true)}
             initial={data?.settings}
             configureJava={() => setJavaOpen(true)}
             manageSdkSources={() => {
@@ -898,7 +990,12 @@ export function App() {
         {page === 'diagnostics' && (
           <>
             <JavaStatus settings={data?.settings} open={() => setJavaOpen(true)} />
-            <Diagnostics guard={guard} prepare={prepare} onExport={requestExport} />
+            <Diagnostics
+              guard={guard}
+              prepare={prepare}
+              onExport={requestExport}
+              copyText={copyText}
+            />
           </>
         )}
       </main>
@@ -907,6 +1004,21 @@ export function App() {
           <Check size={17} />
           {t(toast)}
         </div>
+      )}
+      {environmentOpen && data && (
+        <EnvironmentSetup
+          data={data}
+          close={() => setEnvironmentOpen(false)}
+          done={async (purpose) => {
+            await refresh();
+            if (purpose !== 'reuse') setPage('sdk');
+            if (purpose === 'usb' || purpose === 'emulator') {
+              await catalogRefresh.mutateAsync(undefined);
+              await prepare('bootstrap', { purpose });
+            }
+            setEnvironmentOpen(false);
+          }}
+        />
       )}
       {modal === 'create' && (
         <CreateAvd
@@ -974,14 +1086,27 @@ export function App() {
           </div>
           <Field label={t('目标设备')}>
             <select
-              value={apkDevice ? deviceKey(apkDevice) : ''}
+              value={apkAvd ? `avdwait:${apkAvd.id}` : apkDevice ? deviceKey(apkDevice) : ''}
               disabled={busy}
-              onChange={(e) =>
-                setApkDevice(data?.devices.find((d) => deviceKey(d) === e.target.value) ?? null)
-              }
+              onChange={(e) => {
+                const avd = data?.avds.find((avd) => `avdwait:${avd.id}` === e.target.value);
+                const sessions =
+                  avd && data?.avds.filter((other) => other.name === avd.name).length === 1
+                    ? data.devices.filter((device) => device.avdName === avd.name)
+                    : [];
+                setApkAvd(avd ?? null);
+                setApkDevice(
+                  avd
+                    ? sessions.length === 1
+                      ? { ...sessions[0] }
+                      : null
+                    : (data?.devices.find((device) => deviceKey(device) === e.target.value) ??
+                        null),
+                );
+              }}
             >
               <option value="">{t('选择明确目标')}</option>
-              {apkDevice && apkTarget?.state !== 'ready' && (
+              {apkDevice && !apkAvd && apkTarget?.state !== 'ready' && (
                 <option value={deviceKey(apkDevice)} disabled>
                   {apkDevice.model} · {apkDevice.serial} · {t('暂不可用')}
                 </option>
@@ -993,11 +1118,34 @@ export function App() {
                     {d.model} · {d.serial}
                   </option>
                 ))}
+              {apkAvd &&
+                !data?.avds.some(
+                  (avd) => avd.id === apkAvd.id && ['booting', 'busy'].includes(avd.status),
+                ) && (
+                  <option value={`avdwait:${apkAvd.id}`}>
+                    {apkAvd.displayName} · {t('就绪后安装 APK')}
+                  </option>
+                )}
+              {data?.avds
+                .filter((avd) => ['booting', 'busy'].includes(avd.status))
+                .map((avd) => (
+                  <option key={avd.id} value={`avdwait:${avd.id}`}>
+                    {avd.displayName} · {t('就绪后安装 APK')}
+                  </option>
+                ))}
             </select>
           </Field>
-          {apkDevice && apkTarget?.state !== 'ready' && (
+          {apkDevice && !apkAvd && apkTarget?.state !== 'ready' && (
             <p className="warning-text" role="status">
               {t('目标设备暂不可用，请重新选择或等待设备恢复。')}
+            </p>
+          )}
+          {apkAvd && (
+            <p className="hint">
+              {t(
+                '等待所选模拟器系统就绪，最多 {0} 秒；可在任务中心取消。连接变化或超时后不自动改投或重试。',
+                data?.settings.bootTimeoutSecs ?? 180,
+              )}
             </p>
           )}
           <p className="hint">
@@ -1010,8 +1158,14 @@ export function App() {
             <Button onClick={() => setModal(null)}>{t('取消')}</Button>
             <Button
               primary
-              disabled={busy || !apkTarget || apkTarget.state !== 'ready'}
-              onClick={() => void prepare('apk_install', { apkId: apk.id }, apkTarget ?? null)}
+              disabled={busy || (!apkAvd && (!apkTarget || apkTarget.state !== 'ready'))}
+              onClick={() =>
+                void prepare(
+                  apkAvd ? 'apk_install_wait' : 'apk_install',
+                  { apkId: apk.id, ...(apkAvd ? { avdId: apkAvd.id } : {}) },
+                  apkAvd ? apkDevice : (apkTarget ?? null),
+                )
+              }
             >
               {t('确认安装计划')}
             </Button>
@@ -1419,10 +1573,12 @@ function SettingsPanel({
   done,
   manageSdkSources,
   configureJava,
+  chooseEnvironment,
 }: {
   initial?: Settings;
   manageSdkSources: () => void;
   configureJava: () => void;
+  chooseEnvironment: () => void;
   updater: ReturnType<typeof useSoftwareUpdate>;
   guard: <T>(f: () => Promise<T>) => Promise<T | undefined>;
   done: () => void;
@@ -1431,7 +1587,7 @@ function SettingsPanel({
   const theme = useTheme();
   const [form, setForm] = useState<Settings>(
     initial ?? {
-      sdkRoot: 'E:\\Android\\sdk',
+      sdkRoot: '',
       avdRoots: [],
       javaPath: '',
       proxy: '',
@@ -1476,6 +1632,7 @@ function SettingsPanel({
       </section>
       <section>
         <h3>{t('工具与数据路径')}</h3>
+        <Button onClick={chooseEnvironment}>{t('发现并选择 SDK 环境')}</Button>
         <p className="hint">
           {t('只影响本应用子进程，不修改系统 PATH、JAVA_HOME 或 Android Studio 配置。')}
         </p>
@@ -1556,12 +1713,15 @@ function Diagnostics({
   onExport,
   guard,
   prepare,
+  copyText,
 }: {
   guard: <T>(f: () => Promise<T>) => Promise<T | undefined>;
   onExport: (request: ExportRequest) => void;
   prepare: (k: string, a?: Record<string, string>) => Promise<void>;
+  copyText: (text: string) => Promise<unknown>;
 }) {
   const [raw, setRaw] = useState(false);
+  const [summary, setSummary] = useState('');
   const [report, setReport] = useState<Record<string, unknown> | null>(null);
   useEffect(() => {
     void guard(async () => setReport(await call('diagnostics')));
@@ -1581,17 +1741,44 @@ function Diagnostics({
           {t('重新检测')}
         </Button>
         <label>
-          <input type="checkbox" checked={raw} onChange={(e) => setRaw(e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={raw}
+            onChange={(e) => {
+              setRaw(e.target.checked);
+              setSummary('');
+            }}
+          />
           {t('包含原始标识')}
         </label>
         <Button onClick={() => onExport({ kind: 'diagnostics', redacted: !raw })}>
           {t('预览诊断导出')}
+        </Button>
+        <Button
+          onClick={() =>
+            void guard(async () =>
+              setSummary(await call<string>('environment_summary', { redacted: !raw })),
+            )
+          }
+        >
+          {t('预览并复制环境摘要')}
         </Button>
         <Button onClick={() => void prepare('adb_start')}>{t('启动 ADB')}</Button>
         <Button danger onClick={() => void prepare('adb_restart')}>
           {t('重启共享 ADB')}
         </Button>
       </div>
+      {summary && (
+        <Modal title={t('环境摘要预览')} onClose={() => setSummary('')} wide>
+          <p>{t(raw ? '包含原始标识，请检查后复制。' : '已默认脱敏，请检查后复制。')}</p>
+          <pre className="export-preview">{summary}</pre>
+          <div className="modal-actions">
+            <Button primary onClick={() => void copyText(summary)}>
+              {t('复制环境摘要')}
+            </Button>
+          </div>
+        </Modal>
+      )}
       {report &&
         Object.entries(report).map(([key, value]) => (
           <section className="diagnostic-item" key={key}>

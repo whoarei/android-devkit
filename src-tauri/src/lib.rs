@@ -5,6 +5,7 @@ mod apk;
 mod app;
 mod avd_settings;
 mod bootstrap;
+mod capacity;
 mod commands;
 #[cfg(test)]
 mod contracts;
@@ -12,6 +13,8 @@ mod dependencies;
 mod domain;
 mod engine;
 mod exports;
+#[cfg(test)]
+mod fault_tests;
 mod java;
 mod lifecycle;
 mod log_buffer;
@@ -20,6 +23,7 @@ mod plans;
 mod platform;
 mod privacy;
 mod process;
+mod readiness;
 mod recording;
 mod recovery;
 #[cfg(test)]
@@ -63,6 +67,9 @@ pub fn run() {
             commands::task_delete,
             commands::recording_discard,
             commands::environment_scan,
+            commands::avd_usage,
+            commands::text_copy,
+            commands::environment_summary,
             commands::java_environment,
             commands::java_check,
             commands::java_apply,

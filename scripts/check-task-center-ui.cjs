@@ -46,7 +46,10 @@ const path = require('node:path');
         task('fail', 'failed', '连接 Pixel 网络 ADB', {
           message: '连接被拒绝，请检查设备 IP 与端口。'.repeat(18),
         }),
-        task('review', 'needs_review', '任务结果待检查'),
+        task('review', 'needs_review', '任务结果待检查', {
+          phase: 'reconciled',
+          operation: { kind: 'avd_start', args: { avdId: 'fixture-avd' }, target: null },
+        }),
         task('cancel', 'cancelled', '已取消的组件下载'),
         task('capture', 'succeeded', '设备截图', {
           artifact: 'fixture.png',
@@ -269,6 +272,10 @@ const path = require('node:path');
     assert.equal(await page.locator('.artifact-item').count(), 0);
     assert.equal(await rows.count(), 30);
     const failed = page.locator('[data-task-id="fail"]');
+    await page
+      .locator('[data-task-id="review"]')
+      .getByRole('button', { name: '继续等待系统就绪', exact: true })
+      .waitFor();
     const collapsedHeight = (await failed.boundingBox()).height;
     assert(collapsedHeight <= 85, `compact row was ${collapsedHeight}px`);
     assert.equal(await failed.locator('.task-log').count(), 0);

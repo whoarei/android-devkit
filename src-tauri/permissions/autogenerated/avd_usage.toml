@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-avd-usage"
+description = "Enables the avd_usage command without any pre-configured scope."
+commands.allow = ["avd_usage"]
+
+[[permission]]
+identifier = "deny-avd-usage"
+description = "Denies the avd_usage command without any pre-configured scope."
+commands.deny = ["avd_usage"]

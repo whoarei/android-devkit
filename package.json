@@ -31,7 +31,8 @@
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "check": "pnpm build && cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
     "verify:m4": "powershell -NoProfile -File scripts/build-test-apk.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib m4_real_sdk_observability -- --ignored --nocapture",
-    "verify:perf": "cargo test --manifest-path src-tauri/Cargo.toml --release --lib log_throughput -- --ignored --nocapture"
+    "verify:perf": "cargo test --manifest-path src-tauri/Cargo.toml --release --lib log_throughput -- --ignored --nocapture",
+    "verify:faults": "node scripts/run-fault-tests.cjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.0",

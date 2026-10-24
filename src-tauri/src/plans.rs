@@ -264,7 +264,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                 .insert("expectedVersions".into(), serde_json::to_string(&expected)?);
             "创建模拟器"
         }
-        "avd_start" | "avd_cold" | "avd_stop" | "avd_force_stop" | "avd_wipe" | "avd_delete"
+        "avd_start" | "avd_cold" | "avd_wait" | "avd_stop" | "avd_force_stop" | "avd_wipe" | "avd_delete"
         | "avd_edit" | "avd_focus" => {
             let a = avds
                 .iter()
@@ -291,6 +291,10 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                     warnings.push("外部扩展存储镜像保留，不会被格式化或删除。".into());
                 }
             }
+            if op.kind == "avd_delete" {
+                let usage = crate::capacity::usage(Path::new(&a.data_path));
+                effects.push(format!("预计可释放 {:.1} MiB{}；不包括共享镜像或外部存储", usage.bytes as f64 / 1048576.0, if usage.complete { "" } else { "（已统计部分，估算）" }));
+            }
             if op.kind == "avd_edit" {
                 if op.arg("fingerprint")? != a.fingerprint {
                     return Err(AppError::new("EXTERNAL_CHANGE", "配置在编辑期间已变化，请重新打开编辑面板"));
@@ -308,6 +312,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             match op.kind.as_str() {
                 "avd_start" => "启动模拟器",
                 "avd_cold" => "冷启动模拟器",
+                "avd_wait" => "继续等待系统就绪",
                 "avd_stop" => "停止模拟器",
                 "avd_force_stop" => "强制停止模拟器",
                 "avd_wipe" => "清除模拟器数据",
@@ -343,7 +348,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                 _ => "断开无线连接",
             }
         }
-        "apk_install" | "app_reinstall" => {
+        "apk_install" | "apk_install_wait" | "app_reinstall" => {
             let apk = app
                 .apks
                 .lock()
@@ -351,7 +356,18 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                 .get(op.arg("apkId")?)
                 .cloned()
                 .ok_or_else(|| AppError::new("APK_NOT_FOUND", "请重新选择 APK"))?;
-            if op.target.is_none() {
+            if op.kind == "apk_install_wait" {
+                let avd = avds.iter().find(|avd| avd.id == op.optional("avdId"))
+                    .ok_or_else(|| AppError::new("AVD_NOT_FOUND", "请选择等待启动的模拟器"))?;
+                if avds.iter().filter(|other| other.name == avd.name).count() != 1 {
+                    return Err(AppError::new("AMBIGUOUS_AVD", "模拟器名称不唯一，无法安全等待"));
+                }
+                op.args.insert("dataPath".into(), avd.data_path.clone());
+                op.args.insert("configurationHash".into(), avd.fingerprint.clone());
+                op.args.insert("registryHash".into(), digest_file(Path::new(&avd.ini_path))?);
+                op.args.insert("expectedServerEpoch".into(), app.epoch.load(std::sync::atomic::Ordering::SeqCst).to_string());
+                effects.push(format!("等待 {} 系统就绪后安装；最多 {} 秒，可取消，不自动启动或切换连接", avd.display_name, settings.boot_timeout_secs));
+            } else if op.target.is_none() {
                 return Err(AppError::new("TARGET_REQUIRED", "必须明确选择设备"));
             }
             effects.push(format!(
@@ -369,7 +385,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             } else {
                 warnings.push("覆盖安装并保留数据；冲突时不会自动卸载或降级。".into());
             }
-            "安装 APK"
+            if op.kind == "apk_install_wait" { "就绪后安装 APK" } else { "安装 APK" }
         }
         "log_record" => {
             if op.target.is_none() {
@@ -487,6 +503,19 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             t.serial, t.transport_id, t.server_epoch
         ));
     }
+    if op.kind == "avd_create" {
+        effects.push(format!(
+            "硬件加速检查：{}",
+            if op.optional("accelerationCheck").is_empty() {
+                "待检查：启动前检测"
+            } else {
+                op.optional("accelerationCheck")
+            }
+        ));
+    }
+    effects.extend(crate::capacity::operation_budget(
+        &app.data, &settings, &op,
+    )?);
     let environment_fingerprint = fingerprint(app, &settings)?;
     op.args.insert(
         "environmentFingerprint".into(),

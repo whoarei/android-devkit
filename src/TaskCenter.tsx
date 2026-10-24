@@ -490,7 +490,7 @@ function TaskRow({
   const detailsId = useId();
   const canLaunch =
     task.state === 'succeeded' &&
-    ['apk_install', 'app_reinstall'].includes(task.operation.kind) &&
+    ['apk_install', 'apk_install_wait', 'app_reinstall'].includes(task.operation.kind) &&
     task.operation.args.package;
   const isCapture = task.artifact && task.operation.kind === 'capture';
   const active = taskActive(task.state);
@@ -563,7 +563,16 @@ function TaskRow({
             </TaskAction>
           )}
           {['failed', 'needs_review', 'cancelled'].includes(task.state) && (
-            <TaskAction label={t('重试')} disabled={disabled} onClick={retry}>
+            <TaskAction
+              label={t(
+                task.state === 'needs_review' &&
+                  ['avd_start', 'avd_cold', 'avd_wait'].includes(task.operation.kind)
+                  ? '继续等待系统就绪'
+                  : '重试',
+              )}
+              disabled={disabled}
+              onClick={retry}
+            >
               <RefreshCw size={14} />
             </TaskAction>
           )}

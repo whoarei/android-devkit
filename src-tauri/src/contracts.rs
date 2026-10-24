@@ -9,6 +9,7 @@ fn source() -> String {
         SdkSite::decl(),
         SdkSiteStatus::decl(),
         Environment::decl(),
+        crate::capacity::Usage::decl(),
         crate::java::JavaCheck::decl(),
         crate::java::JavaEnvironment::decl(),
         SdkPackage::decl(),

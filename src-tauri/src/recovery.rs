@@ -118,6 +118,37 @@ pub fn write_commit_journal(path: &Path, journal: &serde_json::Value) -> Result<
     result
 }
 
+pub(crate) fn commit_avd(
+    data: &Path,
+    final_data: &Path,
+    ini: &Path,
+    journal: &Path,
+    stage: &Path,
+    task_id: &str,
+    target: &str,
+) -> Result<()> {
+    if final_data.exists() || ini.exists() {
+        return Err(AppError::new("AVD_EXISTS", "提交前发现同名目录，未覆盖"));
+    }
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("avd.before_journal")?;
+    write_commit_journal(
+        journal,
+        &serde_json::json!({"data":final_data,"ini":ini,"stage":stage,"taskId":task_id}),
+    )?;
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("avd.after_journal")?;
+    std::fs::rename(data, final_data)?;
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("avd.after_data")?;
+    create_avd_index(ini, final_data, target)?;
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("avd.after_index")?;
+    let _ = std::fs::remove_file(journal);
+    let _ = std::fs::remove_dir_all(stage);
+    Ok(())
+}
+
 impl App {
     pub(crate) fn pending_avd_commits(&self) -> Result<std::collections::HashSet<String>> {
         let mut pending = std::collections::HashSet::new();
@@ -291,7 +322,7 @@ impl App {
                             .as_deref()
                             == Some(task.id.as_str())
                 }),
-                "avd_start" | "avd_cold" => avds
+                "avd_start" | "avd_cold" | "avd_wait" => avds
                     .iter()
                     .find(|a| a.id == op.optional("avdId"))
                     .is_some_and(|a| {

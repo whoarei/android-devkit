@@ -101,6 +101,8 @@ impl Recorder {
             let from = self.root.join(&s.name);
             let name = s.name.trim_end_matches(".part").to_string();
             std::fs::rename(&from, self.root.join(&name))?;
+            #[cfg(test)]
+            crate::fault_tests::checkpoint("record.after_rename")?;
             s.name = name;
             s.bytes = self.current;
             s.sha256 = digest_file(&self.root.join(&s.name))?;
@@ -118,6 +120,8 @@ impl Recorder {
             self.seal()?;
             self.open()?;
         }
+        #[cfg(test)]
+        crate::fault_tests::checkpoint("record.before_write")?;
         self.file.as_mut().unwrap().write_all(line.as_bytes())?;
         self.current += n;
         self.manifest.bytes += n;
@@ -132,6 +136,8 @@ impl Recorder {
         if let Some(f) = &mut self.file {
             f.flush()?;
         }
+        #[cfg(test)]
+        crate::fault_tests::checkpoint("record.after_flush")?;
         if let Some(s) = self.manifest.files.last_mut() {
             s.bytes = self.current;
         }

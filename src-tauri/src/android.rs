@@ -91,20 +91,24 @@ pub fn environment(settings: &Settings) -> Environment {
                 .map(|m| m.permissions().readonly())
                 .unwrap_or(true),
         warnings,
+        free_bytes: crate::bootstrap::free_space(root),
     }
 }
 pub fn scan(settings: &Settings) -> Vec<Environment> {
-    let mut paths = vec![settings.sdk_root.clone(), "E:\\Android\\sdk".into()];
+    let mut paths = vec![
+        (settings.sdk_root.clone(), "当前配置"),
+        ("E:\\Android\\sdk".into(), "常用目录"),
+    ];
     for key in ["ANDROID_HOME", "ANDROID_SDK_ROOT"] {
         if let Ok(v) = std::env::var(key) {
-            paths.push(v);
+            paths.push((v, key));
         }
     }
     if let Ok(local) = std::env::var("LOCALAPPDATA") {
-        paths.push(format!("{local}\\Android\\Sdk"));
+        paths.push((format!("{local}\\Android\\Sdk"), "当前用户标准目录"));
     }
     let mut result = Vec::new();
-    for p in paths {
+    for (p, source) in paths {
         if result
             .iter()
             .any(|e: &Environment| e.path.eq_ignore_ascii_case(&p))
@@ -114,7 +118,10 @@ pub fn scan(settings: &Settings) -> Vec<Environment> {
         if Path::new(&p).is_dir() {
             let mut s = settings.clone();
             s.sdk_root = p;
-            result.push(environment(&s));
+            let mut candidate = environment(&s);
+            candidate.source = source.into();
+            candidate.writable = crate::bootstrap::assert_writable(Path::new(&s.sdk_root)).is_ok();
+            result.push(candidate);
         }
     }
     result
@@ -558,6 +565,21 @@ pub async fn adb(
             return Err(AppError::new("INVALID_TARGET", "缺少有效 transportId"));
         }
         all.extend(["-t".into(), t.transport_id.clone()]);
+        // adb's emulator-console dispatcher uses the serial even when -t is
+        // present. Verify the frozen transport before adding -s; otherwise two
+        // emulators make `emu avd name` / `emu kill` ambiguous.
+        if args.first().is_some_and(|arg| arg == "emu") {
+            let current = host_request("host:devices-l")?;
+            let devices = parse_devices(&String::from_utf8_lossy(&current), t.server_epoch);
+            let device = checked_target(t, &devices, t.server_epoch)?;
+            if device.connection != "emulator" {
+                return Err(AppError::new(
+                    "INVALID_TARGET",
+                    "模拟器控制命令必须绑定模拟器连接",
+                ));
+            }
+            all.extend(["-s".into(), t.serial.clone()]);
+        }
     }
     all.extend(args);
     let mut s = Spec::new(path, all);

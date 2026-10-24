@@ -893,7 +893,11 @@ mod tests {
         assert!(serial.starts_with("emulator-"));
         let dir = tempfile::tempdir().unwrap();
         let app = App::new(dir.path().into()).unwrap();
-        let settings = app.store.settings();
+        let mut settings = app.store.settings();
+        if let Ok(root) = std::env::var("ANDROID_DEVKIT_TERMINAL_TEST_SDK") {
+            settings.sdk_root = root;
+            app.store.save_settings(&settings).unwrap();
+        }
         let epoch = app.epoch.load(Ordering::SeqCst);
         let raw = android::host_request("host:devices-l").unwrap();
         let devices = android::parse_devices(&String::from_utf8_lossy(&raw), epoch);

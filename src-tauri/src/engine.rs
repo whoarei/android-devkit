@@ -176,7 +176,7 @@ impl App {
             )
         } else if let Some(t) = &op.target {
             format!("device:{}:{}", t.server_epoch, t.transport_id)
-        } else if op.kind.starts_with("avd_") {
+        } else if op.kind.starts_with("avd_") || op.kind == "apk_install_wait" {
             format!("avd:{}", op.optional("avdId"))
         } else if op.kind.starts_with("sdk_")
             || matches!(op.kind.as_str(), "bootstrap" | "java_prepare")
@@ -200,7 +200,9 @@ impl App {
         } else {
             None
         };
-        let _sdk_read = if op.kind.starts_with("avd_") && op.kind != "avd_create" {
+        let _sdk_read = if (op.kind.starts_with("avd_") && op.kind != "avd_create")
+            || op.kind == "apk_install_wait"
+        {
             Some(self.sdk_gate.read().await)
         } else {
             None
@@ -229,7 +231,10 @@ impl App {
         })?;
         // The operation dispatcher contains large SDK/AVD futures. Keep it out
         // of the task runner's future to avoid overflowing Windows debug stacks.
-        let result = Box::pin(self.execute(id, &op, &settings, &secret)).await;
+        let result = match crate::capacity::operation_budget(&self.data, &settings, &op) {
+            Ok(_) => Box::pin(self.execute(id, &op, &settings, &secret)).await,
+            Err(error) => Err(error),
+        };
         let persisted = match result {
             Ok(message) => self.update(id, |t| {
                 t.state = if t.cancel_requested && message == "已取消" {
@@ -378,6 +383,20 @@ impl App {
                 let a = find_avd(settings, op)?;
                 self.start_avd(id, settings, &a, op.kind == "avd_cold", false)
                     .await?;
+                Ok("模拟器系统已就绪".into())
+            }
+            "avd_wait" => {
+                let avd = find_avd(settings, op)?;
+                self.phase(id, "waiting_adb", "继续检查原模拟器，不创建新进程")?;
+                self.wait_avd(
+                    id,
+                    settings,
+                    &avd,
+                    None,
+                    self.epoch.load(Ordering::SeqCst),
+                    None,
+                )
+                .await?;
                 Ok("模拟器系统已就绪".into())
             }
             "avd_stop" => {
@@ -589,7 +608,7 @@ impl App {
                 .success()?;
                 Ok("已断开该网络连接；设备端 ADB 监听与调试授权仍保留".into())
             }
-            "apk_install" | "app_reinstall" => {
+            "apk_install" | "apk_install_wait" | "app_reinstall" => {
                 let apk = self
                     .apks
                     .lock()
@@ -600,7 +619,42 @@ impl App {
                 if digest_file(Path::new(&apk.path))? != apk.sha256 {
                     return Err(AppError::new("APK_CHANGED", "APK 暂存内容发生变化"));
                 }
-                let target = op.target.as_ref().unwrap();
+                let waited_target;
+                let _wait_slot;
+                let target = if op.kind == "apk_install_wait" {
+                    let avd = find_avd(settings, op)?;
+                    let epoch = op
+                        .arg("expectedServerEpoch")?
+                        .parse::<u64>()
+                        .map_err(|_| AppError::new("STALE_SESSION", "ADB 会话记录无效"))?;
+                    self.phase(
+                        id,
+                        "waiting_adb",
+                        "等待原模拟器就绪；可取消，连接变化后不会转投",
+                    )?;
+                    waited_target = self
+                        .wait_avd(id, settings, &avd, op.target.as_ref(), epoch, None)
+                        .await?;
+                    self.update(id, |task| {
+                        task.operation.target = Some(waited_target.clone());
+                    })?;
+                    _wait_slot = if op.target.is_none() {
+                        Some(self.device_slots.acquire().await.unwrap())
+                    } else {
+                        None
+                    };
+                    &waited_target
+                } else {
+                    op.target
+                        .as_ref()
+                        .ok_or_else(|| AppError::new("TARGET_REQUIRED", "必须明确选择设备"))?
+                };
+                if self.cancelled(id) {
+                    return Err(AppError::new("CANCELLED", "已在安装前取消，未写入设备"));
+                }
+                self.update(id, |task| {
+                    task.cancellable = false;
+                })?;
                 let devices = android::devices(settings, self.epoch.load(Ordering::SeqCst)).await;
                 let device = checked_target(target, &devices, self.epoch.load(Ordering::SeqCst))?;
                 if let (Ok(required), Ok(actual)) =
@@ -646,10 +700,7 @@ impl App {
                     )
                     .await?;
                 let text = format!("{}\n{}", output.text(), output.stderr);
-                if output.code != 0 || !text.lines().any(|l| l.trim() == "Success") {
-                    return Err(install_error(&text));
-                }
-                Ok(format!("已安装 {}；运行情况需另行观察", apk.package))
+                apk_install_result(output.code, &text, &apk.package)
             }
             "app_launch" => {
                 let package = op.arg("package")?;
@@ -1045,29 +1096,7 @@ impl App {
     ) -> Result<()> {
         let archive = self.download_archive(id, settings, pkg).await?;
         self.phase(id, "verifying", "校验完成，安全解压并检查结构")?;
-        let parent = dest.parent().unwrap();
-        std::fs::create_dir_all(parent)?;
-        let stage = parent.join(format!(".devkit-stage-{id}"));
-        std::fs::create_dir(&stage)?;
-        bootstrap::extract_zip(&archive, &stage)?;
-        let source = if inner.is_empty() {
-            std::fs::read_dir(&stage)?
-                .flatten()
-                .find(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-                .map(|e| e.path())
-                .ok_or_else(|| AppError::new("ARCHIVE_STRUCTURE", "运行时目录结构无效"))?
-        } else {
-            stage.join(inner)
-        };
-        if !source.is_dir() {
-            return Err(AppError::new("ARCHIVE_STRUCTURE", "官方包结构不符合预期"));
-        }
-        if dest.exists() {
-            return Err(AppError::new("DEST_EXISTS", "目标目录已出现，不会覆盖"));
-        }
-        std::fs::rename(source, dest)?;
-        let _ = std::fs::remove_dir(&stage);
-        Ok(())
+        bootstrap::install_verified_archive(&archive, dest, inner, id)
     }
     async fn download_archive(
         self: &Arc<Self>,
@@ -1211,19 +1240,15 @@ impl App {
             return Err(AppError::new("AVD_EXISTS", "提交前发现同名目录，未覆盖"));
         }
         let journal = self.data.join(format!("avd-commit-{id}.json"));
-        crate::recovery::write_commit_journal(
-            &journal,
-            &serde_json::json!({"data":final_data,"ini":final_ini,"stage":stage,"taskId":id}),
-        )?;
-        std::fs::rename(&data, &final_data)?;
-        crate::recovery::create_avd_index(
-            &final_ini,
+        crate::recovery::commit_avd(
+            &data,
             &final_data,
+            &final_ini,
+            &journal,
+            &stage,
+            id,
             image.split(';').nth(1).unwrap_or(""),
-        )?;
-        let _ = std::fs::remove_file(journal);
-        let _ = std::fs::remove_dir_all(&stage);
-        Ok(())
+        )
     }
     async fn start_avd(
         self: &Arc<Self>,
@@ -1291,26 +1316,70 @@ impl App {
             )?,
         )?;
         drop(child);
+        self.line(id, format!("启动日志：{}", log_path.display()))?;
         self.phase(id, "waiting_adb", "模拟器进程已创建，等待 ADB 与系统启动")?;
+        self.wait_avd(
+            id,
+            settings,
+            avd,
+            None,
+            self.epoch.load(Ordering::SeqCst),
+            Some(&log_path),
+        )
+        .await?;
+        Ok(())
+    }
+    async fn wait_avd(
+        &self,
+        id: &str,
+        settings: &Settings,
+        avd: &Avd,
+        initial: Option<&Target>,
+        expected_epoch: u64,
+        log_path: Option<&Path>,
+    ) -> Result<Target> {
+        let installing = self.store.task(id)?.operation.kind == "apk_install_wait";
+        self.update(id, |task| {
+            task.cancellable = true;
+        })?;
+        let mut frozen = initial.cloned();
         let deadline = tokio::time::Instant::now()
             + std::time::Duration::from_secs(settings.boot_timeout_secs);
         loop {
             if self.cancelled(id) {
                 return Err(AppError::new(
-                    "RESULT_UNKNOWN",
-                    "已停止等待，模拟器可能继续运行；可从列表明确停止",
+                    "CANCELLED",
+                    "已停止等待，未执行安装；模拟器继续运行，可从列表明确停止",
                 ));
             }
             let devices = android::devices(settings, self.epoch.load(Ordering::SeqCst)).await;
-            if let Some(device) = devices.iter().find(|d| d.avd_name == avd.name) {
+            let previous = frozen.clone();
+            frozen = crate::readiness::bind(
+                frozen.as_ref(),
+                Some(&avd.name),
+                &devices,
+                expected_epoch,
+                self.epoch.load(Ordering::SeqCst),
+            )?;
+            if installing && frozen != previous {
+                self.update(id, |task| {
+                    task.operation.target = frozen.clone();
+                })?;
+            }
+            if let Some(device) = devices.iter().find(|device| {
+                frozen
+                    .as_ref()
+                    .is_some_and(|target| Target::from(*device) == *target)
+            }) {
                 if device.state == "ready" {
-                    let out = android::adb(
-                        settings,
-                        Some(&Target::from(device)),
-                        vec!["shell".into(), "pm".into(), "path".into(), "android".into()],
-                        10,
-                    )
-                    .await?;
+                    let out = self
+                        .bound_adb(
+                            settings,
+                            &Target::from(device),
+                            vec!["shell".into(), "pm".into(), "path".into(), "android".into()],
+                            10,
+                        )
+                        .await?;
                     if out.code == 0 && out.text().contains("package:") {
                         if let Ok(raw) = std::fs::read_to_string(
                             Path::new(&avd.data_path).join("hardware-qemu.ini.lock/pid"),
@@ -1334,18 +1403,24 @@ impl App {
                                 }
                             }
                         }
-                        return Ok(());
+                        return Ok(Target::from(device));
                     }
                 }
                 self.phase(id, "waiting_boot", "ADB 已出现，等待系统和包管理服务就绪")?;
             }
             if tokio::time::Instant::now() > deadline {
                 return Err(AppError::new(
-                    "RESULT_UNKNOWN",
+                    if installing {
+                        "WAIT_TIMEOUT"
+                    } else {
+                        "RESULT_UNKNOWN"
+                    },
                     format!(
                         "启动超过 {} 秒；模拟器未被自动终止，可继续观察或停止。日志 {}",
                         settings.boot_timeout_secs,
-                        log_path.display()
+                        log_path
+                            .map(|path| path.display().to_string())
+                            .unwrap_or_else(|| "请查看原启动任务的日志".into())
                     ),
                 ));
             }
@@ -1427,6 +1502,15 @@ fn reject_reparse_tree(path: &Path) -> Result<()> {
     }
     Ok(())
 }
+pub(crate) fn apk_install_result(code: i32, text: &str, package: &str) -> Result<String> {
+    if code != 0 || !text.lines().any(|line| line.trim() == "Success") {
+        return Err(install_error(text));
+    }
+    #[cfg(test)]
+    crate::fault_tests::checkpoint("apk.after_response")?;
+    Ok(format!("已安装 {package}；运行情况需另行观察"))
+}
+
 pub fn install_error(text: &str) -> AppError {
     let code = for_install_code(text);
     AppError::new(

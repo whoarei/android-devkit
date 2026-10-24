@@ -109,7 +109,7 @@ impl Default for Settings {
         .find(|p| std::path::Path::new(p).is_file())
         .unwrap_or_default();
         Self {
-            sdk_root: "E:\\Android\\sdk".into(),
+            sdk_root: format!("{local}\\Android\\Sdk"),
             avd_roots: vec![
                 format!("{home}\\.android\\avd"),
                 format!("{local}\\AndroidDevKit\\avd"),
@@ -158,6 +158,9 @@ pub struct Environment {
     pub java: String,
     pub writable: bool,
     pub warnings: Vec<String>,
+    #[serde(default)]
+    #[cfg_attr(test, ts(type = "number"))]
+    pub free_bytes: u64,
 }
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -416,6 +419,7 @@ pub struct ApkInfo {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Workspace {
+    pub setup_required: bool,
     pub settings: Settings,
     pub environment: Environment,
     pub packages: Vec<SdkPackage>,
