@@ -359,6 +359,42 @@ pub struct TaskPage {
     pub counts: std::collections::BTreeMap<String, u32>,
     pub offset: u32,
     pub page_size: u32,
+    pub deletion: TaskDeletionSummary,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskDeletionSummary {
+    pub eligible: u32,
+    pub active: u32,
+    pub files: u32,
+    pub review: u32,
+    pub busy: u32,
+    pub blocked: BTreeMap<String, String>,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
+pub struct TaskDeleteRequest {
+    pub task_ids: Vec<String>,
+    pub query: Option<TaskQuery>,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskDeleteIssue {
+    pub task_id: String,
+    pub title: String,
+    pub reason: String,
+    pub retryable: bool,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskDeleteResult {
+    pub deleted: u32,
+    pub already_deleted: u32,
+    pub issues: Vec<TaskDeleteIssue>,
 }
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

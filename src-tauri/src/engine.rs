@@ -162,6 +162,7 @@ impl App {
         Ok(())
     }
     async fn perform(self: Arc<Self>, id: &str, secret: String) -> Result<()> {
+        let _task_use = self.use_task_record(id, false)?;
         let task = self.store.task(id)?;
         let op = task.operation.clone();
         let settings = self.store.settings();

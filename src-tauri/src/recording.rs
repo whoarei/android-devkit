@@ -307,6 +307,9 @@ impl App {
             .filter(|t| t.operation.kind == "log_record")
         {
             let root = self.data.join("recordings").join(&task.id);
+            let Ok(_task_use) = self.use_task_record(&task.id, false) else {
+                continue;
+            };
             let path = root.join("manifest.json");
             if !path.is_file() {
                 continue;

@@ -13,6 +13,8 @@ fn main() {
         "ui_locale_set",
         "workspace_snapshot",
         "task_list",
+        "task_delete",
+        "recording_discard",
         "environment_scan",
         "java_environment",
         "java_check",

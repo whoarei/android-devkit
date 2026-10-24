@@ -239,7 +239,7 @@
     font-size: 11px;
   }
   .task-card {
-    padding: 10px 12px;
+    padding: 7px 8px;
   }
   .avd-editor-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -261,8 +261,8 @@
     flex-wrap: wrap;
   }
   .task-row {
-    flex-wrap: wrap;
-    gap: 8px;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    gap: 7px;
   }
   .task-overview {
     flex-basis: calc(100% - 36px);
@@ -272,8 +272,8 @@
     display: none;
   }
   .task-row-actions {
-    margin-left: 36px;
-    flex-wrap: wrap;
+    margin-left: 0;
+    flex-wrap: nowrap;
   }
   .task-heading {
     gap: 7px;
@@ -283,7 +283,11 @@
   }
   .task-toolbar {
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 6px;
+  }
+  .task-toolbar .button {
+    padding: 7px 8px;
+    font-size: 11px;
   }
   .task-search {
     flex-basis: 100%;

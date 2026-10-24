@@ -188,6 +188,7 @@ impl App {
         segments: &[usize],
         redacted: bool,
     ) -> Result<ExportPreview> {
+        let _task_use = self.use_task_record(task_id, false)?;
         let task = self.store.task(task_id)?;
         if task.operation.kind != "log_record" || task.active() {
             return Err(AppError::new(

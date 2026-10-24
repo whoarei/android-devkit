@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Android DevKit · 任务删除交互方案</title>
+<style>
+:root{color-scheme:light;--bg:#f4f7f1;--paper:#fff;--ink:#263b2f;--muted:#637466;--line:#dfe7da;--soft:#eef4eb;--green:#24694b;--side:#f0f4ec;--danger:#a3493c;--redbg:#fbf0ed;--warn:#875929;--warnbg:#faf1e8;--overlay:#20312366;--shadow:#1d351b26}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.8 'Segoe UI','Microsoft YaHei',sans-serif}button,input,select{font:inherit;color:inherit}button,select,input[type=checkbox]{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.48}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid var(--green);outline-offset:3px}[hidden]{display:none!important}a{color:var(--green);text-underline-offset:3px}h1,h2,h3,p{margin:0}h1{font-size:32px;font-weight:600;margin:8px 0 12px}h2{font-size:22px;font-weight:600;margin-bottom:15px}h3{font-size:15px;margin-bottom:7px}.doc{max-width:1200px;margin:auto;padding:38px 30px 65px}.kicker{font-size:11px;letter-spacing:2px;color:var(--green)}.lede{max-width:850px;color:var(--muted)}.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:16px 0}.pill{background:var(--soft);padding:2px 10px;border-radius:4px;color:var(--green)}.doc-nav{display:flex;gap:22px;flex-wrap:wrap;margin:20px 0 28px}.section{border-top:1px solid var(--line);padding-top:26px;margin-top:32px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.card{background:var(--paper);border:1px solid var(--line);padding:18px;border-radius:8px}.card p{font-size:13px;color:var(--muted)}.callout{background:var(--soft);border-left:3px solid var(--green);padding:14px 17px;margin:17px 0}.note{font-size:12px;color:var(--muted);margin-top:10px}.doc-controls{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:18px 0 12px;font-size:12px}.doc-controls label{display:flex;gap:8px;align-items:center}.doc-controls select{padding:7px 10px;background:var(--paper);border:1px solid var(--line);border-radius:5px}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:13px;background:var(--paper)}th,td{text-align:left;vertical-align:top;border-bottom:1px solid var(--line);padding:12px 13px}th{background:var(--soft);font-weight:600}td:first-child{width:19%;font-weight:600}.flow{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:14px 0}.flow span{background:var(--soft);padding:6px 10px;border-radius:4px}.checks{padding-left:23px}.checks li+li{margin-top:8px}code{font:12px/1.7 Consolas,monospace;overflow-wrap:anywhere}.dark{color-scheme:dark;--bg:#111814;--paper:#1a261e;--ink:#dbe7de;--muted:#a5b8aa;--line:#33453a;--soft:#213127;--green:#86d3a6;--side:#15221a;--danger:#f3a098;--redbg:#3c2623;--warn:#e8be79;--warnbg:#3b3022;--overlay:#020805b8;--shadow:#00000066}
+/* The preview is self-contained and uses the application's existing palette. */
+#prototype{font-size:12px;line-height:1.6}#prototype svg{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}.window{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--paper);box-shadow:0 12px 36px var(--shadow)}.titlebar{display:flex;align-items:center;gap:9px;padding:10px 16px;background:var(--side);border-bottom:1px solid var(--line);font-size:11px}.brand{font-weight:700;background:var(--green);color:var(--paper);width:20px;height:20px;display:grid;place-items:center;border-radius:5px}.caption{margin-left:auto;color:var(--muted)}.workspace{position:relative}.surface{display:grid;grid-template-columns:142px minmax(0,1fr);min-height:620px}.sidebar{background:var(--side);border-right:1px solid var(--line);padding:24px 10px;display:flex;flex-direction:column;gap:8px}.nav-label{display:flex;align-items:center;gap:10px;padding:10px;border-radius:5px;color:var(--muted)}.nav-label.current{background:var(--soft);color:var(--green);font-weight:600}.side-note{margin-top:auto;font-size:10px;color:var(--muted);padding:15px 10px}.main{padding:25px 24px 18px;min-width:0}.page-heading{display:flex;align-items:flex-start;gap:14px;margin-bottom:21px}.page-heading h2{font-size:23px;margin:0 0 4px}.muted{color:var(--muted)}.toolbar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:13px}.search{display:flex;align-items:center;gap:8px;flex:1;min-width:190px;border:1px solid var(--line);border-radius:5px;background:var(--paper);padding:8px 10px}.search input{min-width:0;width:100%;background:transparent;border:0;outline:0;font-size:12px}.search:focus-within{outline:2px solid var(--green);outline-offset:2px}.count{color:var(--muted);font-size:11px;white-space:nowrap}.btn{border:1px solid var(--line);border-radius:5px;background:var(--paper);padding:6px 10px;display:inline-flex;gap:6px;align-items:center;justify-content:center;font-size:12px;line-height:1.6;white-space:nowrap}.btn:hover:not(:disabled){background:var(--soft)}.btn.icon{padding:7px;position:relative}.btn.danger{color:var(--danger);border-color:var(--line)}.btn.solid{background:#a3493c;color:white;border-color:#a3493c}.btn.solid:hover:not(:disabled){background:#8d3c30}.btn.primary{color:var(--paper);background:var(--green);border-color:var(--green)}.btn.link{background:transparent;border-color:transparent;padding:5px 3px;color:var(--green)}.btn.small{font-size:11px;padding:4px 7px}.badge-count{position:absolute;right:-5px;top:-7px;min-width:17px;height:17px;font-size:10px;display:grid;place-items:center;border-radius:10px;background:var(--green);color:var(--paper)}.filters{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:13px}.filter{background:transparent;border:1px solid transparent;border-radius:5px;padding:5px 8px;font-size:11px;color:var(--muted)}.filter[aria-pressed=true]{background:var(--soft);color:var(--green);border-color:var(--line);font-weight:600}.filter span{font-size:10px;margin-left:7px}.selection{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;border-radius:5px;background:var(--soft)}.selection label{display:flex;gap:7px;align-items:center}.selection .push{margin-left:auto}.list{border:1px solid var(--line);border-radius:6px;overflow:hidden}.task{padding:12px;background:var(--paper)}.task+.task{border-top:1px solid var(--line)}.task-row{display:flex;gap:10px;align-items:center}.task-symbol{width:28px;height:28px;background:var(--soft);color:var(--muted);border-radius:5px;display:grid;place-items:center;flex-shrink:0}.task-info{min-width:0;flex:1}.task-heading{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.task-heading strong{font-size:12px;font-weight:600}.target{color:var(--muted);font-size:10px}.badge{padding:1px 6px;border-radius:4px;background:var(--soft);color:var(--green);font-size:10px;white-space:nowrap}.badge.failed{background:var(--redbg);color:var(--danger)}.badge.needs_review,.badge.waiting_confirmation{background:var(--warnbg);color:var(--warn)}.badge.cancelled{color:var(--muted)}.task-message{color:var(--muted);font-size:11px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.task-actions{display:flex;gap:7px;align-items:center;flex-shrink:0}.time{font-size:10px;color:var(--muted);white-space:nowrap}.task-select{margin:0;accent-color:var(--green)}.progress{height:3px;margin:10px 0 0 38px;background:var(--soft);border-radius:4px;overflow:hidden}.progress div{height:100%;background:var(--green);width:46%}.license{background:var(--warnbg);padding:9px 11px;margin-top:11px;color:var(--warn);display:flex;align-items:center;gap:8px;flex-wrap:wrap}.license strong{margin-right:auto}.detail{margin:12px 0 0 38px;padding-top:11px;border-top:1px solid var(--line);color:var(--muted)}.detail dl{display:grid;grid-template-columns:78px 1fr;gap:5px;margin:0 0 10px}.detail dt,.detail dd{margin:0}.detail pre{background:var(--bg);padding:10px;white-space:pre-wrap;font-size:11px}.pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:13px;font-size:11px;color:var(--muted)}.pagination span{margin-right:auto}.empty{padding:44px 20px;text-align:center;color:var(--muted)}.empty svg{width:30px!important;height:30px!important;margin-bottom:10px}.empty h3{color:var(--ink)}.footer{display:flex;justify-content:space-between;gap:12px;border-top:1px solid var(--line);background:var(--side);padding:8px 16px;color:var(--muted);font-size:10px}.notice{margin-top:14px;background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:10px 12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}.notice.error{background:var(--redbg);color:var(--danger)}.notice span{flex:1}.overlay{position:absolute;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;padding:20px;z-index:5}.dialog{width:495px;max-width:100%;max-height:calc(100% - 8px);overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:8px;box-shadow:0 18px 60px var(--shadow);padding:23px;outline:0}.dialog h2{font-size:19px;margin:0}.dialog-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:13px}.dialog-head .btn{padding:4px}.dialog p+p{margin-top:9px}.summary-box{background:var(--soft);border:1px solid var(--line);padding:12px 13px;border-radius:5px;margin:14px 0}.summary-box strong{display:block}.warning{background:var(--warnbg);color:var(--warn);padding:12px 13px;border-radius:5px;margin:12px 0}.error-box{background:var(--redbg);color:var(--danger);padding:11px 12px;border-radius:5px;margin:12px 0}.dialog-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;margin-top:20px}.dialog-list{max-height:175px;overflow:auto;list-style:none;padding:0;margin:10px 0}.dialog-list li{border-bottom:1px solid var(--line);padding:9px 0;display:flex;align-items:center;gap:10px}.dialog-list .item{flex:1;min-width:0}.dialog-list small{display:block;color:var(--muted)}.dialog-list .btn{flex-shrink:0}.ack{display:flex;gap:8px;align-items:flex-start;margin-top:14px}.ack input{margin-top:4px;accent-color:var(--green)}.inline-link{border:0;background:transparent;color:var(--green);text-decoration:underline;padding:0;font-size:inherit}.intro-rule{display:flex;gap:8px;color:var(--muted);font-size:11px;margin-top:12px}.doc-controls .btn{font-size:12px}
+@media(max-width:1080px){.time{display:none}.main{padding:23px 17px}.surface{grid-template-columns:120px minmax(0,1fr)}}
+@media(max-width:860px){.grid{grid-template-columns:1fr}.surface{grid-template-columns:54px minmax(0,1fr)}.sidebar{padding:20px 5px}.nav-label{justify-content:center;padding:10px 5px}.nav-label span,.side-note{display:none}.task-row{flex-wrap:wrap}.task-info{flex-basis:65%}.task-actions{margin-left:38px;flex-wrap:wrap}.task-actions .btn{min-height:30px}.task:has(.task-select) .task-actions{margin-left:24px}.surface{min-height:720px}}
+@media(max-width:550px){.doc{padding:24px 13px 40px}h1{font-size:27px}.doc-nav{gap:15px}.main{padding:19px 12px}.surface{grid-template-columns:minmax(0,1fr)}.sidebar{display:none}.caption{font-size:10px}.page-heading h2{font-size:21px}.toolbar{gap:8px}.search{flex-basis:100%}.count{margin-right:auto}.task-row{gap:8px}.task-actions{gap:8px;margin-top:3px}.task-heading{gap:6px}.dialog{padding:18px}.overlay{padding:10px}.dialog-actions .btn{min-height:36px}.dialog-list li{flex-wrap:wrap}.selection{gap:9px}.selection .push{margin-left:0}.footer{font-size:9px}.table-wrap table{min-width:680px}}
+/* Compact rows keep their actions at the right edge at every viewport width. */
+#prototype .task{padding:8px 11px}#prototype .task-row{display:grid;grid-template-columns:24px minmax(0,1fr) 92px;gap:9px;align-items:center}#prototype .task-symbol{width:24px;height:24px}#prototype .task-select{justify-self:center}#prototype .task-info{min-width:0}#prototype .task-heading{flex-wrap:nowrap;gap:7px;line-height:19px}#prototype .task-heading strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#prototype .badge{flex-shrink:0}#prototype .task-message{margin-top:2px;font-size:11px;line-height:18px}#prototype .task-actions{width:92px;margin:0;display:flex;justify-content:flex-end;gap:4px;flex-wrap:nowrap}#prototype .task-actions .btn{width:28px;height:28px;min-height:28px;padding:5px;flex-shrink:0;background:transparent;border-color:transparent}#prototype .task-actions .btn:hover:not(:disabled){background:var(--soft);border-color:var(--line)}#prototype .task-actions .btn[aria-expanded=true]{background:var(--soft);color:var(--green)}#prototype .task-actions .btn:disabled{opacity:.3}#prototype .progress{margin:5px 101px 0 33px}#prototype .detail{margin:9px 0 0 33px}#prototype .license{margin-top:8px;padding:7px 10px}.cleanup-scope{margin:-3px 0 11px;font-size:11px;line-height:1.7;color:var(--muted)}.cleanup-scope strong{font-weight:600;color:var(--green)}.delete-note{font-size:11px;color:var(--muted);margin-top:6px}
+#prototype .list{overflow:visible}#prototype .task:first-child{border-radius:5px 5px 0 0}#prototype .task:last-child{border-radius:0 0 5px 5px}#prototype .task-actions .btn{position:relative}#prototype .task-actions .btn[aria-expanded=true] svg{transform:rotate(90deg)}#prototype .task-actions .btn::after{content:attr(data-tooltip);position:absolute;bottom:calc(100% + 5px);right:0;display:none;padding:4px 7px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);box-shadow:0 3px 12px var(--shadow);font-size:11px;line-height:1.6;white-space:nowrap;pointer-events:none;z-index:2}#prototype .task-actions .btn:hover::after,#prototype .task-actions .btn:focus-visible::after{display:block}
+#prototype .task{padding-block:7px}#prototype .badge{line-height:16px}
+@media(max-width:550px){#prototype .task{padding:7px 8px}#prototype .task-row{grid-template-columns:20px minmax(0,1fr) 92px;gap:7px}#prototype .task-symbol{width:20px;height:24px}#prototype .task-heading{gap:5px}#prototype .task-message{font-size:10px}#prototype .progress{margin-left:27px}#prototype .detail{margin-left:27px}}
+@media print{.doc{padding:0}.doc-controls,.doc-nav{display:none}.section{break-inside:avoid}.window{box-shadow:none}.surface{min-height:0}.table-wrap{overflow:visible}table{min-width:0!important}}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+ <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></symbol>
+ <symbol id="i-list" viewBox="0 0 24 24"><path d="m3 5 1 1 2-2M9 5h12M3 12h3M9 12h12M3 19h3M9 19h12"/></symbol>
+ <symbol id="i-box" viewBox="0 0 24 24"><path d="m3 7 9-4 9 4v10l-9 4-9-4ZM3 7l9 4 9-4M12 11v10M7 5l10 4"/></symbol>
+ <symbol id="i-device" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 18h4"/></symbol>
+ <symbol id="i-activity" viewBox="0 0 24 24"><path d="M2 12h5l3-8 4 16 3-8h5"/></symbol>
+ <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H5v20h14V7ZM14 2v6h5M8 13h8M8 17h6"/></symbol>
+ <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></symbol>
+ <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+ <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M5.7 7a8 8 0 0 1 13.1-1L20 8M4 16l1.2 2a8 8 0 0 0 13.1-1"/></symbol>
+ <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+</svg>
+<main class="doc">
+ <header>
+  <div class="kicker">ANDROID DEVKIT / INTERACTION DESIGN</div>
+  <h1>任务删除</h1>
+  <p class="lede">让历史记录可以被整理，同时保留正在执行的操作、尚未处理的文件和结果待检查的线索。沿用任务中心的两行摘要、状态筛选、30 项分页与详情展开方式。</p>
+  <div class="meta"><span class="pill">交互方案 · 已确认</span><span>2026-10-24 · 北京时间</span><span>基于当前 TaskCenter 与本地任务存储</span><span>本页为演示，不操作真实任务</span></div>
+  <nav class="doc-nav" aria-label="文档导航"><a href="#proposal">推荐方案</a><a href="#preview">交互原型</a><a href="#rules">状态与范围</a><a href="#files">文件处理</a><a href="#feedback">反馈与异常</a><a href="#acceptance">验收要点</a></nav>
+ </header>
+ <section id="proposal" class="section">
+  <h2>推荐方案</h2>
+  <div class="grid">
+   <article class="card"><h3>01 · 单条直接删除</h3><p>条目右侧的垃圾桶点击即删除，不弹确认框。成功后移除记录并显示结果；删除中禁用重复操作，失败时保留原记录。</p></article>
+   <article class="card"><h3>02 · 勾选批量删除</h3><p>工具栏增加“管理任务”，进入后显示复选框与批量操作条。勾选后点击“删除所选（N）”直接执行。“全选本页可删除项”仅作用于当前页；翻页或改变筛选时清空选择并反馈。</p></article>
+   <article class="card"><h3>03 · 按筛选直接清理</h3><p>工具栏显示“清理历史（N）”，点击即清理当前关键词与状态下、跨全部页的可删除记录。范围、数量和跳过原因常驻显示在筛选下方，不增加预览或确认步骤。</p></article>
+  </div>
+  <div class="callout"><strong>删除的含义：</strong>移除任务记录和该记录的诊断内容，点击后直接执行，无需二次确认。不撤销已执行的操作，不卸载应用、SDK 或模拟器，不删除已另存的文件。文件处理仍独立进行；不把“取消”和“删除”合并。不提供回收站或“撤销”按钮。</div>
+  <p class="note"><strong>条目布局：</strong>左侧保留任务名称与状态、目标/时间/结果两行信息，右侧固定排列重试/取消/处理文件、详情、删除等图标按钮。默认行高约 54 px；操作不换到条目下方。完整诊断按需展开，许可确认保持直接可见。</p>
+ </section>
+ <section id="preview" class="section">
+  <h2>可点击交互原型</h2>
+  <p class="muted">条目右侧的操作按钮集中排列，悬停或键盘聚焦可查看名称。点击垃圾桶直接删除；进入“管理任务”体验批量删除，或点击“清理历史（N）”直接跨页清理。</p>
+  <div class="doc-controls">
+   <label>演示场景 <select id="scenario"><option value="normal">正常删除</option><option value="partial">部分删除失败</option><option value="race">提交后有任务变为进行中</option><option value="allfail">存储暂不可写</option></select></label>
+   <label><input id="theme" type="checkbox"> 深色模式</label>
+   <button class="btn" id="reset">重置演示数据</button>
+   <span class="muted">演示每页 6 项；正式功能保持每页 30 项。</span>
+  </div>
+  <div id="prototype" aria-label="任务删除交互演示">
+   <div class="window">
+    <div class="titlebar"><span class="brand">A</span><span>Android DevKit</span><span class="caption">交互预览 · 仅演示数据</span></div>
+    <div class="workspace">
+     <div class="surface">
+      <aside class="sidebar" aria-label="应用导航示意">
+       <div class="nav-label"><svg><use href="#i-device"/></svg><span>设备工作台</span></div>
+       <div class="nav-label"><svg><use href="#i-box"/></svg><span>SDK 管理</span></div>
+       <div class="nav-label current"><svg><use href="#i-list"/></svg><span>任务中心</span></div>
+       <div class="nav-label"><svg><use href="#i-activity"/></svg><span>环境诊断</span></div>
+       <div class="side-note">WINDOWS x64<br>SDK 已连接<br>E:\Android\sdk</div>
+      </aside>
+      <div class="main">
+       <div class="page-heading"><div><h2>任务中心</h2><p class="muted">查看进度与结果，整理历史任务记录。</p></div></div>
+       <div class="toolbar">
+        <label class="search"><svg aria-hidden="true"><use href="#i-search"/></svg><input id="search" aria-label="搜索任务" placeholder="搜索名称、设备、结果或任务 ID"></label>
+        <span id="result-count" class="count"></span>
+        <button class="btn icon" data-action="refresh" title="刷新任务" aria-label="刷新任务"><svg aria-hidden="true"><use href="#i-refresh"/></svg></button>
+        <button class="btn" id="manage" data-action="manage" aria-pressed="false">管理任务</button>
+        <button class="btn" data-action="clear" id="clear-history">清理历史（0）</button>
+        <button class="btn icon" id="inbox" data-action="inbox" aria-label="待保存文件" title="待保存文件"><svg aria-hidden="true"><use href="#i-file"/></svg><b class="badge-count" id="file-count">1</b></button>
+       </div>
+       <div class="filters" id="filters" role="group" aria-label="任务状态筛选"></div>
+       <p class="cleanup-scope" id="cleanup-scope"></p>
+       <div class="selection" id="selection" hidden>
+        <label><input type="checkbox" id="select-page">全选本页可删除项</label>
+        <span id="selected-count">已选 0 项</span><span class="push"></span>
+        <button class="btn danger" data-action="delete-selected" id="delete-selected" disabled><svg aria-hidden="true"><use href="#i-trash"/></svg>删除所选</button>
+        <button class="btn link" data-action="manage">退出管理</button>
+       </div>
+       <div class="list" id="task-list" aria-label="任务列表"></div>
+       <div class="pagination" id="pagination"></div>
+       <div class="intro-rule"><svg aria-hidden="true"><use href="#i-file"/></svg><span>有待保存文件或原始采集的任务，请先处理文件。进行中任务结束后可删除。</span></div>
+       <p class="delete-note">删除直接执行，记录与诊断无法恢复；已另存文件和操作结果保留。</p>
+       <div id="notice" class="notice" role="status" hidden></div>
+      </div>
+     </div>
+     <div class="overlay" id="overlay" hidden></div>
+    </div>
+    <div class="footer"><span>SDK：E:\Android\sdk</span><span>进行中 <b id="active-count">3</b> 项 · 切页后任务继续</span></div>
+   </div>
+  </div>
+  <p class="note">原型覆盖右侧紧凑操作、筛选、分页、单条/批量直接删除、跨页直接清理、文件处理、待检查提示、空态和失败重试。保存、导出、后台状态变化与存储错误均为模拟。应用已接入对应能力；原始采集在任务详情内处理。</p>
+ </section>
+ <section id="rules" class="section">
+  <h2>状态与删除范围</h2>
+  <div class="table-wrap"><table><thead><tr><th>状态 / 条件</th><th>单条及手动勾选</th><th>“清理历史（N）”</th><th>说明</th></tr></thead><tbody>
+   <tr><td>排队、运行中、待确认</td><td>删除图标与复选框禁用</td><td>跳过，显示数量</td><td>说明“任务仍在进行，请先取消并等待结束”。保留原取消按钮和许可确认区。正在取消、当前步骤结束后取消仍按进行中处理。</td></tr>
+   <tr><td>已完成、失败、已取消</td><td>允许，点击直接删除</td><td>允许</td><td>失败诊断也会删除，列表下方常驻说明“记录与诊断无法恢复”。重试生成的新任务不随原记录删除。</td></tr>
+   <tr><td>待检查</td><td>允许，点击直接删除；不增加勾选确认</td><td>跳过，避免批量丢失排查线索</td><td>必须先完成系统自动恢复检查且无写入/恢复资源占用。仍在恢复时禁用；状态和详情中保留结果尚未确认的说明。删除只移除记录，不会恢复设备或环境。</td></tr>
+   <tr><td>有待保存截图 / 导出副本</td><td>垃圾桶改为“处理文件”，复选框禁用</td><td>跳过，显示数量</td><td>进入仅关联该任务的文件列表，可预览、另存或“忽略并清理”。关闭后回到原位置；处理成功后重新预览删除范围，不自动删除。</td></tr>
+   <tr><td>存在原始采集段</td><td>右侧提供“处理采集”，复选框禁用</td><td>跳过，显示数量</td><td>先按需导出；在文件面板点击“清理原始采集”直接清理，不弹删除确认。清理完成后用户再自行删除任务记录。</td></tr>
+   <tr><td>输出/恢复状态读取失败，或资源仍被占用</td><td>暂不可选，说明原因并提供刷新</td><td>跳过，单独标记原因</td><td>不能把读取失败当作“没有文件”；不能仅以任务状态结束判断执行器已释放资源。</td></tr>
+  </tbody></table></div>
+  <div class="grid" style="margin-top:17px">
+   <article class="card"><h3>选择只在当前页</h3><p>进入管理时不选中任何任务。全选只选本页符合条件的项，不自动跨页；保留单条删除入口。关键词、状态或页码变化时清空选择，提示“筛选或页码已变化，已清空选择”。</p></article>
+   <article class="card"><h3>清理范围必须可见</h3><p>筛选下方常驻显示“关键词：… · 状态：… · 所有分页”，并列出可删除数和各类跳过数。无关键词、状态为全部时明确写“全部历史中的可删除任务”；无可删除项时显示 0 并禁用清理按钮。</p></article>
+   <article class="card"><h3>点击时冻结范围</h3><p>点击后按当时的搜索与筛选生成任务集合并直接执行。提交后新完成、新匹配的记录不加入；执行前重新检查状态、文件与资源占用，变化项跳过并报告。</p></article>
+  </div>
+ </section>
+ <section id="files" class="section">
+  <h2>文件处理：先解决归属，再删记录</h2>
+  <p>当前待保存文件中，截图绑定任务；日志导出副本可独立存在；原始采集清单则依赖采集任务导出。因此不能直接删除任务行后留下失效入口。</p>
+  <div class="flow"><span>点击“处理文件 / 处理采集”</span>→<span>按需预览、另存或导出</span>→<span>明确放弃的文件单独清理</span>→<span>返回列表，用户再次点击删除</span></div>
+  <div class="table-wrap"><table><thead><tr><th>对象</th><th>建议交互</th><th>保留与删除边界</th></tr></thead><tbody>
+   <tr><td>截图与导出副本</td><td>沿用待保存文件弹窗的预览、保存、忽略并清理；从任务进入时只显示该任务关联项。另存取消、失败或清理失败都不能解除保护。</td><td>“忽略并清理”沿用现有缓存清理语义；已另存文件保持原样。独立导出副本持续在待保存文件中处理，不计入其来源任务的删除范围。删除任务不清空文件角标。</td></tr>
+   <tr><td>原始日志采集</td><td>新增“处理采集”面板，显示段数、大小、采集时间及导出入口。面板内写明“清理后无法再次导出”，点击“清理原始采集”直接执行，无确认弹窗或复选框；失败保留任务和入口供重试。</td><td>只清理归属该任务的应用采集目录。完成后原始采集入口移除，任务记录仍在，用户可继续删除。提示“已导出的文件保留，原始采集将无法再次导出”。若存在正在保存的导出/预览，先等待其完成。</td></tr>
+   <tr><td>已另存文件 / 环境结果</td><td>列表下方统一说明“已另存文件及已执行的操作结果保留”。</td><td>不触碰用户目录中的图片、文本、APK，不卸载 SDK、应用、Java、模拟器或回滚配置。删除任务不承诺释放这些空间。</td></tr>
+   <tr><td>已处理的截图缓存</td><td>任务删除只影响记录；文件缓存清理由既有缓存机制单独负责。</td><td>删除前必须解除文件元数据对完整任务行的强依赖，保存最小来源信息；后台不能因查询不到原任务而导致已处理缓存无法清理。不得把任务删除宣传成磁盘清理。</td></tr>
+  </tbody></table></div>
+  <p class="note">“处理采集”及独立清理原始采集是本方案的配套范围。若暂不实现，应保留此类任务并明确显示“暂不支持删除含原始采集的任务”，不能直接删记录后隐藏导出入口。</p>
+ </section>
+ <section id="feedback" class="section">
+  <h2>直接操作、反馈与异常</h2>
+  <div class="table-wrap"><table><thead><tr><th>场景</th><th>用户看到什么</th><th>交互约定</th></tr></thead><tbody>
+   <tr><td>单条直接删除</td><td>点击条目右侧垃圾桶后立即进入删除状态；不出现确认弹窗。记录实际删除成功后从列表移除。</td><td>点击只提交一次；操作中禁用重复触发。完成后焦点移到邻近条目的右侧操作区，无邻近条目时回到工具栏。</td></tr>
+   <tr><td>批量 / 清理直接执行</td><td>“删除所选（N）”与“清理历史（N）”显示当前数量，点击后直接执行；清理范围和跳过原因在列表上方可见。</td><td>提交中显示“正在删除…”，禁用重复提交。不增加确认框、预览弹窗或待检查勾选确认；实际完成前不移除列表行。</td></tr>
+   <tr><td>成功</td><td>“已删除 N 条任务记录”；记录消失，筛选计数与总数同步。</td><td>保留关键词、状态与页码；末页空了回到最后有效页。无筛选且无记录显示“暂无任务记录”；筛选无匹配显示“没有匹配的任务”及清除筛选入口。</td></tr>
+   <tr><td>部分成功</td><td>“已删除 8 条，2 条未删除”，提供“查看未删除项”；区分状态变化、文件未处理、占用与存储失败。</td><td>成功项不再次提交。失败项留在原列表，结果面板可查看并选择“重试未删除项”；保护性跳过项引导处理文件/等待结束，不盲目重试。</td></tr>
+   <tr><td>全部失败 / 结果不确定</td><td>存储失败显示“未删除任何记录，请稍后重试”；请求结果不确定显示“正在核对删除结果”。</td><td>实际核对前不宣告全失败或成功，不清除选择。保留错误原因与重试入口，不只给瞬时提示。</td></tr>
+   <tr><td>后台变化</td><td>“1 条任务仍在进行，已保留”；已被删除的项记为“此前已删除”，不算存储失败。</td><td>点击时的范围不扩张。状态、文件与资源占用在执行时重检；存在未完成自动恢复提交的任务始终保护。新任务或重试任务不受影响。</td></tr>
+   <tr><td>键盘 / 窄窗口</td><td>右侧图标常驻，具有可访问名称和焦点提示；禁用原因可在条目详情查看。</td><td>按钮始终固定在条目右侧，不另占一行。窄窗口优先压缩摘要并截断长名称，完整文本可在详情查看；文件/结果面板关闭时返回触发点。完成和失败由可访问状态区播报。</td></tr>
+  </tbody></table></div>
+ </section>
+ <section class="section">
+  <h2>实现约束</h2>
+  <p>现有 <code>task_list</code>、<code>task_cancel</code>、<code>task_retry</code> 保持各自职责。新增可删除数量统计与直接执行能力，由原生侧计算完整历史范围、返回保护原因和逐项结果；前端不通过当前页数据估算跨页可删除数。</p>
+  <p style="margin-top:10px">执行在点击提交时冻结任务集合并绑定操作标识，具有幂等性，无需用户再次确认。与任务写入、恢复提交、文件保存/导出互斥；每项先检查，再事务性移除任务及其专属诊断。必要的去重索引和资源归属信息需独立保留，避免删除 <code>request_id</code> 后重复执行旧请求。删除成功后让任务列表、工作空间、关闭状态等相关查询失效，避免轮询恢复已删除记录。</p>
+  <p class="note">本方案不把“删除记录”承诺为安全擦除。SQLite 备份、审计与执行去重的留存规则需在实现时单独定义；实现不能把仍用于 AVD 归属判断或恢复提交的任务信息直接级联删除。</p>
+ </section>
+ <section id="acceptance" class="section">
+  <h2>交互验收要点</h2>
+  <ol class="checks">
+   <li>单条删除、批量删除、清理历史点击后直接执行；不出现删除确认、预览弹窗或额外勾选。</li>
+   <li>排队、运行、待确认、正在取消、资源尚未释放和恢复未完成任务始终受保护；提交后状态变化同样受保护。</li>
+   <li>仅有待保存截图、另存取消/失败、原始采集尚在、文件状态读取失败时，不允许删除记录。</li>
+   <li>截图先保存或忽略，采集按需导出后点击清理直接执行；处理完成后不自动删除原记录，不改动已另存文件。</li>
+   <li>清理只匹配当前关键词与状态下的所有分页；页面常驻显示范围，跳过待检查和文件未处理任务，数量互不重复。</li>
+   <li>手动选择待检查任务也直接删除，状态与详情保留结果不确定说明；批量清理不包含该状态。</li>
+   <li>全选仅本页；翻页、改关键词、改状态清空选择并提示。轮询不自动扩张选择集合。</li>
+   <li>执行以点击时的集合为准，完成期间新结束任务、新重试任务和新生成文件不被顺带删除。</li>
+   <li>成功同步计数与列表，末页删除后回退；无记录与筛选无匹配两种空态文案有区别。</li>
+   <li>部分失败显示真实逐项结果，只重试未删除项；重复提交不会重复删除或重放任务操作。</li>
+   <li>删除记录后，关联文件缓存维护、原始执行去重、资源归属、应用关闭提示和重启恢复均无失效引用。</li>
+   <li>浅色、深色和窄窗口下操作按钮始终固定在条目右侧，默认两行摘要，不因操作另起一行；键盘能完成选择、直接删除和文件面板返回。</li>
+  </ol>
+  <p class="note">本页保留已确认的设计与模拟原型。对应应用功能已实施，实际存储、文件保护和恢复行为由原生侧完成；验证结果以项目测试为准。</p>
+ </section>
+ <section class="section">
+  <h2>关联资料</h2>
+  <p><a href="00000_20261017232447_Android-DevKit-PRD.html">产品需求与交互方案</a> · <a href="00001_20261017234246_Android-DevKit-Technical-Design.html">技术方案</a></p>
+  <p class="note">依据本地实现：src/TaskCenter.tsx、src/Observability.tsx、src-tauri/src/storage.rs、commands.rs、exports.rs、recording.rs、recovery.rs。既有方案保持原文；本页结论为新增能力的建议。</p>
+ </section>
+</main>
+<script>
+(() => {
+ 'use strict';
+ const root=document.getElementById('prototype'),list=document.getElementById('task-list'),overlay=document.getElementById('overlay'),surface=root.querySelector('.surface');
+ const labels={all:'全部',active:'进行中',succeeded:'已完成',failed:'失败',waiting_confirmation:'待确认',needs_review:'待检查',cancelled:'已取消',running:'运行中',queued:'排队'};
+ const filters=['all','active','succeeded','failed','waiting_confirmation','needs_review','cancelled'];
+ const active=t=>['queued','running','waiting_confirmation'].includes(t.state);
+ const fileBlocked=t=>!!t.pending||!!t.raw;
+ const allowed=t=>!active(t)&&!fileBlocked(t);
+ const esc=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const icon=name=>`<svg aria-hidden="true"><use href="#i-${name}"/></svg>`;
+ const button=(label,action,cls='',attrs='')=>`<button class="btn ${cls}" data-action="${action}" ${attrs}>${label}</button>`;
+ let tasks=[],selected=new Set(),expanded=new Set(),manage=false,keyword='',filter='all',page=0,modal='',busy=false,trigger=null,result=null;
+ const pageSize=6;
+ function seed(){
+  if(busy)return;
+  const base=[
+   ['sdk','running','安装 Android SDK','本机环境','正在下载 Platform-Tools · 46%'],
+   ['queue','queued','安装系统镜像','本机环境','等待 SDK 安装任务释放资源'],
+   ['license','waiting_confirmation','更新 Command-line Tools','本机环境','官方工具正在等待许可确认'],
+   ['fail','failed','连接网络 ADB','Pixel 8','连接被拒绝，请检查设备 IP 与端口'],
+   ['shot','succeeded','设备截图','Pixel 8','截图已完成，有 1 个待保存文件'],
+   ['review','needs_review','创建 Android 模拟器','Pixel_API_35','重开后已复查，实际结果仍需检查'],
+   ['record','succeeded','文件采集结束','Pixel 8','已封口 3 段原始采集 · 18.4 MiB'],
+   ['cancel','cancelled','下载 Android 系统镜像','本机环境','下载已取消'],
+   ['install','succeeded','安装调试 APK','Pixel 8','应用安装成功 · com.example.demo'],
+   ['connect','succeeded','连接网络 ADB','Pixel 8','192.168.1.20:5555 已连接'],
+   ['sdk-old','succeeded','更新 Platform-Tools','本机环境','组件安装成功，校验通过'],
+   ['history','failed','导出诊断信息','本机环境','所选保存目录不可写']
+  ];
+  tasks=base.map((v,i)=>({id:v[0],state:v[1],title:v[2],target:v[3],message:v[4],time:`10-24 ${String(14-Math.floor(i/5)).padStart(2,'0')}:${String(48-i*2).padStart(2,'0')}`,pending:v[0]==='shot',raw:v[0]==='record'}));
+  selected.clear();expanded.clear();manage=false;keyword='';filter='all';page=0;result=null;modal='';busy=false;
+  document.getElementById('search').value='';document.getElementById('notice').hidden=true;hideDialog(false);render();
+ }
+ function matches(t){const hay=[t.id,t.title,t.target,t.message].join(' ').toLowerCase();return hay.includes(keyword.toLowerCase())&&(filter==='all'||filter==='active'&&active(t)||t.state===filter);}
+ function matching(){return tasks.filter(matches);}
+ function visible(){return matching().slice(page*pageSize,(page+1)*pageSize);}
+ function notify(message,error=false,extra=''){
+  const el=document.getElementById('notice');el.className='notice'+(error?' error':'');el.innerHTML=`<span>${esc(message)}</span>${extra}`;el.hidden=false;
+ }
+ function changeScope(){const had=selected.size;selected.clear();if(had)notify('筛选或页码已变化，已清空选择。');}
+ function reason(t){return active(t)?'任务仍在进行，请先取消并等待结束':t.pending?'有待保存文件，请先处理':t.raw?'原始采集仍在，请先处理采集文件':'';}
+ function render(){
+  const all=matching();page=Math.min(page,Math.max(0,Math.ceil(all.length/pageSize)-1));
+  selected=new Set([...selected].filter(id=>tasks.some(t=>t.id===id&&allowed(t))));
+  document.getElementById('result-count').textContent=`共 ${all.length} 项任务`;
+  document.getElementById('active-count').textContent=tasks.filter(active).length;
+  const pending=tasks.filter(t=>t.pending).length;document.getElementById('file-count').textContent=pending;document.getElementById('file-count').hidden=!pending;
+  document.getElementById('inbox').setAttribute('aria-label',`待保存文件：${pending} 项`);
+  document.getElementById('manage').textContent=manage?'完成管理':'管理任务';document.getElementById('manage').setAttribute('aria-pressed',manage);
+  document.getElementById('selection').hidden=!manage;
+  const cleanup=deletionSet(matching().map(t=>t.id),'clear');
+  const clearButton=document.getElementById('clear-history');clearButton.disabled=manage||!cleanup.ids.length||busy;clearButton.textContent=busy?'正在删除…':`清理历史（${cleanup.ids.length}）`;
+  const s=cleanup.skipped,skipText=[s.active?`进行中 ${s.active} 条`:'',s.files?`文件未处理 ${s.files} 条`:'',s.review?`待检查 ${s.review} 条`:''].filter(Boolean).join(' · ');
+  document.getElementById('cleanup-scope').innerHTML=`清理范围：${esc(scopeText())}。<strong>可清理 ${cleanup.ids.length} 条</strong>${skipText?`；保留 ${esc(skipText)}`:''}。`;
+  document.getElementById('filters').innerHTML=filters.map(f=>{const n=tasks.filter(t=>[t.id,t.title,t.target,t.message].join(' ').toLowerCase().includes(keyword.toLowerCase())&&(f==='all'||f==='active'&&active(t)||t.state===f)).length;return `<button class="filter" data-filter="${f}" aria-pressed="${filter===f}">${labels[f]}<span>${n}</span></button>`;}).join('');
+  const rows=visible();list.innerHTML=rows.length?rows.map(row).join(''):`<div class="empty">${icon('list')}<h3>${keyword||filter!=='all'?'没有匹配的任务':'暂无任务记录'}</h3><p>${keyword||filter!=='all'?'试试其他关键词或状态筛选。':'新的操作结果会继续记录在这里。'}</p>${keyword||filter!=='all'?button('清除筛选','clear-filter','link'):''}</div>`;
+  const can=rows.filter(allowed);const selectAll=document.getElementById('select-page');selectAll.disabled=!can.length;selectAll.checked=!!can.length&&can.every(t=>selected.has(t.id));selectAll.indeterminate=can.some(t=>selected.has(t.id))&&!selectAll.checked;
+  document.getElementById('selected-count').textContent=`已选 ${selected.size} 项`;document.getElementById('delete-selected').disabled=!selected.size||busy;document.getElementById('delete-selected').innerHTML=icon('trash')+(busy?'正在删除…':`删除所选（${selected.size}）`);
+  document.getElementById('pagination').innerHTML=all.length?`<span>${page*pageSize+1}–${Math.min((page+1)*pageSize,all.length)} / ${all.length} 项</span>${button('上一页','prev','small',page===0?'disabled':'')}${button('下一页','next','small',(page+1)*pageSize>=all.length?'disabled':'')}`:'';
+  root.setAttribute('aria-busy',String(busy));
+  if(busy)root.querySelectorAll('button,input').forEach(el=>el.disabled=true);
+  else root.querySelectorAll('.toolbar button,.toolbar input').forEach(el=>{if(el!==clearButton)el.disabled=false;});
+  document.getElementById('reset').disabled=busy;
+ }
+ function row(t){
+  const id=esc(t.id),open=expanded.has(t.id),blocked=reason(t);
+  const action=(label,name,glyph,cls='',extra='')=>button(icon(glyph),name,`icon ${cls}`,`data-id="${id}" aria-label="${esc(label)}：${esc(t.title)}" title="${esc(label)}" data-tooltip="${esc(label)}" ${extra}`);
+  let actions=active(t)?action('取消任务','cancel-task','close'):['failed','needs_review','cancelled'].includes(t.state)?action('重试任务','retry-task','refresh'):'';
+  if(fileBlocked(t))actions+=action(t.pending?'处理文件':'处理采集','files','file');
+  actions+=action(open?'收起详情':'展开详情','expand','chevron','',`aria-expanded="${open}" aria-controls="detail-${id}"`);
+  actions+=action('删除任务记录','delete-one','trash','danger',`${allowed(t)?'':'disabled'} aria-describedby="reason-${id}"`);
+  const summary=`${t.target} · ${t.time} · ${blocked&&manage?blocked:t.message}`;
+  return `<article class="task" data-task-id="${id}" aria-label="${esc(t.title)}"><div class="task-row">${manage?`<input class="task-select" type="checkbox" data-select="${id}" aria-label="选择任务：${esc(t.title)}" ${!allowed(t)?`disabled aria-describedby="reason-${id}"`:''} ${selected.has(t.id)?'checked':''}>`:`<div class="task-symbol">${icon('activity')}</div>`}<div class="task-info"><div class="task-heading"><strong title="${esc(t.title)}">${esc(t.title)}</strong><span class="badge ${esc(t.state)}">${labels[t.state]}</span></div><p class="task-message" id="reason-${id}" title="${esc(summary)}">${esc(summary)}</p></div><div class="task-actions" role="group" aria-label="${esc(t.title)}的操作">${actions}</div></div>${t.state==='running'?'<div class="progress" aria-label="任务进度 46%"><div></div></div>':''}${open?`<div class="detail" id="detail-${id}"><dl><dt>任务名称</dt><dd>${esc(t.title)}</dd><dt>任务 ID</dt><dd>${id}</dd><dt>目标</dt><dd>${esc(t.target)}</dd><dt>创建时间</dt><dd>2026-${esc(t.time)}（北京时间）</dd><dt>删除条件</dt><dd>${esc(blocked||'点击删除直接移除记录，无需再次确认')}</dd></dl><pre>${esc(t.message)}\n诊断输出随任务记录删除。</pre></div>`:''}${t.state==='waiting_confirmation'?`<div class="license"><strong>官方工具正在等待许可确认</strong>${button('拒绝','reject-license','small',`data-id="${id}"`)}${button('接受当前许可','accept-license','small',`data-id="${id}"`)}</div>`:''}</article>`;
+ }
+ function scopeText(){return `关键词：${keyword?'“'+keyword+'”':'无'} · 状态：${labels[filter]} · ${keyword||filter!=='all'?'所有分页':'全部历史中的可删除任务'}`;}
+ function deletionSet(ids,mode){
+  const candidates=tasks.filter(t=>ids.includes(t.id));const eligible=candidates.filter(t=>allowed(t)&&(mode!=='clear'||t.state!=='needs_review'));
+  const skipped={active:0,files:0,review:0};candidates.forEach(t=>{if(active(t))skipped.active++;else if(fileBlocked(t))skipped.files++;else if(mode==='clear'&&t.state==='needs_review')skipped.review++;});
+  return {ids:eligible.map(t=>t.id),mode,scope:mode==='clear'?scopeText():mode==='batch'?`手动所选 ${eligible.length} 项 · 当前页`:'单条记录',skipped};
+ }
+ function dialogHTML(title,body,actions){return `<section class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1"><div class="dialog-head"><h2 id="dialog-title">${title}</h2>${button(icon('close'),'close-dialog','icon',`aria-label="关闭对话框" ${busy?'disabled':''}`)}</div>${body}<div class="dialog-actions">${actions}</div></section>`;}
+ function openDialog(kind,html){
+  if(!modal)trigger=document.activeElement;modal=kind;overlay.innerHTML=html;overlay.hidden=false;surface.inert=true;
+  requestAnimationFrame(()=>{const focus=overlay.querySelector('[data-initial-focus]')||overlay.querySelector('.dialog');if(focus)focus.focus();});
+ }
+ function hideDialog(restore=true){
+  modal='';overlay.hidden=true;overlay.innerHTML='';surface.inert=false;
+  if(restore){const old=trigger;requestAnimationFrame(()=>{if(old&&old.isConnected)old.focus();else (root.querySelector('[data-action="delete-one"]:not(:disabled)')||document.getElementById('manage')).focus();});}
+ }
+ function showFiles(id='',message=''){
+  const items=id?tasks.filter(t=>t.id===id&&fileBlocked(t)):tasks.filter(t=>t.pending);
+  const title=id&&items.some(t=>t.raw)?'处理原始采集':'待保存文件';
+  let body=message?`<div class="summary-box" role="status">${esc(message)}</div>`:'';
+  body+=`<p class="muted">${id?'仅显示当前任务的文件。处理完成后返回列表，再选择删除记录。':'文件处理与删除任务记录分别操作。'}</p>`;
+  body+=items.length?`<ul class="dialog-list">${items.map(t=>`<li><div class="item"><strong>${esc(t.title)}</strong><small>${t.raw?'3 段原始采集 · 18.4 MiB':'截图 · 428 KiB · 待保存'}<br>2026-${esc(t.time)}</small></div></li><li>${button(t.raw?'导出并保存…':'另存…',t.raw?'export-raw':'save-file','',`data-id="${esc(t.id)}"`)}${button(t.raw?'清理原始采集':'忽略并清理',t.raw?'clean-raw':'ignore-file','danger',`data-id="${esc(t.id)}"`)}</li>`).join('')}</ul>`:'<div class="empty"><h3>文件已处理</h3><p>任务记录仍保留，可返回列表继续删除。</p></div>';
+  if(items.some(t=>t.raw))body+='<p class="muted">导出只生成保存副本。原始采集仍在，清理后将无法再次选择采集段导出。</p>';
+  else if(items.length)body+='<p class="muted">忽略会删除对应本地缓存；已另存文件和任务记录保留。</p>';
+  openDialog('files',dialogHTML(title,body,button('返回任务列表','close-dialog','', 'data-initial-focus')));
+ }
+ async function executeDelete(ids,mode){
+  if(busy)return;
+  const plan=deletionSet(ids,mode);if(!plan.ids.length){notify('没有可删除的任务记录。');return;}
+  const origin=document.activeElement,originId=origin?.dataset.id,originAction=origin?.dataset.action;
+  const current=visible(),index=current.findIndex(t=>t.id===originId),neighbors=[current[index+1]?.id,current[index-1]?.id].filter(Boolean);
+  if(modal)hideDialog(false);
+  busy=true;render();notify(`正在删除 ${plan.ids.length} 条任务记录…`);
+  const scenario=document.getElementById('scenario').value;
+  await new Promise(resolve=>setTimeout(resolve,450));
+  const candidates=plan.ids.map(id=>tasks.find(t=>t.id===id)).filter(Boolean);
+  if(scenario==='race'&&candidates.length)candidates[0].state='running';
+  const failed=[],deleted=[];candidates.forEach((t,i)=>{if(active(t)||fileBlocked(t))failed.push({id:t.id,title:t.title,reason:reason(t)+'，已保留',retry:false});else if(scenario==='allfail'||scenario==='partial'&&i===candidates.length-1)failed.push({id:t.id,title:t.title,reason:'任务存储暂不可写，请稍后重试',retry:true});else deleted.push(t.id);});
+  tasks=tasks.filter(t=>!deleted.includes(t.id));deleted.forEach(id=>selected.delete(id));busy=false;
+  result={deleted:deleted.length,failed};render();
+  if(failed.length)notify(`已删除 ${deleted.length} 条，${failed.length} 条未删除。`,true,button('查看未删除项','results','small'));
+  else {const s=plan.skipped,kept=s.active+s.files+s.review;notify(`已删除 ${deleted.length} 条任务记录。${kept?`已保留 ${kept} 条受保护的任务。`:''}`);}
+  requestAnimationFrame(()=>{
+   let focus=origin?.isConnected&&!origin.disabled?origin:null;
+   if(originAction==='delete-one')focus=[originId,...neighbors].map(id=>root.querySelector(`[data-task-id="${id}"] .task-actions button:not(:disabled)`)).find(Boolean)||null;
+   (focus||document.getElementById('manage')).focus();
+  });
+ }
+ function showResult(){
+  if(!result)return;
+  const retry=result.failed.filter(t=>t.retry);
+  const body=`<div class="summary-box"><strong>已删除 ${result.deleted} 条，${result.failed.length} 条未删除</strong><span>成功项不会重复提交。</span></div><ul class="dialog-list">${result.failed.map(t=>`<li><div class="item">${esc(t.title)}<small>${esc(t.reason)}</small></div></li>`).join('')}</ul>${retry.length?'<p class="muted">本页错误由演示场景模拟；可切回“正常删除”后重试。</p>':'<p class="muted">请等待任务结束并重新检查，不会自动取消或删除。</p>'}`;
+  openDialog('result',dialogHTML('删除结果',body,button('返回列表','close-dialog','', 'data-initial-focus')+(retry.length?button('重试未删除项','retry-delete','danger'):'')));
+ }
+ root.addEventListener('click',event=>{
+  const btn=event.target.closest('button');if(!btn||btn.disabled||busy)return;
+  if(btn.dataset.filter){changeScope();filter=btn.dataset.filter;page=0;render();return;}
+  const a=btn.dataset.action,id=btn.dataset.id,t=tasks.find(item=>item.id===id);
+  if(a==='manage'){manage=!manage;selected.clear();render();}
+  else if(a==='refresh'){render();notify('任务列表已更新。');}
+  else if(a==='expand'&&t){expanded.has(id)?expanded.delete(id):expanded.add(id);render();root.querySelector(`[data-action="expand"][data-id="${id}"]`).focus();}
+  else if(a==='delete-one'&&t&&allowed(t))void executeDelete([id],'one');
+  else if(a==='delete-selected')void executeDelete([...selected],'batch');
+  else if(a==='clear')void executeDelete(matching().map(t=>t.id),'clear');
+  else if(a==='prev'||a==='next'){changeScope();page+=a==='prev'?-1:1;render();}
+  else if(a==='clear-filter'){changeScope();keyword='';filter='all';page=0;document.getElementById('search').value='';render();}
+  else if(a==='close-dialog')hideDialog();
+  else if(a==='inbox')showFiles();
+  else if(a==='files'&&t)showFiles(id);
+  else if(a==='save-file'&&t){t.pending=false;t.message='截图已另存 · 文件保留';render();showFiles(id,'模拟另存成功。文件副本已保存，任务记录仍保留。');}
+  else if(a==='ignore-file'&&t){t.pending=false;t.message='截图缓存已清理，任务记录已保留';render();showFiles(id,'截图缓存已清理。任务记录仍保留。');}
+  else if(a==='export-raw'&&t)showFiles(id,'模拟导出并保存成功。原始采集仍保留，可按需直接清理。');
+  else if(a==='clean-raw'&&t){t.raw=false;t.message='原始采集已清理，任务记录已保留';render();showFiles(id,'原始采集已清理。已另存的文件和任务记录保留。');}
+  else if(a==='cancel-task'&&t){t.state='cancelled';t.message='任务已取消，可按需删除记录';render();notify('模拟取消完成。任务记录仍保留，可单独选择删除。');}
+  else if(a==='reject-license'&&t){t.state='cancelled';t.message='已拒绝官方许可，任务已取消';render();}
+  else if(a==='accept-license'&&t){t.state='running';t.message='官方许可已接受，任务继续';render();}
+  else if(a==='retry-task'&&t){tasks.unshift({...t,id:`retry-${Date.now()}`,state:'queued',title:`重试：${t.title}`,message:'已新建演示任务，原任务记录保留',pending:false,raw:false});render();notify('已新建重试任务，删除原记录不会删除新任务。');}
+  else if(a==='results')showResult();
+  else if(a==='retry-delete')void executeDelete(result.failed.filter(item=>item.retry).map(item=>item.id),'batch');
+ });
+ document.getElementById('search').addEventListener('input',event=>{changeScope();keyword=event.target.value.trim();page=0;render();});
+ document.getElementById('select-page').addEventListener('change',event=>{visible().filter(allowed).forEach(t=>{event.target.checked?selected.add(t.id):selected.delete(t.id);});render();document.getElementById('select-page').focus();});
+ root.addEventListener('change',event=>{
+  if(event.target.dataset.select){event.target.checked?selected.add(event.target.dataset.select):selected.delete(event.target.dataset.select);const id=event.target.dataset.select;render();root.querySelector(`[data-select="${id}"]`)?.focus();}
+ });
+ overlay.addEventListener('click',event=>{if(event.target===overlay&&!busy)hideDialog();});
+ overlay.addEventListener('keydown',event=>{
+  if(event.key==='Escape'&&!busy){event.preventDefault();event.stopPropagation();hideDialog();return;}
+  if(event.key==='Tab'){
+   const items=[...overlay.querySelectorAll('button:not(:disabled),input:not(:disabled),summary,[tabindex="0"]')].filter(el=>el.getClientRects().length);
+   if(!items.length){event.preventDefault();return;}
+   const first=items[0],last=items.at(-1);
+   if(event.shiftKey&&(document.activeElement===first||document.activeElement.classList.contains('dialog'))){event.preventDefault();last.focus();}
+   else if(!event.shiftKey&&(document.activeElement===last||document.activeElement.classList.contains('dialog'))){event.preventDefault();first.focus();}
+  }
+ });
+ document.getElementById('theme').addEventListener('change',event=>document.documentElement.classList.toggle('dark',event.target.checked));
+ document.getElementById('reset').addEventListener('click',seed);
+ seed();
+})();
+</script>
+</body>
+</html>

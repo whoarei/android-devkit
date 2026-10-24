@@ -28,6 +28,7 @@ mod repository;
 mod sdk_installer;
 mod sdk_source;
 mod storage;
+mod task_records;
 mod terminal;
 mod updater;
 use tauri::Manager;
@@ -59,6 +60,8 @@ pub fn run() {
             commands::ui_locale_set,
             commands::workspace_snapshot,
             commands::task_list,
+            commands::task_delete,
+            commands::recording_discard,
             commands::environment_scan,
             commands::java_environment,
             commands::java_check,

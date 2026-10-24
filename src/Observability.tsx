@@ -439,16 +439,29 @@ export function ArtifactsPanel({
   onExport,
   onScreenshot,
   previewOpen,
+  requestedTaskId,
+  onRequestHandled,
 }: {
   guard: Guard;
   onExport: (p: ExportPreview) => void;
   onScreenshot: (src: string) => void;
   previewOpen: boolean;
+  requestedTaskId?: string | null;
+  onRequestHandled?: () => void;
 }) {
   const client = useQueryClient();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [taskScope, setTaskScope] = useState<string | null>(null);
+  useEffect(() => {
+    if (requestedTaskId) {
+      setTaskScope(requestedTaskId);
+      setOpen(true);
+      setError('');
+      onRequestHandled?.();
+    }
+  }, [requestedTaskId, onRequestHandled]);
   const previewTrigger = useRef<HTMLElement | null>(null);
   const wasPreviewing = useRef(false);
   const query = useQuery({
@@ -476,7 +489,8 @@ export function ArtifactsPanel({
       cancelled = true;
     };
   }, [open, previewOpen, query.refetch]);
-  const pending = query.data?.filter((a) => !a.acknowledged) ?? [];
+  const allPending = query.data?.filter((a) => !a.acknowledged) ?? [];
+  const pending = allPending.filter((a) => !taskScope || a.taskId === taskScope);
   const run = (work: () => Promise<void>) =>
     void guard(async () => {
       if (busy) return;
@@ -512,20 +526,21 @@ export function ArtifactsPanel({
     <>
       <button
         className="artifact-inbox icon-button"
-        aria-label={tr('待保存文件：{0} 项', pending.length)}
+        aria-label={tr('待保存文件：{0} 项', allPending.length)}
         title={tr('待保存文件')}
         aria-haspopup="dialog"
         aria-expanded={open}
         disabled={!native}
         onClick={() => {
+          setTaskScope(null);
           setOpen(true);
           setError('');
         }}
       >
         <FileDown size={18} aria-hidden="true" />
-        {pending.length > 0 && (
+        {allPending.length > 0 && (
           <span className="artifact-count" aria-hidden="true">
-            {pending.length > 99 ? '99+' : pending.length}
+            {allPending.length > 99 ? '99+' : allPending.length}
           </span>
         )}
       </button>
@@ -555,6 +570,7 @@ export function ArtifactsPanel({
             </button>
           </div>
           <p className="hint">
+            {taskScope && <>{tr('仅显示当前任务的文件。')} </>}
             {tr('忽略会删除对应的本地缓存；已另存文件、原始采集段和任务记录保留。')}
           </p>
           {(error || query.error) && (

@@ -28,7 +28,7 @@ pub async fn workspace_snapshot(app: Service<'_>) -> Result<Workspace> {
 #[tauri::command]
 pub async fn task_list(app: Service<'_>, query: TaskQuery) -> Result<TaskPage> {
     let app = app.inner().clone();
-    tauri::async_runtime::spawn_blocking(move || app.store.task_page(&query))
+    tauri::async_runtime::spawn_blocking(move || app.task_records_page(&query))
         .await
         .map_err(|error| {
             AppError::new("TASK_QUERY_FAILED", "读取任务失败").detail(error.to_string())
@@ -37,6 +37,24 @@ pub async fn task_list(app: Service<'_>, query: TaskQuery) -> Result<TaskPage> {
 #[tauri::command]
 pub fn environment_scan(app: Service<'_>) -> Vec<Environment> {
     android::scan(&app.store.settings())
+}
+#[tauri::command]
+pub async fn task_delete(app: Service<'_>, request: TaskDeleteRequest) -> Result<TaskDeleteResult> {
+    let app = app.inner().clone();
+    tokio::task::spawn_blocking(move || app.delete_task_records(request))
+        .await
+        .map_err(|e| {
+            AppError::new("TASK_DELETE_FAILED", "删除任务记录失败").detail(e.to_string())
+        })?
+}
+#[tauri::command]
+pub async fn recording_discard(app: Service<'_>, task_id: String) -> Result<()> {
+    let app = app.inner().clone();
+    tokio::task::spawn_blocking(move || app.discard_recording(&task_id))
+        .await
+        .map_err(|e| {
+            AppError::new("RECORDING_CLEANUP_FAILED", "清理原始采集失败").detail(e.to_string())
+        })?
 }
 #[tauri::command]
 pub async fn java_environment(app: Service<'_>) -> Result<crate::java::JavaEnvironment> {
@@ -222,6 +240,7 @@ pub fn task_cancel(app: Service<'_>, task_id: String) -> Result<()> {
 }
 #[tauri::command]
 pub fn task_retry(app: Service<'_>, task_id: String) -> Result<Plan> {
+    let _task_use = app.use_task_record(&task_id, false)?;
     let t = app.store.task(&task_id)?;
     if t.active() {
         return Err(AppError::new("TASK_ACTIVE", "任务仍在运行"));
@@ -252,6 +271,7 @@ pub fn apk_prepare(app: Service<'_>, path: String) -> Result<ApkInfo> {
 }
 #[tauri::command]
 pub async fn artifact_save(app: Service<'_>, task_id: String) -> Result<Option<String>> {
+    let _task_use = app.use_task_record(&task_id, false)?;
     let task = app.store.task(&task_id)?;
     let source = task.artifact;
     if source.is_empty() {
@@ -277,6 +297,7 @@ pub async fn artifact_save(app: Service<'_>, task_id: String) -> Result<Option<S
 }
 #[tauri::command]
 pub fn artifact_copy(app: Service<'_>, task_id: String, preview: bool) -> Result<String> {
+    let _task_use = app.use_task_record(&task_id, false)?;
     let task = app.store.task(&task_id)?;
     if task.artifact.is_empty() {
         return Err(AppError::new("ARTIFACT_NOT_FOUND", "没有截图产物"));
@@ -484,6 +505,7 @@ pub async fn export_save(app: Service<'_>, artifact_id: String) -> Result<Option
 }
 #[tauri::command]
 pub fn recording_segments(app: Service<'_>, task_id: String) -> Result<serde_json::Value> {
+    let _task_use = app.use_task_record(&task_id, false)?;
     let task = app.store.task(&task_id)?;
     if task.operation.kind != "log_record" {
         return Err(AppError::new("INVALID_TASK", "不是文件采集任务"));

@@ -2,6 +2,19 @@ use crate::domain::*;
 use rusqlite::{params, Connection};
 use std::{path::Path, sync::Mutex};
 
+const TASK_SEARCH: &str =
+    "id NOT IN (SELECT task_id FROM deleted_task_records) AND (?1 = '' OR instr(lower(
+    coalesce(json_extract(json,'$.title'),'') || char(10) ||
+    coalesce(json_extract(json,'$.message'),'') || char(10) || id || char(10) ||
+    coalesce(json_extract(json,'$.operation.kind'),'') || char(10) ||
+    coalesce(json_extract(json,'$.operation.target.serial'),'') || char(10) ||
+    coalesce(json_extract(json,'$.operation.args.address'),'') || char(10) ||
+    coalesce(json_extract(json,'$.operation.args.avdId'),'') || char(10) ||
+    coalesce(json_extract(json,'$.operation.args.package'),'') || char(10) ||
+    coalesce(json_extract(json,'$.operation.args.packages'),'')), lower(?1)) > 0)";
+const TASK_STATE: &str = "(?2 IN ('','all') OR json_extract(json,'$.state') = ?2 OR
+    (?2 = 'active' AND json_extract(json,'$.state') IN ('queued','running','waiting_confirmation')))";
+
 pub struct Store {
     connection: Mutex<Connection>,
 }
@@ -24,6 +37,9 @@ impl Store {
         }
         connection.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; CREATE TABLE IF NOT EXISTS settings (id INTEGER PRIMARY KEY CHECK(id=1),json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS tasks(id TEXT PRIMARY KEY,request_id TEXT UNIQUE NOT NULL,json TEXT NOT NULL); CREATE TABLE IF NOT EXISTS audit(id INTEGER PRIMARY KEY,created_at INTEGER NOT NULL,task_id TEXT NOT NULL,event TEXT NOT NULL); CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,json TEXT NOT NULL,path TEXT NOT NULL); PRAGMA user_version=2;")?;
         connection.execute_batch("CREATE TABLE IF NOT EXISTS sdk_catalog (id INTEGER PRIMARY KEY CHECK(id=1),packages TEXT NOT NULL,sites TEXT NOT NULL);")?;
+        connection.execute_batch(
+            "CREATE TABLE IF NOT EXISTS deleted_task_records(task_id TEXT PRIMARY KEY);",
+        )?;
         let store = Self {
             connection: Mutex::new(connection),
         };
@@ -54,7 +70,7 @@ impl Store {
         Ok(())
     }
     pub fn tasks(&self) -> Result<Vec<Task>> {
-        self.query_tasks("SELECT json FROM tasks ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT 200")
+        self.query_tasks("SELECT json FROM tasks WHERE id NOT IN (SELECT task_id FROM deleted_task_records) ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT 200")
     }
     pub fn sdk_catalog(&self) -> Option<(Vec<SdkPackage>, Vec<SdkSiteStatus>)> {
         let (packages, sites): (String, String) = self
@@ -107,15 +123,7 @@ impl Store {
         }
         let keyword = query.keyword.trim();
         // instr treats '%' and '_' literally and all input remains parameterized.
-        let search = "(?1 = '' OR instr(lower(
-            coalesce(json_extract(json,'$.title'),'') || char(10) ||
-            coalesce(json_extract(json,'$.message'),'') || char(10) || id || char(10) ||
-            coalesce(json_extract(json,'$.operation.kind'),'') || char(10) ||
-            coalesce(json_extract(json,'$.operation.target.serial'),'') || char(10) ||
-            coalesce(json_extract(json,'$.operation.args.address'),'') || char(10) ||
-            coalesce(json_extract(json,'$.operation.args.avdId'),'') || char(10) ||
-            coalesce(json_extract(json,'$.operation.args.package'),'') || char(10) ||
-            coalesce(json_extract(json,'$.operation.args.packages'),'')), lower(?1)) > 0)";
+        let search = TASK_SEARCH;
         let connection = self.connection.lock().unwrap();
         let mut counts = std::collections::BTreeMap::<String, u32>::new();
         let mut statement = connection.prepare(&format!(
@@ -142,10 +150,7 @@ impl Store {
             .offset
             .min(total.saturating_sub(1) / page_size * page_size);
         let mut statement = connection.prepare(&format!(
-            "SELECT json FROM tasks WHERE {search} AND (
-                ?2 IN ('','all') OR json_extract(json,'$.state') = ?2 OR
-                (?2 = 'active' AND json_extract(json,'$.state') IN ('queued','running','waiting_confirmation'))
-            ) ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT ?3 OFFSET ?4"
+            "SELECT json FROM tasks WHERE {search} AND {TASK_STATE} ORDER BY CASE WHEN json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') THEN 0 ELSE 1 END, rowid DESC LIMIT ?3 OFFSET ?4"
         ))?;
         let rows = statement.query_map(params![keyword, state, page_size, offset], |r| {
             r.get::<_, String>(0)
@@ -160,6 +165,7 @@ impl Store {
             counts,
             offset,
             page_size,
+            deletion: TaskDeletionSummary::default(),
         })
     }
     fn query_tasks(&self, sql: &str) -> Result<Vec<Task>> {
@@ -176,7 +182,59 @@ impl Store {
         self.query_tasks("SELECT json FROM tasks WHERE json_extract(json,'$.state') IN ('queued','running','waiting_confirmation') ORDER BY rowid")
     }
     pub fn review_tasks(&self) -> Result<Vec<Task>> {
-        self.query_tasks("SELECT json FROM tasks WHERE json_extract(json,'$.state')='needs_review' ORDER BY rowid")
+        self.query_tasks("SELECT json FROM tasks WHERE id NOT IN (SELECT task_id FROM deleted_task_records) AND json_extract(json,'$.state')='needs_review' ORDER BY rowid")
+    }
+    pub fn task_record_deleted(&self, id: &str) -> Result<bool> {
+        Ok(self.connection.lock().unwrap().query_row(
+            "SELECT EXISTS(SELECT 1 FROM deleted_task_records WHERE task_id=?1)",
+            [id],
+            |row| row.get(0),
+        )?)
+    }
+    pub fn matching_task_records(&self, query: &TaskQuery) -> Result<Vec<Task>> {
+        self.task_page(query)?;
+        let connection = self.connection.lock().unwrap();
+        let mut statement = connection.prepare(&format!("SELECT json_set(json,'$.log',json('[]')) FROM tasks WHERE {TASK_SEARCH} AND {TASK_STATE} ORDER BY rowid DESC"))?;
+        let rows = statement.query_map(params![query.keyword.trim(), query.state], |row| {
+            row.get::<_, String>(0)
+        })?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+    pub fn delete_task_record(&self, id: &str) -> Result<bool> {
+        let mut connection = self.connection.lock().unwrap();
+        let tx = connection.transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)?;
+        if tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM deleted_task_records WHERE task_id=?1)",
+            [id],
+            |row| row.get::<_, bool>(0),
+        )? {
+            return Ok(false);
+        }
+        let raw: String =
+            tx.query_row("SELECT json FROM tasks WHERE id=?1", [id], |row| row.get(0))?;
+        let mut task: Task = serde_json::from_str(&raw)?;
+        if task.active() || (task.state == "needs_review" && task.phase == "recovery") {
+            return Err(AppError::new(
+                "TASK_ACTIVE",
+                "任务仍在执行或恢复，请等待结束",
+            ));
+        }
+        let pending: bool = tx.query_row("SELECT EXISTS(SELECT 1 FROM artifacts WHERE json_extract(json,'$.taskId')=?1 AND coalesce(json_extract(json,'$.acknowledged'),0)=0)", [id], |row| row.get(0))?;
+        if pending || (task.operation.kind == "log_record" && !task.artifact.is_empty()) {
+            return Err(AppError::new("TASK_FILES_PENDING", "请先处理任务文件"));
+        }
+        // Retain identity/ownership for deduplicated submissions, AVD recovery
+        // and acknowledged file caches. User-visible diagnostics are removed.
+        task.log.clear();
+        task.message = "任务记录已删除".into();
+        task.license_prompt.clear();
+        tx.execute(
+            "UPDATE tasks SET json=?1 WHERE id=?2",
+            params![serde_json::to_string(&task)?, id],
+        )?;
+        tx.execute("INSERT INTO deleted_task_records(task_id) VALUES(?1)", [id])?;
+        tx.commit()?;
+        Ok(true)
     }
     pub fn register_artifact(
         &self,
@@ -302,6 +360,43 @@ impl Store {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn partial_task_deletion_rolls_back_diagnostics_and_only_retries_failures() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = crate::app::App::new(dir.path().into()).unwrap();
+        for id in ["good", "bad"] {
+            let mut task = crate::regression_tests::task(id, "failed");
+            task.log.push("retained on failure".into());
+            app.store.save_task(&task).unwrap();
+        }
+        app.store.connection.lock().unwrap().execute_batch("CREATE TRIGGER reject_record_delete BEFORE INSERT ON deleted_task_records WHEN NEW.task_id='bad' BEGIN SELECT RAISE(ABORT,'fixture storage failure'); END;").unwrap();
+        let result = app
+            .delete_task_records(TaskDeleteRequest {
+                task_ids: vec!["good".into(), "bad".into()],
+                query: None,
+            })
+            .unwrap();
+        assert_eq!(result.deleted, 1);
+        assert_eq!(result.issues.len(), 1);
+        assert!(result.issues[0].retryable);
+        assert_eq!(result.issues[0].task_id, "bad");
+        assert_eq!(app.store.task("bad").unwrap().log, ["retained on failure"]);
+        app.store
+            .connection
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER reject_record_delete")
+            .unwrap();
+        let result = app
+            .delete_task_records(TaskDeleteRequest {
+                task_ids: vec!["good".into(), "bad".into()],
+                query: None,
+            })
+            .unwrap();
+        assert_eq!(result.deleted, 1);
+        assert_eq!(result.already_deleted, 1);
+        assert!(app.store.tasks().unwrap().is_empty());
+    }
     #[test]
     fn source_and_catalog_rollback_together_when_the_catalog_write_fails() {
         use super::*;

@@ -77,6 +77,8 @@ const path = require('node:path');
       window.__saveSucceeds = false;
       window.__rejectDiscard = false;
       window.__calls = [];
+      window.__deleteFailures = [];
+      window.__deleteRace = '';
       window.isTauri = true;
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
       window.__TAURI_INTERNALS__ = {
@@ -141,13 +143,78 @@ const path = require('node:path');
                 state === 'all' || (state === 'active' ? active(task.state) : task.state === state),
             );
             const start = Math.min(offset, Math.floor(Math.max(0, filtered.length - 1) / 30) * 30);
+            const deletion = { eligible: 0, active: 0, files: 0, review: 0, busy: 0, blocked: {} };
+            for (const task of filtered) {
+              let reason = '';
+              if (active(task.state)) {
+                deletion.active++;
+                reason = '任务仍在进行，请先取消并等待结束';
+              } else if (task.operation.kind === 'log_record' && task.artifact) {
+                deletion.files++;
+                reason = '原始采集仍在，请先处理采集文件';
+              } else if (window.__artifacts.some((a) => a.taskId === task.id && !a.acknowledged)) {
+                deletion.files++;
+                reason = '有待保存文件，请先处理';
+              } else if (task.state === 'needs_review') deletion.review++;
+              else deletion.eligible++;
+              if (reason) deletion.blocked[task.id] = reason;
+            }
             return {
               tasks: structuredClone(filtered.slice(start, start + 30)),
               total: filtered.length,
               counts,
               offset: start,
               pageSize: 30,
+              deletion,
             };
+          }
+          if (command === 'task_delete') {
+            await new Promise((resolve) => setTimeout(resolve, 35));
+            const request = args.request;
+            const filtered = request.query
+              ? window.__tasks.filter(
+                  (task) =>
+                    `${task.id}\n${task.title}\n${task.message}\n${task.operation.args.address || ''}`
+                      .toLowerCase()
+                      .includes(request.query.keyword.toLowerCase()) &&
+                    (request.query.state === 'all' ||
+                      (request.query.state === 'active'
+                        ? ['running', 'queued', 'waiting_confirmation'].includes(task.state)
+                        : task.state === request.query.state)),
+                )
+              : window.__tasks.filter((task) => request.taskIds.includes(task.id));
+            const response = { deleted: 0, alreadyDeleted: 0, issues: [] };
+            const deleted = [];
+            for (const task of filtered) {
+              if (task.id === window.__deleteRace) task.state = 'running';
+              let reason = '';
+              let retryable = false;
+              if (['running', 'queued', 'waiting_confirmation'].includes(task.state))
+                reason = '任务仍在进行，请先取消并等待结束';
+              else if (
+                (task.operation.kind === 'log_record' && task.artifact) ||
+                window.__artifacts.some((a) => a.taskId === task.id && !a.acknowledged)
+              )
+                reason = '请先处理任务文件';
+              else if (request.query && task.state === 'needs_review')
+                reason = '结果待检查，已保留';
+              else if (window.__deleteFailures.includes(task.id)) {
+                reason = 'Fixture storage locked';
+                retryable = true;
+              }
+              if (reason)
+                response.issues.push({ taskId: task.id, title: task.title, reason, retryable });
+              else {
+                response.deleted++;
+                deleted.push(task.id);
+              }
+            }
+            window.__tasks = window.__tasks.filter((task) => !deleted.includes(task.id));
+            return response;
+          }
+          if (command === 'recording_discard') {
+            window.__tasks.find((task) => task.id === args.taskId).artifact = '';
+            return null;
           }
           if (command === 'task_cancel') {
             // Model asynchronous native IPC so the test waits for the rendered refresh.
@@ -213,6 +280,20 @@ const path = require('node:path');
     await page.getByRole('dialog', { name: '重试原任务', exact: true }).waitFor();
     await page.getByRole('button', { name: '返回修改', exact: true }).click();
     const license = page.locator('[data-task-id="license"]');
+    assert.equal(
+      await license.getByRole('button', { name: '删除任务记录', exact: true }).isDisabled(),
+      true,
+    );
+    const pendingCapture = page.locator('[data-task-id="capture"]');
+    assert.equal(
+      await pendingCapture.getByRole('button', { name: '删除任务记录', exact: true }).isDisabled(),
+      true,
+    );
+    await pendingCapture.getByRole('button', { name: '处理文件', exact: true }).click();
+    let scopedFiles = page.getByRole('dialog', { name: '待保存文件', exact: true });
+    await scopedFiles.locator('.artifact-item').first().waitFor();
+    assert.equal(await scopedFiles.locator('.artifact-item').count(), 1);
+    await scopedFiles.getByRole('button', { name: '关闭面板', exact: true }).click();
     assert.equal(
       await license
         .getByRole('button', { name: '展开详情', exact: true })
@@ -441,6 +522,131 @@ const path = require('node:path');
       .getByRole('dialog', { name: 'Pending files', exact: true })
       .getByText('No pending files', { exact: true })
       .waitFor();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Close panel', exact: true })
+      .click();
+    await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
+    const assertRightActions = async () => {
+      const checks = await rows.evaluateAll((items) =>
+        items.map((row) => {
+          const info = row.querySelector('.task-overview').getBoundingClientRect();
+          const actions = row.querySelector('.task-row-actions').getBoundingClientRect();
+          const box = row.getBoundingClientRect();
+          return {
+            right: actions.left >= info.right,
+            center: Math.abs((actions.top + actions.bottom - info.top - info.bottom) / 2),
+            gap: box.right - actions.right,
+          };
+        }),
+      );
+      for (const check of checks) {
+        assert(check.right);
+        assert(check.center < 2);
+        assert(check.gap <= 14);
+      }
+    };
+    await assertRightActions();
+    await page.setViewportSize({ width: 480, height: 740 });
+    await assertRightActions();
+    await page.screenshot({ path: path.join(output, 'task-deletion-narrow.png') });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.screenshot({ path: path.join(output, 'task-deletion-desktop.png') });
+    // Deletion never opens a confirmation, including a needs-review record.
+    await page
+      .locator('[data-task-id="review"]')
+      .getByRole('button', { name: '删除任务记录', exact: true })
+      .click();
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    await page.locator('[data-task-id="review"]').waitFor({ state: 'detached' });
+    await page
+      .locator('.task-delete-feedback')
+      .getByText('已删除 1 条任务记录，保留 0 条', { exact: true })
+      .waitFor();
+    await page.getByRole('button', { name: '管理任务', exact: true }).click();
+    await page.getByRole('checkbox', { name: '全选本页可删除项', exact: true }).check();
+    await page.getByRole('button', { name: '下一页', exact: true }).click();
+    await page.locator('.task-selection').getByText('已选 0 项', { exact: true }).waitFor();
+    await page.getByRole('checkbox', { name: '全选本页可删除项', exact: true }).check();
+    const countBefore = await page.evaluate(() => window.__tasks.length);
+    await page
+      .locator('.task-selection')
+      .getByRole('button', { name: /删除所选/ })
+      .click();
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    await page.waitForFunction((before) => window.__tasks.length < before, countBefore);
+    await page.getByRole('button', { name: '完成管理', exact: true }).click();
+    // Raw files stay protected until a separate direct cleanup operation.
+    await search.fill('文件采集结束');
+    await page.locator('[data-task-id="recording"]').waitFor();
+    await page.locator('.task-list[aria-busy="false"]').waitFor();
+    await page
+      .locator('[data-task-id="recording"]')
+      .getByRole('button', { name: '处理采集', exact: true })
+      .click();
+    await page.getByRole('button', { name: '清理原始采集', exact: true }).click();
+    await page
+      .locator('[data-task-id="recording"]')
+      .getByRole('button', { name: '删除任务记录', exact: true })
+      .waitFor({ state: 'visible' });
+    await page.waitForFunction(
+      () =>
+        !document.querySelector('[data-task-id="recording"] [aria-label="删除任务记录"]').disabled,
+    );
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    // State changes and storage failures preserve records and support scoped retry.
+    await search.fill('连接 Pixel');
+    await page.locator('.task-list[aria-busy="false"]').waitFor();
+    await page.evaluate(() => {
+      window.__deleteRace = 'fail';
+    });
+    await failed.getByRole('button', { name: '删除任务记录', exact: true }).click();
+    await failed.getByText('运行中', { exact: true }).waitFor();
+    assert.equal(
+      await failed.getByRole('button', { name: '删除任务记录', exact: true }).isDisabled(),
+      true,
+    );
+    await page.evaluate(() => {
+      window.__deleteRace = '';
+      window.__tasks.find((t) => t.id === 'fail').state = 'failed';
+      window.__deleteFailures = ['fail'];
+    });
+    await search.fill('');
+    await search.fill('连接 Pixel');
+    await page.waitForFunction(
+      () => !document.querySelector('[data-task-id="fail"] [aria-label="删除任务记录"]').disabled,
+    );
+    await failed.getByRole('button', { name: '删除任务记录', exact: true }).click();
+    await page
+      .locator('.task-delete-feedback')
+      .getByText('已删除 0 条任务记录，保留 1 条', { exact: true })
+      .waitFor();
+    await page.getByText('查看未删除项', { exact: true }).click();
+    await page.getByText('Fixture storage locked', { exact: false }).waitFor();
+    await page.evaluate(() => {
+      window.__deleteFailures = [];
+    });
+    await page.getByRole('button', { name: '重试未删除项', exact: true }).click();
+    await failed.waitFor({ state: 'detached' });
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    // Search-scoped cleanup reaches every page while protecting active tasks.
+    await search.fill('历史任务');
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('.task-toolbar button')].some(
+        (b) => b.textContent.includes('清理历史（') && !b.disabled,
+      ),
+    );
+    const historyBefore = await page.evaluate(
+      () => window.__tasks.filter((t) => t.id.startsWith('history-')).length,
+    );
+    assert(historyBefore > 30);
+    await page.getByRole('button', { name: /^清理历史（/ }).click();
+    await page.getByRole('heading', { name: '没有匹配的任务', exact: true }).waitFor();
+    assert.equal(
+      await page.evaluate(() => window.__tasks.filter((t) => t.id.startsWith('history-')).length),
+      0,
+    );
+    assert.equal(await page.evaluate(() => window.__tasks.some((t) => t.id === 'queue')), true);
     assert.deepEqual(errors, []);
     console.log(
       `Task center: ${collapsedHeight}px desktop rows; filters, actions, artifact cleanup, preview return via close/Escape/backdrop, scroll/focus preservation and narrow layout passed.`,

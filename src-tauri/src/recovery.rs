@@ -119,7 +119,7 @@ pub fn write_commit_journal(path: &Path, journal: &serde_json::Value) -> Result<
 }
 
 impl App {
-    fn pending_avd_commits(&self) -> Result<std::collections::HashSet<String>> {
+    pub(crate) fn pending_avd_commits(&self) -> Result<std::collections::HashSet<String>> {
         let mut pending = std::collections::HashSet::new();
         for entry in std::fs::read_dir(&self.data)? {
             let entry = entry?;
@@ -249,6 +249,9 @@ impl App {
             .filter(|t| t.state == "needs_review")
         {
             let op = &task.operation;
+            let Ok(_task_use) = self.use_task_record(&task.id, false) else {
+                continue;
+            };
             let expected: std::collections::BTreeMap<String, String> =
                 serde_json::from_str(op.optional("expectedVersions")).unwrap_or_default();
             let proven = match op.kind.as_str() {

@@ -79,6 +79,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 安装进度和结果保留在“任务中心”，可按任务名称、设备或状态检索。
 
+任务条目右侧可展开详情、重试或删除记录；删除点击即执行。通过“管理任务”勾选本页任务批量删除，或用“清理历史”处理当前搜索与状态下的全部分页。进行中、收尾与恢复中的任务受保护；有待保存文件或原始采集时先处理文件。“清理历史”还会保留待检查任务。删除记录不撤销执行结果，也不删除已另存文件。
+
 ### 4. 查看日志、截图与保存文件
 
 选中设备后，在 Logcat 区域点击“开始查看”，按日志级别、Tag、关键词、PID 或应用包名过滤。需要保留一段日志时可启动文件采集；切换页面后采集仍继续，在任务中心停止采集并导出。
@@ -203,5 +205,6 @@ powershell -NoProfile -File scripts/package-release.ps1
 - [M4 核心功能与内部验收报告](docs/00003_20261018063845_Android-DevKit-M4-Progress-Report.html)
 - [SDK 下载源切换交互原型](docs/00004_20261024112652_Android-DevKit-SDK-Mirror-Prototype.html)
 - [Java 环境配置交互方案](docs/00005_20261024144951_Android-DevKit-Java-Environment-Design.html)
+- [任务删除交互方案](docs/00006_20261024145638_Android-DevKit-Task-Deletion-Design.html)
 
 历史报告记录对应阶段的验证范围。提交问题时，请附上应用版本、Windows 版本、连接方式和复现步骤；需要时可从“环境诊断”预览并导出诊断信息。

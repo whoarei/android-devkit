@@ -33,6 +33,7 @@ pub struct App {
     pub log_children: Mutex<HashMap<String, tokio::sync::mpsc::Sender<()>>>,
     pub log_views: Mutex<HashSet<String>>,
     pub process_cache: Mutex<HashMap<String, crate::observe::ProcessCache>>,
+    pub task_uses: Mutex<HashMap<String, usize>>,
 }
 impl App {
     pub fn new(data: PathBuf) -> Result<Arc<Self>> {
@@ -83,6 +84,7 @@ impl App {
             log_children: Mutex::new(HashMap::new()),
             log_views: Mutex::new(HashSet::new()),
             process_cache: Mutex::new(HashMap::new()),
+            task_uses: Mutex::new(HashMap::new()),
         }))
     }
     pub fn notify(&self) {

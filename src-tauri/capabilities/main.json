@@ -14,6 +14,8 @@
     "core:event:allow-unlisten",
     "allow-workspace-snapshot",
     "allow-task-list",
+    "allow-task-delete",
+    "allow-recording-discard",
     "allow-environment-scan",
     "allow-java-environment",
     "allow-java-check",
