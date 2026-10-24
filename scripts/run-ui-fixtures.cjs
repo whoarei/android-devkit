@@ -2,6 +2,7 @@
 const { spawn, execFileSync } = require('node:child_process');
 const net = require('node:net');
 const path = require('node:path');
+const { stripVTControlCharacters } = require('node:util');
 const root = path.resolve(__dirname, '..');
 (async () => {
   const port = await new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@ const root = path.resolve(__dirname, '..');
   });
   server.stdout.on('data', (chunk) => {
     output += chunk;
-    listening ||= output.includes(url);
+    listening ||= stripVTControlCharacters(output).includes(url);
   });
   server.stderr.on('data', (chunk) => {
     output += chunk;
