@@ -9,6 +9,7 @@
     "allow-workspace-snapshot",
     "allow-task-list",
     "allow-environment-scan",
+    "allow-sdk-open-directory",
     "allow-settings-save",
     "allow-catalog-refresh",
     "allow-sdk-sites-status",

@@ -39,6 +39,41 @@ pub fn environment_scan(app: Service<'_>) -> Vec<Environment> {
     android::scan(&app.store.settings())
 }
 #[tauri::command]
+pub fn sdk_open_directory(app: Service<'_>) -> Result<()> {
+    let settings = app.store.settings();
+    let path = Path::new(&settings.sdk_root);
+    if !path.is_absolute() || !path.is_dir() {
+        return Err(AppError::new(
+            "SDK_DIRECTORY_MISSING",
+            "SDK 目录不存在，请在设置中检查当前 SDK 根目录",
+        ));
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::UI::{Shell::ShellExecuteW, WindowsAndMessaging::SW_SHOWNORMAL};
+        let verb: Vec<u16> = "explore\0".encode_utf16().collect();
+        let directory: Vec<u16> = path.as_os_str().encode_wide().chain(Some(0)).collect();
+        let result = unsafe {
+            ShellExecuteW(
+                std::ptr::null_mut(),
+                verb.as_ptr(),
+                directory.as_ptr(),
+                std::ptr::null(),
+                std::ptr::null(),
+                SW_SHOWNORMAL,
+            )
+        };
+        if result as isize > 32 {
+            return Ok(());
+        }
+    }
+    Err(AppError::new(
+        "OPEN_SDK_DIRECTORY_FAILED",
+        "无法打开 SDK 目录，请检查目录访问权限",
+    ))
+}
+#[tauri::command]
 pub fn settings_save(app: Service<'_>, settings: Settings) -> Result<()> {
     crate::repository::validate(&settings)?;
     if !app.store.active_tasks()?.is_empty() {

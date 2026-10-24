@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-sdk-open-directory"
+description = "Enables the sdk_open_directory command without any pre-configured scope."
+commands.allow = ["sdk_open_directory"]
+
+[[permission]]
+identifier = "deny-sdk-open-directory"
+description = "Denies the sdk_open_directory command without any pre-configured scope."
+commands.deny = ["sdk_open_directory"]

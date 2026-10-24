@@ -50,6 +50,7 @@ pub fn run() {
             commands::workspace_snapshot,
             commands::task_list,
             commands::environment_scan,
+            commands::sdk_open_directory,
             commands::settings_save,
             commands::catalog_refresh,
             commands::sdk_sites_status,

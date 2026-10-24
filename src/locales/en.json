@@ -15,6 +15,8 @@
   "关闭窗口": "Close window",
   "工作空间": "Workspace",
   "SDK 已就位": "SDK ready",
+  "打开 SDK 目录": "Open SDK folder",
+  "双击在资源管理器中打开 SDK 目录": "Double-click to open the SDK folder in File Explorer",
   "准备开发环境": "Set up development tools",
   "准备好设备，让下一次验证更直接。": "Get your device ready for the next test.",
   "按需准备组件，复用已有开发环境。": "Install the components you need and reuse your existing SDK.",

@@ -1,4 +1,6 @@
 {
+  "SDK 目录不存在，请在设置中检查当前 SDK 根目录": "The SDK folder does not exist. Check the SDK root folder in Settings",
+  "无法打开 SDK 目录，请检查目录访问权限": "Unable to open the SDK folder. Check its access permissions",
   "配置已被外部修改，保留输入并重新载入": "Configuration changed externally. Keep your input and reload it",
   "保存时发现外部更改": "External changes detected while saving",
   "系统 ANDROID_HOME 与 ANDROID_SDK_ROOT 不一致；本应用使用显式路径": "ANDROID_HOME and ANDROID_SDK_ROOT differ. This app uses the explicitly selected path",

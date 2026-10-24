@@ -391,15 +391,23 @@ export function App() {
               </button>
             ))}
           </nav>
-          <div className="sdk-card">
+          <button
+            type="button"
+            className="sdk-card"
+            aria-label={t('打开 SDK 目录')}
+            title={`${t('双击在资源管理器中打开 SDK 目录')}\n${data?.settings.sdkRoot ?? ''}`}
+            disabled={!native || !data?.settings.sdkRoot}
+            onDoubleClick={() => void guard(() => call('sdk_open_directory'))}
+            onClick={(event) => {
+              if (event.detail === 0) void guard(() => call('sdk_open_directory'));
+            }}
+          >
             <span className={`connection-dot ${data?.environment.adb ? 'online' : ''}`} />
-            <div>
+            <span>
               <b>{data?.environment.adb ? t('SDK 已就位') : t('准备开发环境')}</b>
-              <small title={data?.settings.sdkRoot}>
-                {data?.settings.sdkRoot ?? 'E:\Android\sdk'}
-              </small>
-            </div>
-          </div>
+              <small>{data?.settings.sdkRoot ?? 'E:\\Android\\sdk'}</small>
+            </span>
+          </button>
           <small className="build-label">
             {updater.info && (
               <button className="text-button update-shortcut" onClick={() => setPage('settings')}>

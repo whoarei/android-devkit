@@ -8,6 +8,7 @@ fn main() {
         "workspace_snapshot",
         "task_list",
         "environment_scan",
+        "sdk_open_directory",
         "settings_save",
         "catalog_refresh",
         "sdk_sites_status",
