@@ -4,13 +4,13 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.4.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.5.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
 一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，v0.4.0 已发布，其余验收事项继续保留 TODO，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
 
 0.4.0 完成一期功能收尾：新增 SDK 发现与复用、Java 环境检测与私有运行时配置、系统镜像按 API 分组、任务记录删除与采集清理、默认设备与就绪后安装、环境摘要复制及 AVD 空间统计；修复多模拟器目标歧义和升级安装时旧进程尚未退出的问题，并补充 35 场景故障专项验证。已有 SDK / Java 路径保持沿用。
 
-二期开发源码已实现 **分包 APK 安装 → 录屏 → 文件传输**，包含明确的冲突选择、完整暂存后发布与中断原件恢复；尚未另行发布。自动验证与实体手机待验项见 [二期实施与验收报告](docs/00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html)。
+0.5.0 新增 **分包 APK 安装 → 录屏 → 文件传输**，包含明确的冲突选择、完整暂存后发布与中断原件恢复；修复重复提交、错误反馈、原件保护、录屏恢复、缓存回收及键盘焦点等 18 组问题。自动验证与实体手机待验项见 [二期实施与验收报告](docs/00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html) 和 [循环审核与修复报告](docs/00011_20261025010136_Android-DevKit-Phase2-Review-Report.html)。
 
 ## 产品特性
 
@@ -20,6 +20,9 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **为不同测试场景准备模拟器**：选择手机或平板，调整内存、屏幕、摄像头、网络和存储配置，用不同的设备环境验证应用表现。
 - **灵活连接真机**：支持 USB、无线调试配对和网络 ADB，根据设备与网络条件选择连接方式，并查看连接与授权状态。
 - **明确每次 APK 安装的目标**：选择或拖入 APK，核对目标设备和应用信息后安装；默认保留应用数据，设备断线后不会自动改投其他设备。
+- **一次安装整组分包 APK**：多选 base / split APK 或选择目录，预先校验包名、版本、签名、设备兼容性与依赖，再提交安装。
+- **录屏后预览与保存**：支持 1–180 秒无声 MP4、提前停止和中断后取回；完整缓存的视频会在重启后恢复到待保存文件。
+- **在共享存储传输文件**：浏览 Download、Pictures、Movies、DCIM，上传或下载文件与目录，明确处理同名冲突，替换中断后可恢复原件。
 - **集中排查设备与应用问题**：过滤实时日志、采集问题发生时的日志片段、截取设备画面，预览并导出排查资料。
 - **直接操作交互终端**：从设备详情进入对应的 ADB Shell，也可打开本机 PowerShell；支持多会话、实时交互、切页保留输出和直接关闭会话。
 - **查进度、找结果、保存文件**：在任务中心搜索历史操作，按状态筛选任务、查看失败原因；通过带角标的待保存文件入口预览、另存或清理缓存副本。
@@ -32,8 +35,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.4.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.4.0/AndroidDevKit-0.4.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.4.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.4.0/AndroidDevKit-0.4.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.5.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.5.0/AndroidDevKit-0.5.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.5.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.5.0/AndroidDevKit-0.5.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
@@ -83,7 +86,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 点击目标设备卡片上的“安装 APK”并选择文件，或将单个 APK 拖到该设备行。在安装面板核对设备名称、序列号和 APK 信息，点击“确认安装计划”，确认后提交任务。
 
-默认覆盖安装并保留应用数据。安装目标会绑定到本次选定的设备连接；设备断开后不会自动改投其他设备。v0.4.0 发布版支持单个完整 `.apk`。当前开发源码新增“分包 APK 安装”：从设备详情多选 base / split APK 或选择目录，校验签名、版本与依赖后一次安装；AAB、APKS、APKM、XAPK 容器暂不支持直接导入。
+默认覆盖安装并保留应用数据。安装目标会绑定到本次选定的设备连接；设备断开后不会自动改投其他设备。支持单个完整 `.apk`，也可从设备详情进入“分包 APK 安装”，多选 base / split APK 或选择目录，校验签名、版本与依赖后一次安装；AAB、APKS、APKM、XAPK 容器暂不支持直接导入。
 
 安装进度和结果保留在“任务中心”，可按任务名称、设备或状态检索。
 
@@ -170,7 +173,7 @@ pnpm.cmd tauri dev
 
 前端通过 `src/api.ts` 调用原生命令。修改 Rust 数据类型后运行 `pnpm.cmd bindings`，更新自动生成的 `src/bindings.ts`，不要直接编辑生成文件。
 
-### 二期开发源码的设备操作
+### 二期设备操作
 
 选择可用设备后，详情提供“分包 APK 安装”“录屏”“文件传输”。录屏默认 30 秒，可选 1–180 秒，停止后完整取回至待保存文件；可预览、另存或清理缓存。中断后选择“取回原录屏”，不会自动重录；已完整缓存的 MP4 会在重启后恢复到待保存文件。也可通过明确的确认计划放弃设备原件，保留已经取回的本机视频。
 
