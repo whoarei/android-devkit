@@ -100,6 +100,8 @@ jobs:
         run: node .agents/skills/android-devkit-release/scripts/verify-release-assets.cjs artifacts/release (Get-Content package.json -Raw | ConvertFrom-Json).version --require-updater
       - name: Verify installer contents
         run: node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
+      - name: Verify updater waits for the old process to exit
+        run: pnpm test:installer-update
       - name: Verify updater signature with the embedded public key
         env:
           ANDROID_DEVKIT_UPDATE_VERIFY_DIR: ${{ github.workspace }}/artifacts/release

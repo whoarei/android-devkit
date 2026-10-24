@@ -58,6 +58,7 @@
         "installMode": "currentUser",
         "languages": ["SimpChinese", "English"],
         "displayLanguageSelector": false,
+        "installerHooks": "installer/hooks.nsh",
         "installerIcon": "icons/android-devkit/icon.ico"
       }
     }

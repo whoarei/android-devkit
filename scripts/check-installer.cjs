@@ -3,6 +3,18 @@ const path = require('path');
 const crypto = require('crypto');
 const assert = require('assert/strict');
 const { execFileSync } = require('child_process');
+const config = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+const installerScript = fs.readFileSync('src-tauri/target/release/nsis/x64/installer.nsi', 'utf8');
+const hookPath = path.resolve('src-tauri', config.bundle.windows.nsis.installerHooks);
+assert(installerScript.includes(`!include "${hookPath}"`), 'Production installer includes hooks');
+const installSection = installerScript.slice(installerScript.indexOf('Section Install'));
+const waitHook = installSection.indexOf('!insertmacro NSIS_HOOK_PREINSTALL');
+const runningCheck = installSection.indexOf('!insertmacro CheckIfAppIsRunning');
+const copyExecutable = installSection.indexOf('File "${MAINBINARYSRCPATH}"');
+assert(
+  waitHook >= 0 && waitHook < runningCheck && runningCheck < copyExecutable,
+  'Wait for updater exit, retain the running-app check, then copy the executable',
+);
 const metadata = JSON.parse(
   fs.readFileSync('artifacts/windows/build-info.json', 'utf8').replace(/^\uFEFF/, ''),
 );
@@ -39,6 +51,7 @@ const report = {
   differingBytes: 3,
   markerChange: 'UNK → NSS',
   noticeFilesMatch: true,
+  updateExitWaitHookIncluded: true,
   signed: false,
   cleanMachineInstallUninstallVerified: false,
 };

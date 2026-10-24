@@ -19,6 +19,7 @@
     "test:terminal-ui": "node scripts/check-terminal-ui.cjs",
     "test:updater-ui": "node scripts/check-updater-ui.cjs",
     "test:updater-release": "node scripts/check-updater-release.cjs",
+    "test:installer-update": "node scripts/check-installer-update.cjs",
     "test:tasks-ui": "node scripts/check-task-center-ui.cjs",
     "test:sdk-avd-ui": "node scripts/check-sdk-avd-ui.cjs",
     "test:sdk-mirror-ui": "node scripts/check-sdk-mirror-ui.cjs",
