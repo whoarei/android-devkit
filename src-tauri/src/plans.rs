@@ -523,13 +523,14 @@ mod tests {
         assert!(!Path::new(&settings.sdk_root).exists());
     }
     #[test]
-    fn stale_pid_lock_does_not_make_stopped_avd_permanently_busy() {
+    fn dead_or_reused_pid_lock_does_not_make_stopped_avd_permanently_busy() {
         let dir = tempfile::tempdir().unwrap();
         let lock = dir.path().join("hardware-qemu.ini.lock");
         std::fs::create_dir(&lock).unwrap();
         std::fs::write(lock.join("pid"), "4294967294").unwrap();
         assert!(!crate::app::avd_locked(dir.path()));
         std::fs::write(lock.join("pid"), std::process::id().to_string()).unwrap();
-        assert!(crate::app::avd_locked(dir.path()));
+        assert!(!crate::app::avd_locked(dir.path()));
+        assert!(lock.join("pid").exists());
     }
 }

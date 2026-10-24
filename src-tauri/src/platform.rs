@@ -313,10 +313,96 @@ pub fn process_running(pid: u32) -> bool {
     win::running(pid)
 }
 #[cfg(windows)]
+pub fn avd_lock_owner_running(pid: u32, pid_path: &std::path::Path) -> bool {
+    if !process_running(pid) {
+        return false;
+    }
+    let Ok((created, executable)) = process_identity(pid) else {
+        // Keep an unqueryable live process busy rather than assume the lock is stale.
+        return true;
+    };
+    avd_lock_matches_process(
+        created,
+        std::path::Path::new(&executable),
+        std::fs::metadata(pid_path).and_then(|m| m.modified()).ok(),
+    )
+}
+#[cfg(windows)]
+fn avd_lock_matches_process(
+    created: u64,
+    executable: &std::path::Path,
+    modified: Option<std::time::SystemTime>,
+) -> bool {
+    let name = executable
+        .file_name()
+        .unwrap_or_default()
+        .to_string_lossy()
+        .to_ascii_lowercase();
+    if !(matches!(name.as_str(), "emulator" | "emulator.exe")
+        || (name.starts_with("qemu-system-")
+            && executable
+                .extension()
+                .is_none_or(|ext| ext.eq_ignore_ascii_case("exe"))))
+    {
+        return false;
+    }
+    // Windows can reuse even an emulator PID. Its new process cannot own an older PID file.
+    modified
+        .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+        .is_none_or(|elapsed| {
+            let written = 116_444_736_000_000_000u128 + elapsed.as_nanos() / 100;
+            u128::from(created) <= written
+        })
+}
+#[cfg(windows)]
 pub fn terminate_verified(pid: u32, created: u64, path: &str) -> Result<()> {
     win::terminate(pid, created, path)
 }
 #[cfg(windows)]
 pub fn focus_process(pid: u32) -> Result<()> {
     win::focus_pid(pid)
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::*;
+    use std::{path::Path, time::Duration};
+
+    #[test]
+    fn avd_pid_lock_checks_executable_and_process_creation_time() {
+        let created = 116_444_736_000_000_000 + 100 * 10_000_000;
+        let written = std::time::UNIX_EPOCH + Duration::from_secs(101);
+        for executable in [
+            r"E:\Android\sdk\emulator\emulator.exe",
+            r"E:\other-sdk\emulator\qemu\windows-x86_64\QEMU-SYSTEM-X86_64.EXE",
+            r"E:\Android\sdk\emulator\qemu-system-aarch64.exe",
+        ] {
+            assert!(avd_lock_matches_process(
+                created,
+                Path::new(executable),
+                Some(written)
+            ));
+            assert!(!avd_lock_matches_process(
+                created + 20_000_000,
+                Path::new(executable),
+                Some(written)
+            ));
+            assert!(avd_lock_matches_process(
+                created,
+                Path::new(executable),
+                None
+            ));
+        }
+        for executable in [
+            r"C:\Windows\System32\RuntimeBroker.exe",
+            r"E:\Android\sdk\emulator\emulator-check.exe",
+            r"E:\Android\sdk\emulator\adb.exe",
+        ] {
+            assert!(!avd_lock_matches_process(
+                created,
+                Path::new(executable),
+                Some(written)
+            ));
+        }
+    }
 }

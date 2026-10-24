@@ -322,9 +322,10 @@ pub fn avd_locked(path: &Path) -> bool {
                     return false;
                 }
                 if entry.path().is_dir() {
-                    if let Ok(pid) = std::fs::read_to_string(entry.path().join("pid")) {
+                    let pid_path = entry.path().join("pid");
+                    if let Ok(pid) = std::fs::read_to_string(&pid_path) {
                         if let Ok(pid) = pid.trim().parse::<u32>() {
-                            return crate::platform::process_running(pid);
+                            return crate::platform::avd_lock_owner_running(pid, &pid_path);
                         }
                     }
                     return std::fs::read_dir(entry.path())
@@ -425,6 +426,22 @@ fn image_references_package(image: &str, id: &str, settings: &Settings) -> bool 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn stale_pid_lock_does_not_hide_an_active_file_lock() {
+        let dir = tempfile::tempdir().unwrap();
+        let pid_dir = dir.path().join("hardware-qemu.ini.lock");
+        std::fs::create_dir(&pid_dir).unwrap();
+        std::fs::write(pid_dir.join("pid"), std::process::id().to_string()).unwrap();
+        let lock_path = dir.path().join("multiinstance.lock");
+        let file = std::fs::File::create(&lock_path).unwrap();
+        fs2::FileExt::try_lock_exclusive(&file).unwrap();
+        assert!(avd_locked(dir.path()));
+        fs2::FileExt::unlock(&file).unwrap();
+        drop(file);
+        assert!(!avd_locked(dir.path()));
+        assert!(pid_dir.join("pid").exists());
+        assert!(lock_path.exists());
+    }
     #[test]
     fn tracking_frames_survive_idle_timeouts_and_partial_reads() {
         use std::{
