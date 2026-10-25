@@ -11,6 +11,7 @@ const path = require('node:path');
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await require('./preferences-fixture.cjs')(page);
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.addInitScript(() => {
@@ -575,6 +576,11 @@ const path = require('node:path');
       'en-US',
     );
     await page.reload();
+    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+    await page
+      .locator('nav')
+      .getByRole('button', { name: 'Device Workbench', exact: true })
+      .click();
     await page.getByRole('heading', { name: 'Device Workbench', exact: true }).waitFor();
     assert.equal(await page.locator('html').getAttribute('lang'), 'en-US');
     await page.getByRole('button', { name: 'Connect device', exact: true }).click();
@@ -671,7 +677,7 @@ const path = require('node:path');
     await page.screenshot({ path: path.join(output, 'theme-dark-compact.png') });
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.getByRole('button', { name: 'Switch to light theme', exact: true }).click();
-    assert.equal(await page.evaluate(() => localStorage.getItem('android-devkit.theme')), 'light');
+    assert.equal(await page.evaluate(() => window.__preferences.theme), 'light');
     await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
     assert.deepEqual(errors, []);
     console.log(

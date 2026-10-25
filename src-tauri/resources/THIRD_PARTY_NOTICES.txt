@@ -1,7 +1,7 @@
 Android DevKit third-party notices
 Generated from the locked Windows normal/build Rust dependency graph and production npm packages. Includes build-time dependencies as a conservative superset. Android SDK and optional Java are downloaded separately under their displayed licenses. Unmodified covered Rust source is available from each exact-version source-package URL below.
 pnpm-lock.yaml: 3d329a57cfef34177f40d4750d864f6653d1108a1353b3d293074778a2ad6ff4
-src-tauri/Cargo.lock: 5c600ca312c4eac80cf12ec0830b76c872ed8ef0189b94d7b9d3ea2a8b097217
+src-tauri/Cargo.lock: de349ef74af076ca0cbaf3d8b437bfc4dd368fc23ca489cb2b75bb46b5fa815d
 
 ========================================================================
 Rust: adler2 2.0.1

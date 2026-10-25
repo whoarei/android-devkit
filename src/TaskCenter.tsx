@@ -1,4 +1,5 @@
 import { t, getLocale } from './i18n';
+import { usePreference } from './preferences';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -71,7 +72,7 @@ export function TaskCenter({
 }) {
   const [search, setSearch] = useState('');
   const [keyword, setKeyword] = useState('');
-  const [state, setState] = useState('all');
+  const [state, setState] = usePreference('taskState');
   const [offset, setOffset] = useState(0);
   const client = useQueryClient();
   const [managing, setManaging] = useState(false);

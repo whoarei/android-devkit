@@ -240,6 +240,8 @@ impl App {
 }
 
 fn exit_after_terminals(handle: tauri::AppHandle) {
+    #[cfg(windows)]
+    crate::window_state::flush(&handle);
     let app = handle.state::<Arc<App>>().inner().clone();
     app.draining.store(true, Ordering::SeqCst);
     tauri::async_runtime::spawn(async move {

@@ -1,5 +1,6 @@
 import { t, useLocale, getLocale } from './i18n';
 import { useEffect, useMemo, useState } from 'react';
+import { getPreference, rememberPreference, usePreference } from './preferences';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, ChevronRight, HardDrive, Plus, Search, X } from 'lucide-react';
 import { call, errorText, native, size } from './api';
@@ -14,7 +15,14 @@ import {
   packageNode,
   type SdkTreeNode,
 } from './sdk';
-import type { SdkPackage, SdkSite, SdkSiteStatus, Settings, Workspace } from './bindings';
+import type {
+  SdkPackage,
+  SdkSite,
+  SdkSiteStatus,
+  Settings,
+  Workspace,
+  UserPreferences,
+} from './bindings';
 const isPlatform = (p: SdkPackage) => /^(platforms|sources|system-images);/.test(p.id);
 const apiKey = (p: SdkPackage) => {
   const key =
@@ -59,15 +67,13 @@ export function SdkManager({
   prepare: (kind: string, args?: Record<string, string>) => Promise<void>;
 }) {
   const locale = useLocale();
-  const [tab, setTab] = useState<'platforms' | 'tools' | 'sites'>(
-    startWithSources ? 'sites' : 'platforms',
-  );
+  const [tab, setTab] = usePreference('sdkTab');
   useEffect(() => {
     if (startWithSources) setTab('sites');
   }, [startWithSources]);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
-  const [hideObsolete, setHideObsolete] = useState(true);
+  const [status, setStatus] = useState<string>(() => getPreference('sdkStatus'));
+  const [hideObsolete, setHideObsolete] = usePreference('hideObsolete');
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<{
@@ -378,7 +384,13 @@ export function SdkManager({
             <select
               aria-label={t('组件状态筛选')}
               value={status}
-              onChange={(event) => setStatus(event.target.value)}
+              onChange={(event) => {
+                const value = event.target.value;
+                setStatus(value);
+                // "Selected" depends on a temporary operation basket.
+                if (value !== 'selected')
+                  rememberPreference('sdkStatus', value as UserPreferences['sdkStatus']);
+              }}
             >
               {[
                 ['all', t('全部状态')],

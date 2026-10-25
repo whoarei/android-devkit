@@ -3,6 +3,8 @@
   "description": "Local workbench only; all system actions validated by Rust",
   "windows": ["main"],
   "permissions": [
+    "allow-preferences-load",
+    "allow-preferences-patch",
     "allow-terminal-create",
     "allow-terminal-list",
     "allow-terminal-write",

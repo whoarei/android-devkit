@@ -59,6 +59,7 @@ const root = path.resolve(__dirname, '..');
     for (const script of requested.length
       ? requested
       : [
+          'preferences',
           'network',
           'device',
           'terminal',

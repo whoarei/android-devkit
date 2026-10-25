@@ -27,6 +27,7 @@ mod phone_record;
 mod phone_tests;
 mod plans;
 mod platform;
+mod preferences;
 mod privacy;
 mod process;
 mod readiness;
@@ -40,7 +41,11 @@ mod sdk_source;
 mod storage;
 mod task_records;
 mod terminal;
+#[cfg(windows)]
+mod ui_preferences;
 mod updater;
+#[cfg(windows)]
+mod window_state;
 use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
@@ -53,6 +58,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(commands::setup)
         .on_window_event(|window, event| {
+            #[cfg(windows)]
+            crate::window_state::on_event(window, event);
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 window
@@ -61,6 +68,8 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            preferences::preferences_load,
+            preferences::preferences_patch,
             terminal::terminal_create,
             terminal::terminal_list,
             terminal::terminal_write,

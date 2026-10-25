@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { usePreference, useNumberPreference } from './preferences';
 import { Folder, Layers, Video, Upload, Download, RefreshCw, ArrowUp } from 'lucide-react';
 import { call, errorText, size, taskActive } from './api';
 import { t } from './i18n';
@@ -44,8 +45,8 @@ export function PhoneTools({
       setToolPackage(await call<string>('apk_set_tools'));
     }
   };
-  const [seconds, setSeconds] = useState(30);
-  const [resolution, setResolution] = useState('original');
+  const [seconds, setSeconds] = useNumberPreference('recordingSeconds', 1, 180);
+  const [resolution, setResolution] = usePreference('recordingResolution');
   const [path, setPath] = useState('/sdcard');
   const [entries, setEntries] = useState<RemoteEntry[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -334,7 +335,7 @@ export function PhoneTools({
                   <select
                     value={resolution}
                     disabled={busy || !!activeRecording}
-                    onChange={(e) => setResolution(e.target.value)}
+                    onChange={(e) => setResolution(e.target.value as typeof resolution)}
                   >
                     <option value="original">{t('原始分辨率')}</option>
                     <option value="720p">{t('降低分辨率（最长边 1280）')}</option>

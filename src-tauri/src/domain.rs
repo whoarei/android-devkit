@@ -48,7 +48,7 @@ impl From<serde_json::Error> for AppError {
 
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct Settings {
     pub sdk_root: String,
     pub avd_roots: Vec<String>,

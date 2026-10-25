@@ -10,6 +10,7 @@ const path = require('node:path');
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await require('./preferences-fixture.cjs')(page);
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.addInitScript(() => {
@@ -241,7 +242,7 @@ const path = require('node:path');
     assert.deepEqual(await page.evaluate(() => window.__copied), ['USB_A']);
     await details.getByRole('button', { name: '设为默认目标', exact: true }).click();
     assert.equal(
-      await page.evaluate(() => localStorage.getItem('android-devkit.default-target')),
+      await page.evaluate(() => window.__preferences.defaultTarget),
       'device:usb:USB_A',
     );
     await phone.press('Escape');

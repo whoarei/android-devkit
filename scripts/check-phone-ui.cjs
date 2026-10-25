@@ -10,6 +10,7 @@ const path = require('node:path');
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await require('./preferences-fixture.cjs')(page);
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.addInitScript(() => {
@@ -398,7 +399,7 @@ const path = require('node:path');
     await page.locator('.device-row').filter({ hasText: 'Phase 2 phone' }).click();
     await page.getByRole('button', { name: 'Screen recording', exact: true }).click();
     const englishRecord = page.getByRole('dialog', { name: 'Screen recording', exact: true });
-    assert.equal(await englishRecord.getByLabel('Duration (seconds)').inputValue(), '30');
+    assert.equal(await englishRecord.getByLabel('Duration (seconds)').inputValue(), '10');
     await englishRecord.getByRole('button', { name: 'Close panel' }).click();
     await page.getByRole('button', { name: 'File transfer', exact: true }).click();
     const englishFiles = page.getByRole('dialog', { name: 'File transfer', exact: true });

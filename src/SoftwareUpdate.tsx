@@ -4,10 +4,10 @@ import { Download, ExternalLink, RefreshCw } from 'lucide-react';
 import { version } from '../package.json';
 import { call, errorText, native, size } from './api';
 import { t } from './i18n';
+import { usePreference, usePreferencesReady } from './preferences';
 import { Button, Modal } from './ui';
 import type { AppUpdateInfo, AppUpdateProgress, CloseStatus } from './bindings';
 
-const preferenceKey = 'android-devkit.auto-check-update';
 type Phase =
   'idle' | 'checking' | 'uptodate' | 'available' | 'downloading' | 'verifying' | 'installing';
 
@@ -17,13 +17,8 @@ export function useSoftwareUpdate() {
   const [error, setError] = useState('');
   const [confirmation, setConfirmation] = useState<AppUpdateInfo | null>(null);
   const [progress, setProgress] = useState<AppUpdateProgress | null>(null);
-  const [autoCheck, setAutoCheck] = useState(() => {
-    try {
-      return localStorage.getItem(preferenceKey) !== 'false';
-    } catch {
-      return true;
-    }
-  });
+  const [autoCheck, changeAutoCheck] = usePreference('autoCheckUpdates');
+  const preferencesReady = usePreferencesReady();
   const busy = useRef(false);
   const check = useCallback(async (silent = false) => {
     if (!native || busy.current) return;
@@ -43,16 +38,8 @@ export function useSoftwareUpdate() {
     }
   }, []);
   useEffect(() => {
-    if (autoCheck) void check(true);
-  }, [autoCheck, check]);
-  const changeAutoCheck = (enabled: boolean) => {
-    setAutoCheck(enabled);
-    try {
-      localStorage.setItem(preferenceKey, String(enabled));
-    } catch {
-      /* session preference */
-    }
-  };
+    if (preferencesReady && autoCheck) void check(true);
+  }, [preferencesReady, autoCheck, check]);
   const openDownload = async () => {
     try {
       await call('open_app_download');

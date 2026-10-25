@@ -763,6 +763,22 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     crate::lifecycle::create_tray(app.handle())?;
     if let Some(window) = app.get_webview_window("main") {
         platform::install(&window);
+        let preferences = app.state::<Arc<App>>().store.preferences()?;
+        window.set_theme(Some(if preferences.theme == "dark" {
+            tauri::Theme::Dark
+        } else {
+            tauri::Theme::Light
+        }))?;
+        #[cfg(windows)]
+        if let Err(error) = crate::window_state::install(&window, app.state::<Arc<App>>().inner()) {
+            eprintln!("Window preferences: {error}");
+        }
+        #[cfg(windows)]
+        if let Err(error) = crate::ui_preferences::install(&window, app.state::<Arc<App>>().inner())
+        {
+            eprintln!("UI zoom preference: {error}");
+        }
+        window.show()?;
     }
     Ok(())
 }

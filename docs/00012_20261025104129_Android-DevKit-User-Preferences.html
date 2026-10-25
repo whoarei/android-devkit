@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Android DevKit 用户配置与状态持久化</title>
+<style>
+:root{color-scheme:light;font:15px/1.8 system-ui,"Microsoft YaHei",sans-serif;color:#24332a;background:#f5f7f3}
+body{max-width:1120px;margin:40px auto;padding:0 24px 60px}h1{font-size:30px;line-height:1.4}h2{margin-top:36px;font-size:21px}
+p,li{max-width:960px}code{font:13px/1.7 Consolas,monospace;background:#e9eee7;padding:2px 5px;border-radius:4px}
+table{border-collapse:collapse;width:100%;background:white;margin:18px 0}th,td{border:1px solid #d6ded4;padding:12px;text-align:left;vertical-align:top}th{background:#e9f0e5}
+.note{padding:16px 20px;background:#e9f0e5;border-left:4px solid #4d7044;border-radius:4px}.meta{color:#657261}
+@media(max-width:700px){body{margin:20px auto;padding:0 12px}table{font-size:12px}th,td{padding:7px}h1{font-size:25px}}
+</style>
+</head>
+<body>
+<h1>用户配置与状态持久化</h1>
+<p class="meta">Android DevKit · 当前源码设计 · 创建时间（北京时间）：2026-10-25 10:41:29</p>
+<p class="note">用户明确选择的使用偏好跨启动保留；实时连接、操作确认和未提交草稿重新确认。界面组件统一通过配置服务读写，新增字段先进入下表和 Rust 模型。</p>
+<h2>配置模型与唯一数据源</h2>
+<p>桌面配置统一存放在 <code>%LOCALAPPDATA%\AndroidDevKit\state\devkit.db</code>。<code>ANDROID_DEVKIT_DATA_DIR</code> 可覆盖应用数据根目录，同时隔离业务配置与用户偏好。前端不再将桌面偏好单独存进 WebView。</p>
+<table>
+<thead><tr><th>配置域</th><th>模型与存储</th><th>修改入口</th></tr></thead>
+<tbody>
+<tr><td>运行环境配置</td><td><code>Settings</code> → SQLite <code>settings</code> 单例 JSON；包括 SDK/AVD 目录、Java、代理、启动超时、托盘、SDK 站点与通道、下载源及校验开关。</td><td>沿用已校验的设置、Java 和下载源命令，用户确认应用后保存。新增字段用默认值兼容旧记录。</td></tr>
+<tr><td>用户偏好</td><td><code>UserPreferences</code> → 同库 <code>ui_preferences(key,json)</code>；每个偏好单独一行，支持原子补丁。</td><td><code>preferences_load</code> / <code>preferences_patch</code>；React 组件通过 <code>src/preferences.ts</code> 获取与保存。</td></tr>
+<tr><td>原生窗口与缩放</td><td><code>UserPreferences.window</code>、<code>zoomFactor</code>，仍在同一偏好表。</td><td>原生窗口/WebView 事件；前端补丁禁止伪造这些字段。</td></tr>
+</tbody></table>
+<p>界面偏好与运行环境配置保持独立的校验和保存边界。切换主题、移动窗口不改变首次环境配置状态，也不使已确认的 SDK/设备操作计划失效。</p>
+<h2>应持久化的状态清单</h2>
+<table>
+<thead><tr><th>范围</th><th>字段</th><th>默认值 / 恢复规则</th></tr></thead>
+<tbody>
+<tr><td>外观与语言</td><td><code>theme</code>、<code>locale</code>、<code>zoomFactor</code></td><td>亮色、简体中文、100%。首次渲染前加载；Ctrl+± 与 Ctrl+滚轮记录实际原生缩放；Ctrl+0 始终回到 100%。</td></tr>
+<tr><td>窗口</td><td><code>window</code>：正常位置 x/y、逻辑宽高、DPI 比例、显示器名称、最大化状态</td><td>首次沿用 1280×800。位置使用物理屏幕坐标，尺寸使用逻辑像素。恢复普通尺寸后再最大化；最小化与隐藏不作为下次启动状态。</td></tr>
+<tr><td>默认目标与更新</td><td><code>defaultTarget</code>、<code>autoCheckUpdates</code></td><td>默认目标为空，启动检查更新开启。默认目标保留稳定标识，重连后重新验证，不保存 transportId 或 serverEpoch。</td></tr>
+<tr><td>导航与设备列表</td><td><code>lastPage</code>、<code>deviceFilter</code></td><td>设备工作台、全部设备。恢复页面不创建终端、重放任务或自动选中设备。</td></tr>
+<tr><td>SDK 浏览偏好</td><td><code>sdkTab</code>、<code>sdkStatus</code>、<code>hideObsolete</code></td><td>Platforms、全部、隐藏未安装的过时组件。状态可保存全部/已安装/未安装/有更新；“待变更”依赖本次选择篮，不跨启动保留。</td></tr>
+<tr><td>任务列表</td><td><code>taskState</code></td><td>全部；可恢复进行中、已完成、失败、待确认、待检查、已取消筛选。分页和搜索词重置。</td></tr>
+<tr><td>录屏参数</td><td><code>recordingSeconds</code>、<code>recordingResolution</code></td><td>30 秒、原始分辨率；1–180 秒，原始或 720p。恢复参数不开始录制。</td></tr>
+<tr><td>日志采集参数</td><td><code>logQuotaMib</code>、<code>logMinutes</code></td><td>64 MiB、60 分钟；8–4096 MiB、1–1440 分钟。恢复参数不启动采集。</td></tr>
+<tr><td>业务记录与产物</td><td>任务、审计、待保存文件、录屏恢复材料、SDK 目录缓存</td><td>沿用现有数据库及文件恢复机制；中断写操作需要复查，不根据 UI 偏好自动重放。</td></tr>
+</tbody></table>
+<h2>仅在本次会话保留的状态</h2>
+<table>
+<thead><tr><th>状态</th><th>不跨启动保留的原因</th></tr></thead>
+<tbody>
+<tr><td>当前设备选中项、transportId、serverEpoch、设备就绪状态、可用空间、组件安装状态</td><td>来自实时 ADB、SDK/AVD 文件和磁盘；启动后重新检查，避免使用过期状态。</td></tr>
+<tr><td>终端 PTY、进程、当前活跃终端、输出缓冲、快捷命令菜单</td><td>切页保留已有运行会话；退出后不恢复进程或自动执行命令。</td></tr>
+<tr><td>SDK 变更篮、创建/编辑 AVD 草稿、Java/下载源未应用草稿</td><td>未确认的操作不作为偏好；应用后由真实文件或 Settings 保存。</td></tr>
+<tr><td>APK/文件选择、远端浏览目录、重命名草稿、覆盖模式、许可与执行确认</td><td>依赖本次设备、文件指纹和用户确认；重启后重新选择和核对。</td></tr>
+<tr><td>无线连接地址/端口草稿、配对码</td><td>连接上下文会变化，配对码不保存。</td></tr>
+<tr><td>搜索词、展开行、分页、待删除选择、预览/弹窗、错误、进度</td><td>临时工作上下文；重置可避免恢复后看不到数据或误用旧选择。</td></tr>
+<tr><td>日志设备/PID/关键词过滤、原始信息开关、暂停、滚动序号、开始采集开关</td><td>进程与日志边界会变化；原始信息和采集开关每次明确选择。</td></tr>
+</tbody></table>
+<h2>迁移、并发与失败处理</h2>
+<ul>
+<li>启动时读取旧版 <code>android-devkit.theme</code>、<code>locale</code>、<code>default-target</code>、<code>auto-check-update</code> 四类 localStorage 键，将有效值事务性导入缺失的 SQLite 字段。数据库中的值优先；收到成功响应后才移除旧键。重复导入不会覆盖新值。</li>
+<li>旧版已保存的 <code>zoomFactor</code> 行直接沿用。未出现的新字段使用 Rust 默认值；单个损坏字段回退其默认值，其他有效字段继续保留，未知未来字段原样留在磁盘。</li>
+<li>所有补丁先校验再在一个事务中写入。原生窗口/缩放与前端偏好按字段更新，互不以旧快照覆盖。前端保存顺序串行化，避免快速修改乱序。</li>
+<li>普通控件收到数据库成功响应后更新保存值。数字输入允许暂时为空或越界，但仅保存有效整数。读写失败显示配置错误与重试入口，不显示虚假的保存成功。</li>
+<li>窗口移动/缩放事件使用 250ms 空闲合并；关闭和正常退出前同步刷新最后一次窗口状态。普通大小来自 Win32 正常窗口范围，最大化/最小化期间不会误存全屏大小或 -32000 坐标。</li>
+<li>恢复时按显示器工作区和当前 DPI 调整大小、限制位置；显示器已断开时居中到可用显示器。恢复前窗口隐藏，避免先闪现默认大小。</li>
+<li>纯浏览器预览在配置模块中使用单个 localStorage 对象；该预览存储不是桌面应用的数据源。</li>
+</ul>
+<h2>新增配置的维护规则与回归</h2>
+<ol>
+<li>先在本清单决定“持久偏好 / 应用后的业务配置 / 临时状态”，写明默认值、校验范围和重启行为。</li>
+<li>持久偏好添加到 <code>src-tauri/src/preferences.rs</code> 的模型、默认值和校验；生成 TypeScript 合约与默认值，避免前后端重复维护。</li>
+<li>组件使用 <code>usePreference</code>、<code>useNumberPreference</code> 或显式等待 <code>savePreference</code>；不在组件内自行访问存储。原生字段从相应原生事件接入。</li>
+<li>新增字段补充跨重启与失败用例；修改窗口逻辑补充负坐标、DPI、显示器缺失、最大化与最小化回归。仓库检查禁止配置模块外重新出现 localStorage/sessionStorage 写入。</li>
+</ol>
+<p>检查入口：<code>pnpm build</code>、<code>cargo test --manifest-path src-tauri/Cargo.toml --lib</code>、<code>cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings</code>、<code>pnpm test:ui-fixtures</code>。偏好界面专项为 <code>node scripts/run-ui-fixtures.cjs preferences</code>。</p>
+<p>主要实现：<a href="../src-tauri/src/preferences.rs">Rust 配置注册与校验</a> · <a href="../src/preferences.ts">前端配置入口</a> · <a href="../src-tauri/src/window_state.rs">窗口保存与恢复</a> · <a href="../src-tauri/src/storage.rs">SQLite 存储与回归</a></p>
+<h2>本轮验证结果</h2>
+<p>Rust 全量测试 140 项通过，14 项按原设置跳过；11 组隔离界面回归、TypeScript 合约、前端构建与 Clippy 检查通过。旧偏好导入、字段损坏隔离、事务回滚、快速修改和配置读写失败重试均有覆盖。</p>
+<p>独立 Windows 应用实例已验证位置移动、正常尺寸调整、最大化退出恢复、还原后的正常边界、最小化退出后可见启动，以及从最大化状态最小化后重新以最大化启动。重启使用全新 WebView 配置目录，确认数据来自 SQLite。显示器断开、负坐标与 DPI 调整通过几何单元测试覆盖。</p>
+<p class="meta">窗口坐标约定参考 <a href="https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-windowplacement">Microsoft WINDOWPLACEMENT</a>；显示器工作区与缩放信息参考 <a href="https://docs.rs/tauri/2.12.4/tauri/window/struct.Monitor.html">Tauri Monitor API</a>。</p>
+</body>
+</html>

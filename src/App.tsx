@@ -4,6 +4,7 @@ import { version } from '../package.json';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { create } from 'zustand';
+import { usePreference, usePreferenceError, retryPreferences } from './preferences';
 import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import {
@@ -67,14 +68,10 @@ import type {
 } from './types';
 type Page = 'devices' | 'terminal' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
 const useUi = create<{
-  page: Page;
   selected: string;
-  setPage: (page: Page) => void;
   select: (selected: string) => void;
 }>((set) => ({
-  page: 'devices',
   selected: '',
-  setPage: (page) => set({ page }),
   select: (selected) => set({ selected }),
 }));
 const titles: Record<Page, string> = {
@@ -91,7 +88,10 @@ export function App() {
   const theme = useTheme();
   const terminalCount = useTerminals((state) => state.sessions.length);
   const updater = useSoftwareUpdate();
-  const { page, setPage, selected, select } = useUi();
+  const { selected, select } = useUi();
+  const [page, setPage] = usePreference('lastPage');
+  const [filter, setFilter] = usePreference('deviceFilter');
+  const preferenceError = usePreferenceError();
   const toggleSelection = (key: string) => select(selected === key ? '' : key);
   const client = useQueryClient();
   const query = useQuery({
@@ -126,7 +126,6 @@ export function App() {
     [error, setError] = useState(''),
     [toast, setToast] = useState(''),
     [busy, setBusy] = useState(false),
-    [filter, setFilter] = useState('all'),
     [apk, setApk] = useState<ApkInfo | null>(null),
     [maximized, setMaximized] = useState(false),
     [preview, setPreview] = useState('');
@@ -583,6 +582,15 @@ export function App() {
             </div>
           </div>
         )}
+        {preferenceError && (
+          <div role="alert" className="error-banner">
+            <AlertCircle size={17} />
+            <span>{t(preferenceError)}</span>
+            <button onClick={() => void retryPreferences().catch(() => {})}>
+              {t('重试保存配置')}
+            </button>
+          </div>
+        )}
         {(query.error ||
           (error && !plan && !['create', 'wireless', 'edit'].includes(modal ?? ''))) && (
           <div role="alert" className="error-banner">
@@ -617,7 +625,7 @@ export function App() {
                   <button
                     className={filter === id ? 'selected' : ''}
                     key={id}
-                    onClick={() => setFilter(id)}
+                    onClick={() => setFilter(id as typeof filter)}
                   >
                     {t(label)}
                     <span>
@@ -835,7 +843,7 @@ export function App() {
                       onClick={() =>
                         void guard(async () => {
                           const key = preferenceKey(selectedAvd, selectedDevice);
-                          setDefaultTarget(defaultTarget === key ? '' : key);
+                          await setDefaultTarget(defaultTarget === key ? '' : key);
                           notify(t(defaultTarget === key ? '已取消默认目标' : '已保存默认目标'));
                         })
                       }

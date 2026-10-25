@@ -1,4 +1,5 @@
 use crate::domain::*;
+use crate::preferences::{UserPreferences, WindowPlacement, LEGACY_FIELDS};
 use rusqlite::{params, Connection};
 use std::{path::Path, sync::Mutex};
 
@@ -40,6 +41,9 @@ impl Store {
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS deleted_task_records(task_id TEXT PRIMARY KEY);",
         )?;
+        connection.execute_batch(
+            "CREATE TABLE IF NOT EXISTS ui_preferences(key TEXT PRIMARY KEY,json TEXT NOT NULL);",
+        )?;
         let store = Self {
             connection: Mutex::new(connection),
         };
@@ -74,6 +78,79 @@ impl Store {
     }
     pub fn save_settings(&self, settings: &Settings) -> Result<()> {
         self.connection.lock().unwrap().execute("INSERT INTO settings(id,json) VALUES(1,?1) ON CONFLICT(id) DO UPDATE SET json=excluded.json",[serde_json::to_string(settings)?])?;
+        Ok(())
+    }
+    fn read_preferences(connection: &Connection) -> Result<UserPreferences> {
+        let mut preferences = UserPreferences::default();
+        let mut statement = connection.prepare("SELECT key,json FROM ui_preferences")?;
+        let rows = statement.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        // One corrupt/unknown field must not discard the remaining preferences.
+        // Leave unknown fields on disk for forward compatibility.
+        for row in rows {
+            let (key, json) = row?;
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&json) {
+                if let Ok(next) = preferences.patched(&serde_json::json!({key: value})) {
+                    preferences = next;
+                }
+            }
+        }
+        Ok(preferences)
+    }
+    pub fn preferences(&self) -> Result<UserPreferences> {
+        Self::read_preferences(&self.connection.lock().unwrap())
+    }
+    pub fn patch_preferences(&self, patch: &serde_json::Value) -> Result<UserPreferences> {
+        let mut connection = self.connection.lock().unwrap();
+        let transaction = connection.transaction()?;
+        let next = Self::read_preferences(&transaction)?.patched(patch)?;
+        for (key, value) in patch.as_object().unwrap() {
+            transaction.execute(
+                "INSERT INTO ui_preferences(key,json) VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET json=excluded.json WHERE json<>excluded.json",
+                params![key, serde_json::to_string(value)?],
+            )?;
+        }
+        transaction.commit()?;
+        Ok(next)
+    }
+    pub fn import_legacy_preferences(
+        &self,
+        legacy: Option<&serde_json::Value>,
+    ) -> Result<UserPreferences> {
+        let mut connection = self.connection.lock().unwrap();
+        let transaction = connection.transaction()?;
+        if let Some(legacy) = legacy.and_then(|value| value.as_object()) {
+            for key in LEGACY_FIELDS {
+                if let Some(value) = legacy.get(*key) {
+                    if UserPreferences::default()
+                        .patched(&serde_json::json!({*key: value}))
+                        .is_ok()
+                    {
+                        transaction.execute(
+                            "INSERT OR IGNORE INTO ui_preferences(key,json) VALUES(?1,?2)",
+                            params![key, serde_json::to_string(value)?],
+                        )?;
+                    }
+                }
+            }
+        }
+        let preferences = Self::read_preferences(&transaction)?;
+        transaction.commit()?;
+        Ok(preferences)
+    }
+    pub fn zoom_factor(&self) -> Result<f64> {
+        Ok(self.preferences()?.zoom_factor)
+    }
+    pub fn save_zoom_factor(&self, factor: f64) -> Result<()> {
+        if !factor.is_finite() || factor <= 0.0 {
+            return Err(AppError::new("INVALID_ZOOM", "界面缩放比例无效"));
+        }
+        self.patch_preferences(&serde_json::json!({"zoomFactor": factor}))?;
+        Ok(())
+    }
+    pub fn save_window_placement(&self, placement: &WindowPlacement) -> Result<()> {
+        self.patch_preferences(&serde_json::json!({"window": placement}))?;
         Ok(())
     }
     pub fn tasks(&self) -> Result<Vec<Task>> {
@@ -382,6 +459,203 @@ impl Store {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn all_user_preferences_survive_a_restart_and_old_settings_keep_defaults() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("db");
+        let store = Store::open(&path).unwrap();
+        let patch = serde_json::json!({
+            "theme":"dark", "locale":"en-US", "defaultTarget":"avd:fixture", "autoCheckUpdates":false,
+            "zoomFactor":1.75, "window":{"x":-1800,"y":120,"width":1100.0,"height":720.0,"scaleFactor":1.5,"monitor":"secondary","maximized":true},
+            "lastPage":"terminal", "deviceFilter":"emulator", "sdkTab":"tools", "sdkStatus":"updates", "hideObsolete":false,
+            "taskState":"failed", "recordingSeconds":120, "recordingResolution":"720p", "logQuotaMib":128, "logMinutes":45
+        });
+        let expected = store.patch_preferences(&patch).unwrap();
+        assert_ne!(expected, UserPreferences::default());
+        drop(store);
+        assert_eq!(Store::open(&path).unwrap().preferences().unwrap(), expected);
+        let old_settings: Settings =
+            serde_json::from_value(serde_json::json!({"sdkRoot":"X:\\retained"})).unwrap();
+        assert_eq!(old_settings.sdk_root, "X:\\retained");
+        assert_eq!(old_settings.boot_timeout_secs, 180);
+        assert!(!old_settings.avd_roots.is_empty());
+    }
+
+    #[test]
+    fn preferences_import_is_idempotent_and_keeps_database_authoritative() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("db");
+        let store = Store::open(&path).unwrap();
+        store.save_zoom_factor(1.25).unwrap();
+        let legacy = serde_json::json!({"theme":"dark", "locale":"en-US", "defaultTarget":"device:usb:fixture", "autoCheckUpdates":false});
+        let imported = store.import_legacy_preferences(Some(&legacy)).unwrap();
+        assert_eq!(imported.theme, "dark");
+        assert_eq!(imported.locale, "en-US");
+        assert!(!imported.auto_check_updates);
+        assert_eq!(imported.zoom_factor, 1.25);
+        assert!(!store.has_settings().unwrap());
+        store
+            .patch_preferences(&serde_json::json!({"theme":"light", "defaultTarget":""}))
+            .unwrap();
+        drop(store);
+        let store = Store::open(&path).unwrap();
+        let imported = store.import_legacy_preferences(Some(&legacy)).unwrap();
+        assert_eq!(imported.theme, "light");
+        assert_eq!(imported.default_target, "");
+        assert_eq!(imported.locale, "en-US");
+    }
+
+    #[test]
+    fn preference_patch_rolls_back_all_fields_on_storage_failure() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(&dir.path().join("db")).unwrap();
+        store.connection.lock().unwrap().execute_batch("CREATE TRIGGER fail_preferences BEFORE INSERT ON ui_preferences WHEN NEW.key='theme' BEGIN SELECT RAISE(FAIL, 'injected preference failure'); END;").unwrap();
+        let patch = serde_json::json!({"autoCheckUpdates":false,"locale":"en-US","theme":"dark"});
+        assert!(store.patch_preferences(&patch).is_err());
+        assert_eq!(store.preferences().unwrap(), UserPreferences::default());
+        store
+            .connection
+            .lock()
+            .unwrap()
+            .execute_batch("DROP TRIGGER fail_preferences")
+            .unwrap();
+        let saved = store.patch_preferences(&patch).unwrap();
+        assert_eq!(saved.theme, "dark");
+        assert_eq!(saved.locale, "en-US");
+        assert!(!saved.auto_check_updates);
+    }
+
+    #[test]
+    fn corrupt_preference_is_isolated_and_unknown_future_fields_are_preserved() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(&dir.path().join("db")).unwrap();
+        store.connection.lock().unwrap().execute_batch("INSERT INTO ui_preferences VALUES('theme','\"dark\"'),('locale','invalid'),('recordingSeconds','999'),('futureKey','{\"future\":true}')").unwrap();
+        let saved = store.preferences().unwrap();
+        assert_eq!(saved.theme, "dark");
+        assert_eq!(saved.locale, "zh-CN");
+        assert_eq!(saved.recording_seconds, 30);
+        for patch in [
+            serde_json::json!({"unexpected":true}),
+            serde_json::json!({"theme":"other"}),
+            serde_json::json!({"logMinutes":0}),
+            serde_json::json!({"sdkStatus":"selected"}),
+            serde_json::json!({"autoCheckUpdates":"false"}),
+        ] {
+            assert!(store.patch_preferences(&patch).is_err());
+        }
+        store
+            .patch_preferences(&serde_json::json!({"locale":"en-US"}))
+            .unwrap();
+        let future: String = store
+            .connection
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT json FROM ui_preferences WHERE key='futureKey'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(future, "{\"future\":true}");
+    }
+
+    #[test]
+    fn concurrent_ui_and_native_patches_do_not_overwrite_each_other() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("db");
+        let store = std::sync::Arc::new(Store::open(&path).unwrap());
+        let placement = WindowPlacement {
+            x: -1200,
+            y: 80,
+            width: 900.0,
+            height: 700.0,
+            scale_factor: 1.5,
+            monitor: "secondary".into(),
+            maximized: true,
+        };
+        store.save_window_placement(&placement).unwrap();
+        let ui = store.clone();
+        let native = store.clone();
+        let ui_thread = std::thread::spawn(move || {
+            for _ in 0..20 {
+                ui.patch_preferences(
+                    &serde_json::json!({"theme":"dark","sdkTab":"tools","recordingSeconds":90}),
+                )
+                .unwrap();
+            }
+        });
+        let native_thread = std::thread::spawn(move || {
+            for _ in 0..20 {
+                native.save_zoom_factor(1.5).unwrap();
+            }
+        });
+        ui_thread.join().unwrap();
+        native_thread.join().unwrap();
+        drop(store);
+        let restored = Store::open(&path).unwrap().preferences().unwrap();
+        assert_eq!(restored.theme, "dark");
+        assert_eq!(restored.sdk_tab, "tools");
+        assert_eq!(restored.recording_seconds, 90);
+        assert_eq!(restored.zoom_factor, 1.5);
+        assert_eq!(restored.window, Some(placement));
+    }
+
+    #[test]
+    fn zoom_preference_survives_reopen_without_changing_environment_settings() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("devkit.db");
+        let store = Store::open(&path).unwrap();
+        assert_eq!(store.zoom_factor().unwrap(), 1.0);
+        store.save_zoom_factor(1.5).unwrap();
+        assert!(!store.has_settings().unwrap());
+        let settings = Settings {
+            sdk_root: "X:\\custom".into(),
+            ..Default::default()
+        };
+        store.save_settings(&settings).unwrap();
+        assert_eq!(store.zoom_factor().unwrap(), 1.5);
+        drop(store);
+        let reopened = Store::open(&path).unwrap();
+        assert_eq!(reopened.zoom_factor().unwrap(), 1.5);
+        assert_eq!(reopened.settings().sdk_root, settings.sdk_root);
+        reopened.save_zoom_factor(1.0).unwrap();
+        drop(reopened);
+        assert_eq!(Store::open(&path).unwrap().zoom_factor().unwrap(), 1.0);
+    }
+
+    #[test]
+    fn zoom_preference_rejects_invalid_values_and_recovers_from_corrupt_data() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let store = Store::open(&dir.path().join("devkit.db")).unwrap();
+        store.save_zoom_factor(1.25).unwrap();
+        for factor in [0.0, -1.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY] {
+            assert_eq!(
+                store.save_zoom_factor(factor).unwrap_err().code,
+                "INVALID_ZOOM"
+            );
+            assert_eq!(store.zoom_factor().unwrap(), 1.25);
+        }
+        for json in ["invalid", "null", "0", "-1", "1e999"] {
+            store
+                .connection
+                .lock()
+                .unwrap()
+                .execute(
+                    "UPDATE ui_preferences SET json=?1 WHERE key='zoomFactor'",
+                    [json],
+                )
+                .unwrap();
+            assert_eq!(store.zoom_factor().unwrap(), 1.0);
+        }
+    }
+
     #[test]
     fn fault_sqlite_full_rolls_back_task_and_catalog_settings_atomically() {
         use super::*;

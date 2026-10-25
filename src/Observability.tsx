@@ -1,5 +1,6 @@
 import { t as tr, getLocale } from './i18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useNumberPreference } from './preferences';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileDown, FileText, Image, Trash2 } from 'lucide-react';
 import { Modal } from './ui';
@@ -179,8 +180,8 @@ export function LogPanel({
   const [missed, setMissed] = useState(0);
   const [raw, setRaw] = useState(false);
   const [record, setRecord] = useState(false);
-  const [quota, setQuota] = useState(64);
-  const [minutes, setMinutes] = useState(60);
+  const [quota, setQuota] = useNumberPreference('logQuotaMib', 8, 4096);
+  const [minutes, setMinutes] = useNumberPreference('logMinutes', 1, 1440);
   const pausedRef = useRef(false);
   const currentRef = useRef(filter);
   const latestRef = useRef<LogSnapshot | null>(null);

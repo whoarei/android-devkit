@@ -1,23 +1,14 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
+import { getPreference, savePreference, usePreferenceValue } from './preferences';
 import { t } from './i18n';
 import { call, deviceKey, errorText } from './api';
 import { Button } from './ui';
 import type { Avd, Device, Workspace } from './types';
 import type { Usage } from './bindings';
 
-const key = 'android-devkit.default-target';
-const listeners = new Set<() => void>();
-const read = () => {
-  try {
-    return localStorage.getItem(key) || '';
-  } catch {
-    return '';
-  }
-};
-let preference = read();
 export const preferenceKey = (avd?: Avd, device?: Device) =>
   avd ? `avd:${avd.id}` : device ? `device:${device.connection}:${device.serial}` : '';
-export function defaultRow(data?: Workspace, value = preference): string {
+export function defaultRow(data?: Workspace, value = getPreference('defaultTarget')): string {
   const avd = data?.avds.find((avd) => preferenceKey(avd) === value);
   if (avd) return avd.id;
   const matches =
@@ -25,24 +16,8 @@ export function defaultRow(data?: Workspace, value = preference): string {
   return matches.length === 1 ? deviceKey(matches[0]) : '';
 }
 export function useDefaultTarget() {
-  const value = useSyncExternalStore(
-    (listener) => {
-      listeners.add(listener);
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-    () => preference,
-  );
-  return [
-    value,
-    (next: string) => {
-      // Persist first: a storage failure must not claim that the preference was saved.
-      localStorage.setItem(key, next);
-      preference = next;
-      listeners.forEach((listener) => listener());
-    },
-  ] as const;
+  const value = usePreferenceValue('defaultTarget');
+  return [value, (next: string) => savePreference('defaultTarget', next)] as const;
 }
 export const bytes = (value: number) =>
   value >= 1024 ** 3

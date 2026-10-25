@@ -13,6 +13,7 @@ const latestVersion = `${major}.${minor}.${patch + 1}`;
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    await require('./preferences-fixture.cjs')(page);
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.addInitScript(
@@ -215,8 +216,8 @@ const latestVersion = `${major}.${minor}.${patch + 1}`;
       .getByRole('checkbox', { name: 'Check for updates on startup', exact: true })
       .uncheck();
     assert.equal(
-      await page.evaluate(() => localStorage.getItem('android-devkit.auto-check-update')),
-      'false',
+      await page.evaluate(() => window.__preferences.autoCheckUpdates),
+      false,
     );
     await page.reload();
     await page.locator('nav').getByRole('button', { name: 'Settings', exact: true }).click();

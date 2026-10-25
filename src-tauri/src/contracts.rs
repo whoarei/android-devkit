@@ -4,6 +4,8 @@ fn source() -> String {
     let declarations = [
         AppError::decl(),
         Settings::decl(),
+        crate::preferences::WindowPlacement::decl(),
+        crate::preferences::UserPreferences::decl(),
         SdkDownloadSource::decl(),
         SdkSourceCheck::decl(),
         SdkSite::decl(),
@@ -45,12 +47,13 @@ fn source() -> String {
         crate::terminal::TerminalEvent::decl(),
     ];
     format!(
-        "// Generated from Rust DTOs. Run pnpm bindings to update.\n{}\n",
+        "// Generated from Rust DTOs. Run pnpm bindings to update.\n{}\nexport const defaultUserPreferences: UserPreferences = {};\n",
         declarations
             .iter()
             .map(|d| format!("export {d}"))
             .collect::<Vec<_>>()
-            .join("\n")
+            .join("\n"),
+        serde_json::to_string_pretty(&crate::preferences::UserPreferences::default()).unwrap()
     )
 }
 fn destination() -> std::path::PathBuf {

@@ -11,6 +11,7 @@ const path = require('node:path');
   });
   try {
     const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+    await require('./preferences-fixture.cjs')(page);
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.addInitScript(() => {

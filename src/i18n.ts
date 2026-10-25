@@ -1,39 +1,11 @@
-import { useSyncExternalStore } from 'react';
+import { getPreference, rememberPreference, usePreferenceValue } from './preferences';
 import english from './locales/en.json';
 import nativeEnglish from './locales/en-native.json';
 
 export type Locale = 'zh-CN' | 'en-US';
-const storageKey = 'android-devkit.locale';
-const readLocale = (): Locale => {
-  try {
-    return localStorage.getItem(storageKey) === 'en-US' ? 'en-US' : 'zh-CN';
-  } catch {
-    return 'zh-CN';
-  }
-};
-let locale = readLocale();
-const listeners = new Set<() => void>();
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-};
-export const getLocale = () => locale;
-export const useLocale = () => useSyncExternalStore(subscribe, getLocale, () => 'zh-CN' as Locale);
-export function setLocale(value: Locale) {
-  if (value !== 'zh-CN' && value !== 'en-US') return;
-  if (value === locale) return;
-  locale = value;
-  try {
-    localStorage.setItem(storageKey, value);
-  } catch {
-    /* The current session remains usable without storage. */
-  }
-  document.documentElement.lang = value;
-  listeners.forEach((listener) => listener());
-}
-document.documentElement.lang = locale;
+export const getLocale = () => getPreference('locale');
+export const useLocale = () => usePreferenceValue('locale');
+export const setLocale = (value: Locale) => rememberPreference('locale', value);
 
 const messages: Record<string, string> = { ...nativeEnglish, ...english };
 const patterns = Object.entries(messages)
@@ -56,7 +28,7 @@ const patterns = Object.entries(messages)
   });
 export function t(source: string, ...values: unknown[]): string {
   let result = source;
-  if (locale === 'en-US') {
+  if (getLocale() === 'en-US') {
     const trimmed = source.trim();
     result =
       messages[source] ??

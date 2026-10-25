@@ -466,5 +466,12 @@
   "未取回的设备原录屏将永久删除，不能再恢复；已经保存到本机的 MP4 与待保存文件保留。仍在录制时拒绝清理。": "Device recordings that have not been retrieved will be permanently deleted. Local MP4 and Pending files remain. Cleanup is refused while recording.",
   "原录屏仍在运行，请等待原定时长结束后清理": "The original recording is still running. Wait for its configured duration to finish before cleanup.",
   "放弃原任务 {0} 的设备录屏，仅删除本任务的 MP4、PID 与日志；不会停止其他进程": "Discard the device recording from task {0}; remove only its MP4, PID and log files. No other process will be stopped.",
-  "设备列表响应被截断，未使用不完整清单": "The device directory response was truncated. The incomplete list was rejected."
+  "设备列表响应被截断，未使用不完整清单": "The device directory response was truncated. The incomplete list was rejected.",
+  "界面缩放比例无效": "Invalid interface zoom factor",
+  "界面缩放设置保存或恢复失败": "Failed to save or restore interface zoom",
+  "用户配置无效": "Invalid user preference",
+  "用户配置读取失败，请重试。": "Could not load your preferences. Please retry.",
+  "用户配置保存失败，本次修改尚未保存。": "Could not save your preferences. This change has not been saved.",
+  "窗口位置和大小保存失败，请重试。": "Could not save the window position and size. Please retry.",
+  "重试保存配置": "Retry preferences"
 }
