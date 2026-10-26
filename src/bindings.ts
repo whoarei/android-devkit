@@ -1,6 +1,6 @@
 // Generated from Rust DTOs. Run pnpm bindings to update.
 export type AppError = { code: string, message: string, detail: string, };
-export type Settings = { sdkRoot: string, avdRoots: Array<string>, javaPath: string, proxy: string, bootTimeoutSecs: number, trayEnabled: boolean, sdkSites: Array<SdkSite>, sdkChannel: number, sdkDownload: SdkDownloadSource, };
+export type Settings = { sdkRoot: string, avdRoots: Array<string>, javaPath: string, proxy: string, bootTimeoutSecs: number, sdkSites: Array<SdkSite>, sdkChannel: number, sdkDownload: SdkDownloadSource, };
 export type WindowPlacement = { x: number, y: number, width: number, height: number, scaleFactor: number, monitor: string, maximized: boolean, };
 export type UserPreferences = { theme: 'light' | 'dark', locale: 'zh-CN' | 'en-US', defaultTarget: string, autoCheckUpdates: boolean, zoomFactor: number, window: WindowPlacement | null, lastPage: 'devices' | 'terminal' | 'sdk' | 'tasks' | 'diagnostics' | 'settings', deviceFilter: 'all' | 'usb' | 'emulator', sdkTab: 'platforms' | 'tools' | 'sites', sdkStatus: 'all' | 'installed' | 'missing' | 'updates', hideObsolete: boolean, taskState: 'all' | 'active' | 'succeeded' | 'failed' | 'waiting_confirmation' | 'needs_review' | 'cancelled', recordingSeconds: number, recordingResolution: 'original' | '720p', logQuotaMib: number, logMinutes: number, };
 export type SdkDownloadSource = { kind: string, name: string, url: string, verifyOfficial: boolean, };

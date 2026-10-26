@@ -143,16 +143,16 @@ impl App {
         })
     }
     pub fn request_close(&self, force_exit: bool) {
-        if self.updating.load(Ordering::SeqCst) {
-            return;
-        }
         let Some(h) = self.handle.lock().unwrap().clone() else {
             return;
         };
-        if self.store.settings().tray_enabled && !force_exit && tray_available(&h) {
+        if !force_exit && tray_available(&h) {
             if let Err(error) = hide_to_tray(&h) {
                 let _ = h.emit_to("main", "task-error", error);
             }
+            return;
+        }
+        if self.updating.load(Ordering::SeqCst) {
             return;
         }
         match self.close_status() {

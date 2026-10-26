@@ -56,8 +56,6 @@ pub struct Settings {
     pub proxy: String,
     #[cfg_attr(test, ts(type = "number"))]
     pub boot_timeout_secs: u64,
-    // Kept as trayEnabled on disk for compatibility; controls the close button only.
-    pub tray_enabled: bool,
     #[serde(default)]
     pub sdk_sites: Vec<SdkSite>,
     #[serde(default)]
@@ -117,7 +115,6 @@ impl Default for Settings {
             java_path: java,
             proxy: String::new(),
             boot_timeout_secs: 180,
-            tray_enabled: true,
             sdk_sites: Vec::new(),
             sdk_channel: 0,
             sdk_download: SdkDownloadSource::default(),
@@ -589,14 +586,20 @@ pub fn checked_target<'a>(
 mod tests {
     use super::*;
     #[test]
-    fn close_to_tray_defaults_on_and_preserves_saved_opt_out() {
-        assert!(Settings::default().tray_enabled);
-        let missing: Settings = serde_json::from_value(serde_json::json!({})).unwrap();
-        assert!(missing.tray_enabled);
+    fn legacy_close_setting_is_ignored_without_losing_environment_settings() {
         for enabled in [true, false] {
-            let saved: Settings =
-                serde_json::from_value(serde_json::json!({"trayEnabled": enabled})).unwrap();
-            assert_eq!(saved.tray_enabled, enabled);
+            let saved: Settings = serde_json::from_value(serde_json::json!({
+                "trayEnabled": enabled,
+                "sdkRoot": "C:\\existing-sdk",
+                "proxy": "http://127.0.0.1:8080"
+            }))
+            .unwrap();
+            assert_eq!(saved.sdk_root, "C:\\existing-sdk");
+            assert_eq!(saved.proxy, "http://127.0.0.1:8080");
+            assert!(serde_json::to_value(saved)
+                .unwrap()
+                .get("trayEnabled")
+                .is_none());
         }
     }
 

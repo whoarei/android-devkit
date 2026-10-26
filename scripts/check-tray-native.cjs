@@ -51,8 +51,12 @@ const assert = require('node:assert/strict');
   };
   try {
     const snapshot = await invoke('workspace_snapshot');
-    assert.equal(snapshot.settings.trayEnabled, true);
+    assert.equal(snapshot.settings.trayEnabled, undefined);
     assert.equal((await invoke('close_status')).trayEnabled, true);
+    assert.equal(
+      await page.getByRole('button', { name: '关闭窗口', exact: true }).getAttribute('title'),
+      '关闭到托盘',
+    );
     // Both entry points share native minimize -> resize -> hide, rather than bypassing it.
     await page.getByRole('button', { name: '最小化', exact: true }).click();
     await waitState({ visible: false, minimized: true });
@@ -61,6 +65,10 @@ const assert = require('node:assert/strict');
     await waitState({ maximized: true });
     await invoke('window_action', { action: 'minimize' });
     await waitState({ visible: false, minimized: true });
+    await reopen();
+    await waitState({ maximized: true });
+    await page.getByRole('button', { name: '关闭窗口', exact: true }).click();
+    await waitState({ visible: false });
     await reopen();
     await waitState({ maximized: true });
     // Relaunching an already visible maximized window must preserve maximization.
@@ -73,12 +81,18 @@ const assert = require('node:assert/strict');
     await reopen();
     await invoke('settings_save', { settings: { ...snapshot.settings, trayEnabled: false } });
     assert.equal((await invoke('close_status')).trayEnabled, true);
+    assert.equal((await invoke('workspace_snapshot')).settings.trayEnabled, undefined);
+    await invoke('window_action', { action: 'close' });
+    await waitState({ visible: false });
+    await reopen();
     await invoke('window_action', { action: 'minimize' });
     await waitState({ visible: false, minimized: true });
     await reopen();
     const exported = await invoke('export_prepare', { kind: 'diagnostics', redacted: true });
     await invoke('window_action', { action: 'close' });
-    await page.getByRole('dialog', { name: '退出工作台', exact: true }).waitFor();
+    await waitState({ visible: false });
+    await reopen();
+    assert((await invoke('close_status')).unsaved.some((a) => a.id === exported.artifact.id));
     const blocked = await page.evaluate(() =>
       window.__TAURI_INTERNALS__.invoke('close_resolve', { mode: 'exit' }).then(
         () => '',
@@ -86,15 +100,11 @@ const assert = require('node:assert/strict');
       ),
     );
     assert.equal(blocked, 'UNSAVED_ARTIFACTS');
-    // The always-present tray remains usable even with close-to-tray disabled.
+    // Unsaved artifacts stay intact while the app continues in the tray.
     await invoke('close_resolve', { mode: 'hide' });
     await waitState({ visible: false });
     await reopen();
     await invoke('close_resolve', { mode: 'return' });
-    await page
-      .getByRole('dialog', { name: '退出工作台', exact: true })
-      .getByRole('button', { name: '返回', exact: true })
-      .click();
     await invoke('artifacts_discard', { artifactIds: [exported.artifact.id] });
     await invoke('settings_save', { settings: snapshot.settings });
     assert.deepEqual(errors, []);
@@ -103,9 +113,10 @@ const assert = require('node:assert/strict');
       singleInstanceRestoreAndFocus: true,
       maximizedStatePreserved: true,
       closeToTray: true,
-      closeOptOutKeepsTray: true,
+      legacyCloseOptOutIgnored: true,
+      closePreservesUnsavedArtifacts: true,
       unsavedExitGuard: true,
-      hideFromExitDialog: true,
+      explicitHideToTray: true,
       errors,
     };
     fs.writeFileSync(path.join(runRoot, 'tray-report.json'), JSON.stringify(report, null, 2));

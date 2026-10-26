@@ -9,7 +9,7 @@ const assert = require('assert/strict');
     const p = b.contexts()[0].pages()[0];
     const errors = [];
     p.on('pageerror', (e) => errors.push(e.message));
-    // Explicitly exercise the exit dialog; fresh profiles now close to the tray by default.
+    // Old profiles may contain an opt-out; closing must still hide to the tray.
     await p.evaluate(async () => {
       const settings = (await window.__TAURI_INTERNALS__.invoke('workspace_snapshot')).settings;
       await window.__TAURI_INTERNALS__.invoke('settings_save', {
@@ -33,21 +33,6 @@ const assert = require('assert/strict');
     });
     assert.equal(blocked, 'UNSAVED_ARTIFACTS');
     await p.evaluate(() => window.__TAURI_INTERNALS__.invoke('window_action', { action: 'close' }));
-    const closing = p.getByRole('dialog', { name: '退出工作台', exact: true });
-    await closing.waitFor();
-    await closing.getByText(/尚未另存/).waitFor();
-    await p.screenshot({ path: '.qa/app/m4-close.png' });
-    await closing.getByRole('button', { name: '返回', exact: true }).click();
-    await p.locator('nav').getByRole('button', { name: '设置', exact: true }).click();
-    const tray = p.getByRole('checkbox', { name: /关闭窗口时隐藏到托盘/ });
-    await tray.check();
-    await p.getByRole('button', { name: '保存设置', exact: true }).click();
-    await p.getByRole('status').filter({ hasText: '设置已保存' }).waitFor();
-    await p.waitForFunction(
-      async () =>
-        (await window.__TAURI_INTERNALS__.invoke('workspace_snapshot')).settings.trayEnabled,
-    );
-    await p.evaluate(() => window.__TAURI_INTERNALS__.invoke('window_action', { action: 'close' }));
     await p.waitForTimeout(300);
     assert.equal(
       (await p.evaluate(() => window.__TAURI_INTERNALS__.invoke('window_state'))).visible,
@@ -67,8 +52,6 @@ const assert = require('assert/strict');
       (await p.evaluate(() => window.__TAURI_INTERNALS__.invoke('window_state'))).visible,
       true,
     );
-    await tray.uncheck();
-    await p.getByRole('button', { name: '保存设置', exact: true }).click();
     await p.locator('nav').getByRole('button', { name: '任务中心', exact: true }).click();
     await p.getByRole('heading', { name: /未另存产物/ }).waitFor();
     const artifacts = await p.evaluate(() => window.__TAURI_INTERNALS__.invoke('artifacts_list'));
@@ -78,8 +61,8 @@ const assert = require('assert/strict');
       diagnosticPreview: true,
       defaultRedaction: true,
       unsavedExitBlocked: true,
-      closeDialogListsArtifacts: true,
-      closeToTrayEnabledAndDisabled: true,
+      closeToTrayPreservesArtifacts: true,
+      legacyCloseOptOutIgnored: true,
       singleInstanceRestored: true,
       artifactRegistryPersisted: true,
       errors,

@@ -445,6 +445,7 @@ export function App() {
           </button>
           <button
             aria-label={t('关闭窗口')}
+            title={t('关闭到托盘')}
             className="window-close"
             onClick={() =>
               native ? void call('window_action', { action: 'close' }) : setModal('close')
@@ -1665,7 +1666,6 @@ function SettingsPanel({
       javaPath: '',
       proxy: '',
       bootTimeoutSecs: 180,
-      trayEnabled: true,
       sdkSites: [],
       sdkChannel: 0,
       sdkDownload: defaultSdkDownload(),
@@ -1731,17 +1731,9 @@ function SettingsPanel({
       </section>
       <section>
         <h3>{t('窗口与退出')}</h3>
-        <label className="check-row">
-          <input
-            type="checkbox"
-            checked={form.trayEnabled}
-            onChange={(e) => set('trayEnabled', e.target.checked)}
-          />
-          {t('关闭窗口时隐藏到托盘并继续任务')}
-        </label>
         <p className="hint">
           {t(
-            '最小化始终隐藏到托盘。此选项仅控制关闭按钮，默认开启；关闭此选项后，关闭窗口将请求退出。点击托盘恢复窗口，右键菜单可退出；退出前仍检查任务、录制与未保存产物。',
+            '最小化或关闭窗口都会隐藏到托盘，后台任务和终端会话继续运行。点击托盘恢复窗口，右键菜单选择“退出…”可彻底退出；退出前仍检查任务、录制与未保存产物。',
           )}
         </p>
         <h3>{t('网络与启动')}</h3>
