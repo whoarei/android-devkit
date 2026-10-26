@@ -9,6 +9,13 @@ const assert = require('assert/strict');
     const p = b.contexts()[0].pages()[0];
     const errors = [];
     p.on('pageerror', (e) => errors.push(e.message));
+    // Explicitly exercise the exit dialog; fresh profiles now close to the tray by default.
+    await p.evaluate(async () => {
+      const settings = (await window.__TAURI_INTERNALS__.invoke('workspace_snapshot')).settings;
+      await window.__TAURI_INTERNALS__.invoke('settings_save', {
+        settings: { ...settings, trayEnabled: false },
+      });
+    });
     await p.locator('nav').getByRole('button', { name: '环境诊断', exact: true }).click();
     await p.getByRole('button', { name: '预览诊断导出', exact: true }).click();
     const preview = p.getByRole('dialog', { name: '导出内容预览', exact: true });
@@ -32,7 +39,7 @@ const assert = require('assert/strict');
     await p.screenshot({ path: '.qa/app/m4-close.png' });
     await closing.getByRole('button', { name: '返回', exact: true }).click();
     await p.locator('nav').getByRole('button', { name: '设置', exact: true }).click();
-    const tray = p.getByRole('checkbox', { name: /启用托盘/ });
+    const tray = p.getByRole('checkbox', { name: /关闭窗口时隐藏到托盘/ });
     await tray.check();
     await p.getByRole('button', { name: '保存设置', exact: true }).click();
     await p.getByRole('status').filter({ hasText: '设置已保存' }).waitFor();
@@ -72,7 +79,7 @@ const assert = require('assert/strict');
       defaultRedaction: true,
       unsavedExitBlocked: true,
       closeDialogListsArtifacts: true,
-      trayEnabledAndDisabled: true,
+      closeToTrayEnabledAndDisabled: true,
       singleInstanceRestored: true,
       artifactRegistryPersisted: true,
       errors,

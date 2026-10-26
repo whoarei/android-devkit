@@ -19,14 +19,14 @@ pub fn create_tray(handle: &tauri::AppHandle) -> Result<()> {
         MenuItem::with_id(handle, "quit", "退出…", true, None::<&str>).map_err(window_error)?;
     let menu = Menu::with_items(handle, &[&show, &status, &quit]).map_err(window_error)?;
     handle.manage(TrayItems { show, status, quit });
-    let mut builder = TrayIconBuilder::with_id("devkit")
+    let icon = handle
+        .default_window_icon()
+        .ok_or_else(|| AppError::new("TRAY_UNAVAILABLE", "无法加载托盘图标"))?;
+    TrayIconBuilder::with_id("devkit")
         .menu(&menu)
+        .icon(icon.clone())
         .tooltip("Android DevKit")
-        .show_menu_on_left_click(false);
-    if let Some(icon) = handle.default_window_icon() {
-        builder = builder.icon(icon.clone());
-    }
-    let tray = builder
+        .show_menu_on_left_click(false)
         .on_menu_event(|h, event| {
             if event.id.as_ref() == "show" {
                 show_window(h);
@@ -48,8 +48,7 @@ pub fn create_tray(handle: &tauri::AppHandle) -> Result<()> {
         })
         .build(handle)
         .map_err(window_error)?;
-    tray.set_visible(handle.state::<Arc<App>>().store.settings().tray_enabled)
-        .map_err(window_error)?;
+    update_tray(handle, &handle.state::<Arc<App>>());
     Ok(())
 }
 
@@ -59,8 +58,43 @@ fn window_error(e: impl std::fmt::Display) -> AppError {
 pub fn show_window(h: &tauri::AppHandle) {
     if let Some(w) = h.get_webview_window("main") {
         let _ = w.show();
-        let _ = w.unminimize();
+        if w.is_minimized().unwrap_or(false) {
+            let _ = w.unminimize();
+        }
         let _ = w.set_focus();
+    }
+}
+
+pub fn tray_available(h: &tauri::AppHandle) -> bool {
+    h.tray_by_id("devkit").is_some()
+}
+
+pub fn hide_to_tray(h: &tauri::AppHandle) -> Result<()> {
+    if !tray_available(h) {
+        return Err(AppError::new(
+            "TRAY_UNAVAILABLE",
+            "托盘不可用，请保持窗口打开",
+        ));
+    }
+    if let Some(window) = h.get_webview_window("main") {
+        window.hide().map_err(window_error)?;
+        #[cfg(windows)]
+        crate::window_state::flush(h);
+    }
+    Ok(())
+}
+
+pub fn on_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    // Also cover OS shortcuts and the native taskbar/system menu, not just our title bar.
+    if window.label() == "main"
+        && matches!(event, tauri::WindowEvent::Resized(_))
+        && window.is_minimized().unwrap_or(false)
+        && window.is_visible().unwrap_or(false)
+        && tray_available(window.app_handle())
+    {
+        if let Err(error) = hide_to_tray(window.app_handle()) {
+            eprintln!("Minimize to tray: {error}");
+        }
     }
 }
 pub fn update_tray(h: &tauri::AppHandle, app: &App) {
@@ -100,7 +134,12 @@ impl App {
                 .filter(|a| !a.acknowledged)
                 .collect(),
             draining: self.draining.load(Ordering::SeqCst),
-            tray_enabled: self.store.settings().tray_enabled,
+            tray_enabled: self
+                .handle
+                .lock()
+                .unwrap()
+                .as_ref()
+                .is_some_and(tray_available),
         })
     }
     pub fn request_close(&self, force_exit: bool) {
@@ -110,9 +149,9 @@ impl App {
         let Some(h) = self.handle.lock().unwrap().clone() else {
             return;
         };
-        if self.store.settings().tray_enabled && !force_exit {
-            if let Some(w) = h.get_webview_window("main") {
-                let _ = w.hide();
+        if self.store.settings().tray_enabled && !force_exit && tray_available(&h) {
+            if let Err(error) = hide_to_tray(&h) {
+                let _ = h.emit_to("main", "task-error", error);
             }
             return;
         }
@@ -146,15 +185,14 @@ impl App {
             return Ok(());
         }
         if mode == "hide" {
-            if !self.store.settings().tray_enabled {
-                return Err(AppError::new("TRAY_DISABLED", "请先显式启用托盘"));
-            }
-            if let Some(h) = self.handle.lock().unwrap().as_ref() {
-                if let Some(w) = h.get_webview_window("main") {
-                    w.hide().map_err(window_error)?;
-                }
-            }
-            return Ok(());
+            let handle = self.handle.lock().unwrap().clone();
+            return match handle {
+                Some(h) => hide_to_tray(&h),
+                None => Err(AppError::new(
+                    "TRAY_UNAVAILABLE",
+                    "托盘不可用，请保持窗口打开",
+                )),
+            };
         }
         if !matches!(mode, "exit" | "wait" | "cancel") {
             return Err(AppError::new("INVALID_ACTION", "关闭动作无效"));
@@ -284,7 +322,7 @@ mod tests {
             app.resolve_close("hide", false, false, &[])
                 .unwrap_err()
                 .code,
-            "TRAY_DISABLED"
+            "TRAY_UNAVAILABLE"
         );
         app.resolve_close("exit", true, false, std::slice::from_ref(&p.artifact.id))
             .unwrap();

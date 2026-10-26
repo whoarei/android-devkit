@@ -430,6 +430,7 @@ export function App() {
         <div className="window-buttons">
           <button
             aria-label={t('最小化')}
+            title={t('最小化到托盘')}
             onClick={() => void call('window_action', { action: 'minimize' })}
           >
             <Minus size={13} />
@@ -1664,7 +1665,7 @@ function SettingsPanel({
       javaPath: '',
       proxy: '',
       bootTimeoutSecs: 180,
-      trayEnabled: false,
+      trayEnabled: true,
       sdkSites: [],
       sdkChannel: 0,
       sdkDownload: defaultSdkDownload(),
@@ -1736,11 +1737,11 @@ function SettingsPanel({
             checked={form.trayEnabled}
             onChange={(e) => set('trayEnabled', e.target.checked)}
           />
-          {t('启用托盘：关闭窗口后隐藏并继续任务')}
+          {t('关闭窗口时隐藏到托盘并继续任务')}
         </label>
         <p className="hint">
           {t(
-            '默认关闭。启用后，可通过托盘打开工作台或选择退出；退出仍检查任务、文件采集与未保存产物。',
+            '最小化始终隐藏到托盘。此选项仅控制关闭按钮，默认开启；关闭此选项后，关闭窗口将请求退出。点击托盘恢复窗口，右键菜单可退出；退出前仍检查任务、录制与未保存产物。',
           )}
         </p>
         <h3>{t('网络与启动')}</h3>

@@ -50,16 +50,14 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
-            if let Some(w) = app.get_webview_window("main") {
-                let _ = w.show();
-                let _ = w.set_focus();
-            }
+            lifecycle::show_window(app);
         }))
         .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(commands::setup)
         .on_window_event(|window, event| {
             #[cfg(windows)]
             crate::window_state::on_event(window, event);
+            lifecycle::on_window_event(window, event);
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 window

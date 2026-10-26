@@ -4,7 +4,7 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.5.1** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.6.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
 一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，v0.4.0 已发布，其余验收事项继续保留 TODO，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
 
@@ -13,6 +13,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 0.5.0 新增 **分包 APK 安装 → 录屏 → 文件传输**，包含明确的冲突选择、完整暂存后发布与中断原件恢复；修复重复提交、错误反馈、原件保护、录屏恢复、缓存回收及键盘焦点等 18 组问题。自动验证与实体手机待验项见 [二期实施与验收报告](docs/00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html) 和 [循环审核与修复报告](docs/00011_20261025010136_Android-DevKit-Phase2-Review-Report.html)。
 
 0.5.1 统一用户偏好到 SQLite，自动迁移旧版界面偏好，修复 Ctrl± 缩放重启后丢失；保存窗口位置、普通大小和最大化状态，并恢复导航、列表筛选及录屏 / 日志采集参数。配置写入失败可重试，窗口恢复支持 DPI 变化与显示器断开后的可见性调整。
+
+0.6.0 完善托盘与单实例体验：托盘图标常驻，最小化后隐藏并继续后台任务；点击托盘或重复启动恢复已有窗口并置前，保留最大化状态。新用户默认关闭到托盘，已有用户保留原关闭设置；真正退出前仍检查任务、录制与未保存产物。托盘创建失败时回退普通窗口行为。
 
 ## 产品特性
 
@@ -27,6 +29,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **在共享存储传输文件**：浏览 Download、Pictures、Movies、DCIM，上传或下载文件与目录，明确处理同名冲突，替换中断后可恢复原件。
 - **集中排查设备与应用问题**：过滤实时日志、采集问题发生时的日志片段、截取设备画面，预览并导出排查资料。
 - **直接操作交互终端**：从设备详情进入对应的 ADB Shell，也可打开本机 PowerShell；支持多会话、实时交互、切页保留输出和直接关闭会话。
+- **收进托盘继续工作**：最小化后后台任务和终端继续运行，托盘点击恢复、右键退出；重复启动自动唤起已有窗口。
 - **查进度、找结果、保存文件**：在任务中心搜索历史操作，按状态筛选任务、查看失败原因；通过带角标的待保存文件入口预览、另存或清理缓存副本。
 - **按自己的习惯使用界面**：随时切换中英文和亮暗主题，偏好自动保存，下次启动继续使用；支持 `Ctrl` + `+` / `-` 放大或缩小整个界面，`Ctrl` + `0` 恢复默认大小。
 - **在应用内检查更新**：启动时静默检查新版本，也可手动查看更新说明；安装版支持验证更新签名后安装并重新打开，便携版提供下载入口。
@@ -39,8 +42,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.5.1-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.5.1/AndroidDevKit-0.5.1-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.5.1-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.5.1/AndroidDevKit-0.5.1-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.6.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.6.0/AndroidDevKit-0.6.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.6.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.6.0/AndroidDevKit-0.6.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
@@ -111,6 +114,10 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 选中设备，在详情操作区点击“ADB 终端”，直接进入该设备的交互 Shell，可输入 `getprop`、`logcat`、`top` 等设备命令。左侧“ADB 终端”页的“新建会话”菜单可直接选择设备，或打开已配置当前 SDK 的本机 PowerShell；通用命令行中使用 `adb devices -l` 查看设备、通过 `adb -s <序列号> shell` 指定目标。
 
 终端支持连续输入、方向键、Tab 补全、复制粘贴和 `Ctrl+C` 中断，命令直接作用于实际环境。常用命令入口只插入文本，执行由终端处理。切换页面保留会话和输出；点击会话上的 × 直接关闭该会话。设备 Shell 退出或断线后保留输出，设备恢复后可重新连接。终端命令的结果在对应会话中查看；实际退出应用会关闭终端连接，隐藏到托盘则保留会话。
+
+应用运行时常驻系统托盘。点击最小化按钮或使用系统最小化操作会隐藏到托盘，后台任务与终端会话继续运行；点击托盘图标或托盘菜单“打开工作台”恢复窗口。应用采用单实例模式，再次启动会恢复已有窗口并将其置前，包括已隐藏、已最小化的窗口，并保留最大化状态。
+
+新用户默认关闭窗口时隐藏到托盘，可在“设置 → 窗口与退出”关闭此选项，改为关闭窗口时请求退出；已有用户保留原来的关闭设置。无论此选项是否开启，托盘图标始终保留，最小化行为一致。托盘右键菜单“退出…”会真正退出应用；若有进行中的任务、录制或未保存产物，先恢复窗口供用户选择等待、取消或保存。退出会清理本应用的终端连接和日志观察器，模拟器与共享 ADB 继续运行。系统托盘创建失败时保留普通窗口和系统最小化行为，避免应用隐藏后无法找回。
 
 每个连接使用创建时的 SDK 环境，设置切换只影响新连接。替换或卸载会话正在使用的 Platform-Tools、安装软件更新前，需要先关闭相关终端会话。
 
@@ -214,6 +221,8 @@ pnpm.cmd verify:faults
 专项使用临时目录、本地 HTTP 响应、测试专用 I/O 故障点、SQLite 页数限制 / 只读连接和 Windows 文件锁。SDK 覆盖真实引导归档提交与多组件清单复查；APK 使用隔离响应夹具验证结果落库前的中断恢复。测试不操作用户设备或已选 SDK，进程终止也不等同于断电验收。
 
 真实 SDK / AVD 集成测试按需运行，入口见 [package.json](package.json) 中的 `verify:*` 命令；运行前检查脚本使用的 SDK 和测试目录。测试应用数据可通过 `ANDROID_DEVKIT_DATA_DIR` 隔离，该变量不改变所选 SDK。
+
+托盘与单实例原生回归脚本为 `node scripts/check-tray-native.cjs .qa/<隔离测试目录>/native-process.json`。测试元数据需包含隔离应用的 `pid`、WebView2 `debugPort`、`executable` 和 `dataDirectory`；可执行文件和数据目录必须同在该测试目录。脚本验证最小化隐藏、重复启动恢复与聚焦、最大化状态保留、关闭设置及未保存产物保护，报告写入同目录的 `tray-report.json`。
 
 ### 构建发行文件
 

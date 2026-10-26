@@ -209,22 +209,7 @@ pub fn settings_save(app: Service<'_>, settings: Settings) -> Result<()> {
         ));
     }
     crate::bootstrap::client(&settings)?;
-    let previous = app.store.settings();
-    let handle = app.handle.lock().unwrap().clone();
-    if let Some(h) = &handle {
-        if let Some(tray) = h.tray_by_id("devkit") {
-            tray.set_visible(settings.tray_enabled)
-                .map_err(|e| AppError::new("TRAY", e.to_string()))?;
-        }
-    }
-    if let Err(error) = app.store.save_settings(&settings) {
-        if let Some(h) = &handle {
-            if let Some(tray) = h.tray_by_id("devkit") {
-                let _ = tray.set_visible(previous.tray_enabled);
-            }
-        }
-        return Err(error);
-    }
+    app.store.save_settings(&settings)?;
     app.notify();
     Ok(())
 }
@@ -503,7 +488,7 @@ pub async fn log_read(
 }
 #[tauri::command]
 pub fn window_state(window: tauri::WebviewWindow) -> serde_json::Value {
-    serde_json::json!({"maximized":window.is_maximized().unwrap_or(false),"focused":window.is_focused().unwrap_or(false),"visible":window.is_visible().unwrap_or(false),"scale":window.scale_factor().unwrap_or(1.0)})
+    serde_json::json!({"maximized":window.is_maximized().unwrap_or(false),"minimized":window.is_minimized().unwrap_or(false),"focused":window.is_focused().unwrap_or(false),"visible":window.is_visible().unwrap_or(false),"scale":window.scale_factor().unwrap_or(1.0)})
 }
 #[tauri::command]
 pub fn window_regions(window: tauri::WebviewWindow, regions: platform::Regions) {
@@ -760,7 +745,10 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     *state.handle.lock().unwrap() = Some(app.handle().clone());
     state.monitor();
     app.manage(state);
-    crate::lifecycle::create_tray(app.handle())?;
+    if let Err(error) = crate::lifecycle::create_tray(app.handle()) {
+        // A missing system tray must not prevent startup or leave the app unreachable.
+        eprintln!("System tray: {error}");
+    }
     if let Some(window) = app.get_webview_window("main") {
         platform::install(&window);
         let preferences = app.state::<Arc<App>>().store.preferences()?;
