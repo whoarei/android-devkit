@@ -22,10 +22,11 @@ table{border-collapse:collapse;width:100%;background:white;margin:18px 0}th,td{b
 <table>
 <thead><tr><th>配置域</th><th>模型与存储</th><th>修改入口</th></tr></thead>
 <tbody>
-<tr><td>运行环境配置</td><td><code>Settings</code> → SQLite <code>settings</code> 单例 JSON；包括 SDK/AVD 目录、Java、代理、启动超时、托盘、SDK 站点与通道、下载源及校验开关。</td><td>沿用已校验的设置、Java 和下载源命令，用户确认应用后保存。新增字段用默认值兼容旧记录。</td></tr>
+<tr><td>运行环境配置</td><td><code>Settings</code> → SQLite <code>settings</code> 单例 JSON；包括 SDK/AVD 目录、Java、代理、启动超时、SDK 站点与通道、下载源及校验开关。</td><td>沿用已校验的设置、Java 和下载源命令，用户确认应用后保存。新增字段用默认值兼容旧记录。</td></tr>
 <tr><td>用户偏好</td><td><code>UserPreferences</code> → 同库 <code>ui_preferences(key,json)</code>；每个偏好单独一行，支持原子补丁。</td><td><code>preferences_load</code> / <code>preferences_patch</code>；React 组件通过 <code>src/preferences.ts</code> 获取与保存。</td></tr>
 <tr><td>原生窗口与缩放</td><td><code>UserPreferences.window</code>、<code>zoomFactor</code>，仍在同一偏好表。</td><td>原生窗口/WebView 事件；前端补丁禁止伪造这些字段。</td></tr>
 </tbody></table>
+<p>2026-11-01 按当前 v0.6.1 实现同步：托盘随应用启动常驻，托盘启停与关闭行为不再是可配置字段，旧版相关配置不再生效。最小化与关闭隐藏窗口并保留后台任务、终端及未保存产物；完整退出通过托盘菜单“退出…”执行，并检查任务、录制与产物。点击托盘或再次启动恢复并聚焦已有窗口，保留最大化状态；托盘创建失败时回退普通窗口、系统最小化与受保护退出。</p>
 <p>界面偏好与运行环境配置保持独立的校验和保存边界。切换主题、移动窗口不改变首次环境配置状态，也不使已确认的 SDK/设备操作计划失效。</p>
 <h2>应持久化的状态清单</h2>
 <table>

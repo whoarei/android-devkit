@@ -59,6 +59,7 @@
         <div class="metadata"><span>版本 v0.6</span><span>日期 2026-10-17</span><span>范围 本地桌面工具</span><span>首发建议 Windows 11 x64</span></div>
         <div class="opening"><p><strong>核心产品判断</strong>　围绕“准备好环境，并在正确设备上验证应用”组织产品。默认进入设备工作台，复用已有 Android 环境，通过清晰的任务状态和可操作的故障解释减少反复查命令、切工具的成本。</p></div>
         <p class="note">本方案聚焦 SDK、模拟器、设备管理及桌面窗口的功能需求与交互设计。文中的界面是低保真交互示意，不连接真实设备。</p>
+        <p class="note">2026-11-01 范围更新：T-01～T-07 已按用户决定全部取消，移出待办；历史验证边界见 <a href="00008_20261024164440_Android-DevKit-Phase1-TODO.html">一期范围与取消记录</a>。窗口与托盘规则以当前 v0.6.1 实现为准，已同步至本文。</p>
       </header>
 
       <section id="position">
@@ -124,9 +125,9 @@
         <p>标题栏由应用统一绘制，与内容区使用一致的色彩和图标。左侧显示应用标识与名称，中间保留可拖动空白及必要的环境信息，右上角按<strong>最小化、最大化或还原、关闭</strong>的顺序排列。无需额外叠加一条系统默认标题栏；关闭按钮始终位于窗口最右上角。新建模拟器等向导在主窗口内容区完成，共用这套窗口控制。</p>
         <p>标题栏基准高度为 40 个逻辑像素，窗口按钮点击区域建议为 46 × 40 个逻辑像素。图标使用简洁线条，正常、悬停、按下与窗口失焦状态均可辨认；关闭按钮悬停时使用红色背景与白色图标。最大化后切换为还原图标及“还原”提示，状态取自真实窗口，不由按钮点击次数推断。</p>
         <div class="table-wrap"><table><caption>自绘窗口控制的行为要求</caption><thead><tr><th style="width:23%">控件或区域</th><th style="width:42%">交互行为</th><th>状态与边界</th></tr></thead><tbody>
-          <tr><td>最小化</td><td>将主窗口最小化至系统任务栏</td><td>下载、安装与设备会话继续；不等同于退出或转入托盘</td></tr>
+          <tr><td>最小化</td><td>将主窗口隐藏到常驻系统托盘，包括系统最小化操作</td><td>下载、安装、设备会话与终端继续；托盘不可用时回退为普通系统最小化</td></tr>
           <tr><td>最大化或还原</td><td>普通窗口最大化；最大化状态下还原到先前尺寸与位置</td><td>图标、提示与实际状态同步；最大化范围遵循当前显示器工作区</td></tr>
-          <tr><td>关闭</td><td>进入统一关闭流程，处理进行中的任务与已配置的托盘行为</td><td>不得绕过任务确认，也不直接结束模拟器；详见通用交互规则</td></tr>
+          <tr><td>关闭</td><td>关闭按钮、Alt+F4 和任务栏关闭均隐藏到托盘</td><td>后台任务、终端与未保存产物保留；完整退出通过托盘菜单“退出…”执行，托盘不可用时关闭进入受保护退出流程</td></tr>
           <tr><td>标题栏空白区</td><td>拖动移动窗口；双击在最大化与还原间切换</td><td>按钮、下拉框等交互区域不响应拖动；支持从最大化状态拖动还原</td></tr>
           <tr><td>系统窗口操作</td><td>保留系统菜单、边缘缩放、系统贴靠和键盘窗口操作</td><td>Windows 11 需验证最大化按钮的贴靠布局入口；多显示器和不同缩放比均可用</td></tr>
         </tbody></table></div>
@@ -140,7 +141,7 @@
         </ul>
         <figure>
           <div class="wire" aria-label="设备工作台低保真线框">
-            <div class="wire-top"><span class="wire-caption">Android DevKit</span><span class="wire-context">环境 本机 SDK · 状态正常 ▾</span><span class="window-controls" role="img" aria-label="自绘窗口按钮 从左至右为最小化 最大化 关闭"><span class="window-button" title="最小化"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 8h10"/></svg></span><span class="window-button" title="最大化"><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9"/></svg></span><span class="window-button close" title="关闭"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m1.5 1.5 9 9m0-9-9 9"/></svg></span></span></div>
+            <div class="wire-top"><span class="wire-caption">Android DevKit</span><span class="wire-context">环境 本机 SDK · 状态正常 ▾</span><span class="window-controls" role="img" aria-label="自绘窗口按钮 从左至右为最小化 最大化 关闭"><span class="window-button" title="最小化到托盘"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 8h10"/></svg></span><span class="window-button" title="最大化"><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9"/></svg></span><span class="window-button close" title="关闭到托盘"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m1.5 1.5 9 9m0-9-9 9"/></svg></span></span></div>
             <div class="wire-grid">
               <div class="wire-nav"><p class="sel">设备</p><p>SDK</p><br><br><p>任务 1</p><p>环境诊断</p><p>设置</p></div>
               <div class="wire-main">
@@ -202,7 +203,7 @@
         </div>
         <figure>
           <div class="wire" aria-label="SDK 管理与变更确认低保真线框">
-            <div class="wire-top"><span class="wire-caption">Android DevKit</span><span class="wire-context">SDK 管理 · D:\Android\Sdk</span><span class="window-controls" role="img" aria-label="自绘窗口按钮 从左至右为最小化 还原 关闭"><span class="window-button" title="最小化"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 8h10"/></svg></span><span class="window-button" title="还原"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 3.5v-2h7v7h-2"/><rect x="1.5" y="3.5" width="7" height="7"/></svg></span><span class="window-button close" title="关闭"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m1.5 1.5 9 9m0-9-9 9"/></svg></span></span></div>
+            <div class="wire-top"><span class="wire-caption">Android DevKit</span><span class="wire-context">SDK 管理 · D:\Android\Sdk</span><span class="window-controls" role="img" aria-label="自绘窗口按钮 从左至右为最小化 还原 关闭"><span class="window-button" title="最小化到托盘"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 8h10"/></svg></span><span class="window-button" title="还原"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3.5 3.5v-2h7v7h-2"/><rect x="1.5" y="3.5" width="7" height="7"/></svg></span><span class="window-button close" title="关闭到托盘"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m1.5 1.5 9 9m0-9-9 9"/></svg></span></span></div>
             <div class="wire-split">
               <div class="wire-main">
                 <div class="wire-title"><span>组件</span><span class="ui-btn">搜索组件或 API</span></div>
@@ -240,7 +241,7 @@
         <p>镜像缺失可在流程内加入任务，无需用户跳到 SDK 页面再回来。用户取消向导时不会留下未完成的 AVD 配置；已完成的共享镜像下载保留并说明。创建完成后提供“启动模拟器”，是否自动启动使用清晰的可选项，不额外猜测用户意图。</p>
         <figure>
           <div class="wire" aria-label="创建模拟器向导低保真线框">
-            <div class="wire-top"><span class="wire-caption">Android DevKit</span><span class="wire-context">新建模拟器 · 可随时返回修改</span><span class="window-controls" role="img" aria-label="自绘窗口按钮 从左至右为最小化 最大化 关闭"><span class="window-button" title="最小化"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 8h10"/></svg></span><span class="window-button" title="最大化"><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9"/></svg></span><span class="window-button close" title="关闭"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m1.5 1.5 9 9m0-9-9 9"/></svg></span></span></div>
+            <div class="wire-top"><span class="wire-caption">Android DevKit</span><span class="wire-context">新建模拟器 · 可随时返回修改</span><span class="window-controls" role="img" aria-label="自绘窗口按钮 从左至右为最小化 最大化 关闭"><span class="window-button" title="最小化到托盘"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1 8h10"/></svg></span><span class="window-button" title="最大化"><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="1.5" width="9" height="9"/></svg></span><span class="window-button close" title="关闭到托盘"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="m1.5 1.5 9 9m0-9-9 9"/></svg></span></span></div>
             <div class="wire-split">
               <div class="wire-main"><div class="wire-steps">1 设备形态　 →　 <b>2 系统镜像</b>　 →　 3 确认配置</div><div class="wire-title">选择 Android 系统</div><div class="wire-field">版本筛选　Android API 35 ▾　　架构　与主机匹配</div><div class="wire-choice active"><strong>◉ Google APIs · x86_64</strong><div class="wire-sub">包含 Google Play services · 未安装 · 需下载</div></div><div class="wire-choice"><strong>○ AOSP · x86_64</strong><div class="wire-sub">不包含 Google 服务 · 已安装</div></div><p class="wire-inline-note">如需 Play 商店，选择支持的硬件配置和 Google Play 镜像</p><div class="actions-end"><span class="ui-btn">上一步</span><span class="ui-btn primary">下一步</span></div></div>
               <div class="wire-detail"><h4>当前选择</h4><p>手机 · 常用屏幕规格<br>Android API 35</p><p>主机架构匹配 ✓<br>硬件加速检查通过 ✓<br>镜像需要下载</p><p>下一步确认名称、资源和下载计划</p></div>
@@ -339,8 +340,8 @@
         <p>点击后立即显示局部反馈。轻量成功提示可以短暂显示，但安装结果、失败原因和后台任务必须留在任务中心。执行中的任务允许切页；相同资源上的冲突写操作排队或禁用，并说明等待对象。不同设备上的独立操作可并行。</p>
         <p>任务中心默认使用紧凑的两行摘要列表，显示任务名、状态、目标、时间及结果摘要；取消和重试等常用操作直接可见，完整结果、诊断和采集导出按需展开。按名称、设备 / 地址、结果或任务 ID 搜索全部历史，支持与“进行中、已完成、失败、待确认、待检查、已取消”状态组合筛选并显示数量，每页 30 项。“进行中”包括排队、运行和等待确认；许可确认不得随详情折叠而隐藏。</p>
         <p>待保存文件以任务中心工具栏的文件保存图标和数量角标呈现，点击弹窗查看全部文件、生成时间和大小，可预览、另存或逐项 / 全部忽略并清理。关闭截图 / 文本预览后返回原列表，保留滚动位置；关闭按钮、Esc 和点击遮罩仅关闭当前预览，预览中保存成功的文件在返回时移出待保存列表。忽略及退出时明确放弃均删除对应截图、导出副本和导出元数据，不删除已另存文件、原始采集段及任务历史；清理后的截图不再显示失效的预览 / 保存入口。文件被占用等清理失败仍保留待处理条目供重试，缓存路径不得指向应用管理目录之外。</p>
-        <p>关闭窗口默认退出界面；存在下载或安装时显示具体任务，提供“返回”“完成任务后退出”“取消任务并退出”。取消能力取决于阶段，不能中断会破坏状态的写入。若用户显式开启托盘运行，关闭可转入托盘，并在首次发生时说明；托盘中仍能看到任务数量和失败状态。</p>
-        <p>退出管理界面与停止模拟器分开。已有模拟器通常继续运行；用户选择停止时才结束实例。安装任务或未保存导出结果不得因关闭窗口静默丢失。</p>
+        <p>应用运行时常驻系统托盘，不提供托盘或关闭行为开关。最小化、关闭按钮、Alt+F4 与任务栏关闭均隐藏窗口，下载、安装、日志采集和终端会话继续，未保存产物保留。点击托盘图标或菜单“打开工作台”恢复窗口；再次启动应用也恢复并聚焦已有窗口，保留最大化状态。旧版“关闭时退出”配置不再生效。托盘中显示进行中的任务数量与需检查状态。</p>
+        <p>托盘菜单“退出…”进入统一退出流程：无在途任务和未保存产物时清理本应用的终端连接与日志观察器并退出；否则恢复窗口，展示任务、录制与未保存产物，供用户返回、等待任务完成或取消任务后退出，并先保存或明确放弃产物。取消能力取决于阶段，不能截断会破坏状态的写入。托盘创建失败时保留普通窗口与系统最小化，关闭窗口进入同一受保护退出流程。完整退出与停止模拟器分开，模拟器及共享 ADB 继续运行，只有用户主动停止才结束实例。</p>
         <h3>高影响操作的确认</h3>
         <div class="table-wrap"><table><thead><tr><th style="width:25%">动作</th><th style="width:46%">确认内容</th><th>默认行为</th></tr></thead><tbody>
           <tr><td>清除 AVD 数据</td><td>设备名、被清除的数据和不可恢复性</td><td>先停止设备，明确确认</td></tr>
@@ -359,6 +360,7 @@
 
       <section id="delivery">
         <h2><span class="n">12</span>功能验收场景</h2>
+        <p class="note">本节保留首版验收场景作为需求参考；2026-11-01 已取消的一期 T-01～T-07 不再安排执行，也不作为交付前置条件。取消事项未计为验收通过，已执行证据及取消范围见 <a href="00008_20261024164440_Android-DevKit-Phase1-TODO.html">一期范围与取消记录</a>。</p>
         <div class="table-wrap"><table><thead><tr><th class="nowrap" style="width:10%">编号</th><th style="width:35%">测试条件与动作</th><th>通过标准</th></tr></thead><tbody>
           <tr><td>AC-01</td><td>有既有 SDK、AVD 和 Android Studio</td><td>复用环境、正确显示既有设备；不重复下载，不覆盖外部配置</td></tr>
           <tr><td>AC-02</td><td>无 SDK，从空环境创建模拟器</td><td>经过许可、依赖安装、创建与启动，最终得到可安装应用的设备</td></tr>
@@ -372,7 +374,7 @@
           <tr><td>AC-10</td><td>执行中应用异常退出，再次启动</td><td>先复查实际状态，再呈现结果或重试；不重复创建 AVD</td></tr>
           <tr><td>AC-11</td><td>与外部 ADB、Android Studio 同时使用</td><td>展示真实来源，检测冲突；不静默重启共享服务</td></tr>
           <tr><td>AC-12</td><td>只连接真机与只启动已有模拟器</td><td>不要求安装与当前操作无关的平台包、镜像或完整 IDE</td></tr>
-          <tr><td>AC-13</td><td>自绘窗口按钮、标题栏拖动与双击、系统贴靠、混合 DPI 多显示器</td><td>最小化、最大化、还原与关闭行为正确；图标跟随真实窗口状态；按钮不触发拖动；关闭遵循任务与托盘规则；无重叠或点击区域错位</td></tr>
+          <tr><td>AC-13</td><td>自绘窗口按钮、标题栏拖动与双击、系统贴靠、混合 DPI 多显示器</td><td>最小化与关闭隐藏到托盘；托盘恢复、再次启动聚焦与最大化状态一致；完整退出检查任务及产物，托盘失败时保留可用窗口与受保护退出；图标跟随真实窗口状态，按钮不触发拖动，无重叠或点击区域错位</td></tr>
         </tbody></table></div>
       </section>
 

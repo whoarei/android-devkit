@@ -63,7 +63,7 @@
         <div class="metadata"><span>版本 v0.1 · 技术评审稿</span><span>创建 2026-10-17 23:42:46（北京时间）</span><span>依据 PRD v0.6</span><span>目标 Windows 11 x64</span></div>
         <div class="decision"><p><strong>推荐采用 Tauri 2 + React + TypeScript + Rust。</strong> 前端负责展示与交互；Rust 负责领域规则、任务执行、文件写入和 Android 工具调用。首版采用单主窗口、官方模拟器独立窗口和本地 SQLite，不引入常驻服务、Node.js sidecar 或完整 IDE。</p></div>
         <div class="stack" aria-label="推荐技术栈"><span>Tauri 2</span><span>React / TypeScript / Vite</span><span>Rust / Tokio</span><span>SQLite</span><span>官方 Android 工具</span><span>WebView2</span></div>
-        <p class="note">本文是设计与实施建议，不表示相关功能已经实现或工具版本已经完成实测。官方资料核对日期为 2026-10-17；精确依赖版本和 Android 工具组合在 M0 验证后冻结。</p>
+        <p class="note">本文是设计与实施建议，不表示相关功能已经实现或工具版本已经完成实测。官方资料核对日期为 2026-10-17；精确依赖版本和 Android 工具组合在 M0 验证后冻结。2026-11-01 已按用户决定取消一期 T-01～T-07，历史验收与里程碑不再形成这些事项的执行要求，详见 <a href="00008_20261024164440_Android-DevKit-Phase1-TODO.html">一期范围与取消记录</a>；窗口与托盘策略已按当前 v0.6.1 实现同步。</p>
       </header>
 
       <section id="decisions">
@@ -86,7 +86,7 @@
         <h2><span class="n">02 / SCOPE</span>范围与需求映射</h2>
         <p>以 <a href="00000_20261017232447_Android-DevKit-PRD.html">PRD v0.6</a> 的 P0 为完整交付范围，保持一个当前 SDK、一个主窗口、面向真机与模拟器的统一设备工作台。代码编辑、Gradle 构建、完整调试器、投屏和分包安装不进入首版。</p>
         <div class="table-wrap"><table><thead><tr><th style="width:21%">PRD 能力</th><th style="width:36%">技术模块</th><th>首版完成边界</th></tr></thead><tbody>
-          <tr><td>WIN-01 / AC-13</td><td>WindowService + WindowsAdapter</td><td>自绘标题栏、窗口状态同步、系统菜单与贴靠、混合 DPI、统一关闭及可选托盘</td></tr>
+          <tr><td>WIN-01 / AC-13</td><td>WindowService + WindowsAdapter</td><td>自绘标题栏、窗口状态同步、系统菜单与贴靠、混合 DPI、常驻托盘、隐藏窗口及受保护退出</td></tr>
           <tr><td>ONB-01</td><td>EnvironmentService + BootstrapService</td><td>有限扫描、复用或新建、用途驱动依赖、许可、SDK / AVD / 缓存路径与空间预检</td></tr>
           <tr><td>SDK-01～03</td><td>SdkService + SdkToolAdapter</td><td>本地与远端清单、搜索、变更计划、显式安装卸载、代理、依赖拦截及逐项重试</td></tr>
           <tr><td>AVD-01～04</td><td>AvdService + EmulatorSupervisor</td><td>读取既有 AVD、创建手机 / 平板、启动停止、冷启动、受限编辑、清数据与删除</td></tr>
@@ -417,10 +417,10 @@ type AppError = {
         <div class="callout warn"><p><strong>最大化按钮的悬停贴靠是前置验证项。</strong> 自绘 HTML 按钮不保证自动出现 Windows 11 Snap Layout。微软要求自绘标题栏正确响应非客户区命中测试，例如最大化区域返回 <code>HTMAXBUTTON</code>。需验证 WebView2 子窗口、原生区域与点击消息转发的共同作用，不能只加一段 CSS 或父窗口 WndProc 就认定完成。<a href="https://learn.microsoft.com/en-us/windows/apps/desktop/modernize/ui/apply-snap-layout-menu">微软 Snap Layout 指引</a>。</p></div>
         <p>M0 对比 Tauri 锁定版本的现有能力与小型 Rust 原生标题栏桥接：为控制区维护真实物理像素矩形，在 DPI、缩放和布局变化时更新；必要时以原生命中区域承接非客户区消息，同时让 DOM 展示与可访问性状态一致。若依赖的框架无法覆盖，完成该桥接后再通过 WIN-01，不能把只有 Win+Z 可用视为悬停贴靠已验收。</p>
         <h3>关闭、托盘与退出状态机</h3>
-        <p>所有关闭入口，包括自绘按钮、Alt+F4、任务栏关闭，均由 Rust 的 CloseRequested 进入统一策略；前端只有请求入口。未启用托盘且无在途任务 / 未保存产物时退出；有任务时阻止立即退出，显示任务与阶段，提供“返回”“完成任务后退出”“取消任务并退出”。后两项均等待必要收尾，不能截断组件写入。</p>
+        <p>所有关闭入口，包括自绘按钮、Alt+F4、任务栏关闭，均进入 Rust 的统一关闭策略。托盘可用时直接隐藏窗口，后台任务、日志采集、终端和未保存产物保留；最小化按钮及系统最小化也由原生窗口事件转为隐藏到托盘。旧版关闭行为配置不再生效。托盘菜单“退出…”明确请求完整退出，无在途任务 / 未保存产物时清理连接并退出；否则恢复窗口，显示任务与阶段，提供“返回”“完成任务后退出”“取消任务并退出”，收尾完成前不退出。</p>
         <p>“完成后退出”进入 draining：停止接收新写任务，现有有限任务完成后退出；无限日志采集需用户先选择停止并完成文件封口，不可无限等待。取消退出按步骤取消能力执行；未保存截图与导出结果提供保存或明确放弃。</p>
-        <p>托盘默认关闭，用户显式启用后关闭窗口改为隐藏，首次解释行为。托盘保留任务数、失败提示、恢复窗口与退出入口；菜单“退出”仍走统一流程。应用退出默认保留模拟器和共享 ADB，释放观察连接；只有用户主动选择停止实例才发送停止请求。</p>
-        <p>系统注销 / 关机可能不给完整对话与等待时间，不能依赖最后一刻弹窗保证安全。任务意图和日志持续落盘，正常退出时收尾，强制结束后由恢复流程报告真实结果。单实例插件唤起现有窗口，避免重复管理同一 SDK 和 AVD。</p>
+        <p>托盘随应用启动常驻，不提供启停或关闭行为开关。托盘保留任务数、需检查提示、“打开工作台”和“退出…”入口；点击图标恢复窗口。托盘创建失败时保持普通窗口可见，最小化回退为系统默认行为，关闭进入受保护退出流程，避免隐藏后无法找回。完整退出先释放本应用终端与日志观察连接，保留模拟器和共享 ADB；只有用户主动选择停止实例才发送停止请求。</p>
+        <p>系统注销 / 关机可能不给完整对话与等待时间，不能依赖最后一刻弹窗保证安全。任务意图和日志持续落盘，正常退出时收尾，强制结束后由恢复流程报告真实结果。单实例插件在重复启动时显示、还原并聚焦已有窗口，保留最大化状态，避免重复管理同一 SDK 和 AVD。</p>
       </section>
 
       <section id="security">
@@ -502,7 +502,7 @@ type AppError = {
           <tr><td>AVD 数据破坏与路径越界</td><td>归属验证、停止检查、提交日志、受支持重置流程、保守删除</td><td>未知共享路径只读；不支持的字段与数据布局不提供写入</td></tr>
           <tr><td>工具输出变化或安装结果不确定</td><td>版本样本、能力探测、结构化错误码、实际清单 / 包版本复查</td><td>解析不确定则降级显示与待检查，不制造百分比或成功结果</td></tr>
         </tbody></table></div>
-        <div class="callout"><p><strong>可直接进入研发的默认决定：</strong> Tauri 2、React + TypeScript、Rust 领域层、SQLite、Windows 11 x64、官方模拟器独立窗口、共享 ADB、单 APK、单 SDK、默认不驻托盘。需要 M0 用实测冻结的项目是精确依赖与 Android 工具版本、Java 发行与许可、窗口桥接方式和重置文件集合；这些是技术验证产物，不需要先向用户追问普通实现偏好。</p></div>
+        <div class="callout"><p><strong>可直接进入研发的默认决定：</strong> Tauri 2、React + TypeScript、Rust 领域层、SQLite、Windows 11 x64、官方模拟器独立窗口、共享 ADB、单 APK、单 SDK、常驻系统托盘，最小化和关闭隐藏窗口，完整退出使用托盘菜单。需要 M0 用实测冻结的项目是精确依赖与 Android 工具版本、Java 发行与许可、窗口桥接方式和重置文件集合；这些是技术验证产物，不需要先向用户追问普通实现偏好。</p></div>
       </section>
 
       <section id="references">

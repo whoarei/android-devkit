@@ -4,7 +4,7 @@
 </style></head><body><main>
 <header><small>ANDROID DEVKIT / IMPLEMENTATION RECORD</small><h1>M3 实现与验证报告</h1><p>版本 0.3.0 · Tauri 2 + React / TypeScript + Rust · Windows 11 x64</p><p><span class="badge">M0—M3 功能已实现</span> <span class="badge">本机闭环验证通过</span> <span class="badge">默认 SDK：E:\Android\sdk</span></p><small>记录时间：2026-10-18 01:10:08 +08:00（北京时间）</small></header>
 <p>依据 <a href="00000_20261017232447_Android-DevKit-PRD.html">PRD v0.6</a> 与 <a href="00001_20261017234246_Android-DevKit-Technical-Design.html">Tauri 技术方案</a> 完成至 M3 的代码实现、Release 构建和本机验证。现有 SDK、用户既有 <code>Pindou_8in_Tablet</code> AVD 与共享系统镜像保留；破坏性测试仅使用独立创建的一次性 AVD。</p>
-<div class="callout"><strong>验收边界：</strong>当前没有实体手机参与成功无线配对验收。已验证真实 ADB 的失败路径、连接未就绪判断和配对码不持久化，不能据此声称真机成功链已通过。跨显示器混合 DPI、全新普通 Windows 用户、多物理设备及完整恢复故障矩阵仍需补充验证。本报告不代表 PRD 全部 P0 或 M4 发布验收完成。</div>
+<div class="callout"><strong>历史报告说明（2026-11-01 更新）：</strong>下文记录 M3 当时的实现与证据，不作为当前待办清单。后续一期 T-01～T-07 已全部取消，详见 <a href="00008_20261024164440_Android-DevKit-Phase1-TODO.html">一期范围与取消记录</a>；当前窗口与托盘行为以 <a href="00000_20261017232447_Android-DevKit-PRD.html">PRD</a> 和 <a href="../README.md">README</a> 为准。<br><strong>当时验收边界：</strong>当前没有实体手机参与成功无线配对验收。已验证真实 ADB 的失败路径、连接未就绪判断和配对码不持久化，不能据此声称真机成功链已通过。跨显示器混合 DPI、全新普通 Windows 用户、多物理设备及完整恢复故障矩阵当时未覆盖，相关一期验收待办现已取消。本报告不代表 PRD 全部 P0 或 M4 发布验收完成。</div>
 
 <h2>1. 交付与运行</h2><div class="grid"><div class="card"><h3>本机可执行程序</h3><p><a href="../artifacts/windows/AndroidDevKit-0.3.0.exe">AndroidDevKit.exe</a> · Release · 14.96 MiB</p><p>双击运行，默认复用 <code>E:\Android\sdk</code>。需要 WebView2 Runtime。程序未签名，当前没有安装器。</p><p><a href="../artifacts/windows/build-info-0.3.0.json">构建元数据与 SHA256</a></p></div><div class="card"><h3>开发与验证入口</h3><p><a href="../README.md">README</a> 提供启动、构建、集成测试和已知限制。</p><p><a href="evidence/m3-acceptance.json">精简机器验证记录</a>保留通过状态、任务顺序与构建标识。原始任务数据库、截图和日志位于项目 <code>.qa</code> 目录。</p></div></div>
 <p class="muted"><code>SHA256 6368b1a27b9b944367826ab8e3998de473dfac2fef2d36a24784decec79e6186</code></p>
@@ -43,7 +43,7 @@
 <li><strong>方案调整：</strong>DTO 生成采用已验证的 ts-rs；最小窗口宽从建议 960 调为 480，配合紧凑布局以支持常见 Snap 分区；传统工具固定 Command Tools 22.0，新 Android CLI 迁移留待独立兼容验证。</li>
 </ul>
 
-<h2>6. 待补充验收与 M4</h2><p>开发实现已覆盖 M3；以下证据与发布工作没有被本机模拟器测试替代：</p><ul>
+<h2>6. 当时未覆盖的验收与 M4 规划（历史记录）</h2><p>开发实现已覆盖 M3；以下为当时未覆盖的证据及后续规划，保留历史内容。M4 功能与发布进展见后续报告，原一期 T-01～T-07 已于 2026-11-01 全部取消。</p><ul>
 <li>实体 Android 手机成功配对、连接、断开与重连；两台物理设备同时在线、USB 授权变化及切网情形。</li>
 <li>100%—200% DPI、跨显示器混合 DPI 与各贴靠布局完整矩阵；全新普通 Windows 用户机器上的零环境引导。</li>
 <li>M4：正式 Logcat PID / 应用过滤与长采集、隐私导出、关闭 / 托盘体验、完整恢复故障注入和性能基线。</li>

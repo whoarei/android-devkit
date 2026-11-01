@@ -23,7 +23,7 @@
 <h2>3. 验证结果</h2><ul><li>默认 Rust 测试：131 通过，14 项显式忽略；本轮相关隔离 SDK 测试另行执行。</li><li>TypeScript / Vite 构建、Clippy 全目标 -D warnings、Rust 格式、IPC 契约、版本一致性和 Git whitespace：通过。</li><li>10 组生产界面回归：通过；包含慢响应、丢失提交响应后的同 ID 重试、错误定位、旧清单作废、取消、焦点与中文 / 英文窄屏。</li><li>独立桌面 QA 实例：通过真实 IPC / 权限、分包安装、MP4 解码回放、中文文件往返、重命名 / 替换、取消、暂存释放及清理后本机视频保留；pageerror 为空。</li><li>原件恢复专项：上传 / 下载分别在备份后强杀；另分别在发布后、最终核对前注入外部修改。四条路径全部通过，并在大目录 / 响应边界修复后再次运行；10001 个源条目被拒绝且原文件保留。普通清理拒绝删除原件备份，外部编辑未被自动覆盖，核对后恢复原件。</li><li>完整 SDK 流程及 180 秒录屏：通过（本轮完整回归 301.50 秒）。ffprobe 确认 H.264、无音轨及非零视频帧；上限录屏媒体时长约 180.72 秒，含设备编码封口余量。</li><li>一期故障专项 35 场景 / 14 次子进程强杀：通过。</li></ul>
 <p>结构化证据：<a href="evidence/phase2-review-native.json">真实桌面</a>、<a href="evidence/phase2-review-recovery.json">最终核对与备份恢复</a>、<a href="evidence/phase2-review-validation.json">最终验证汇总</a>、<a href="evidence/phase2-review-sdk.json">本轮完整 SDK 与视频元数据</a>。初始二期实施与手机待验矩阵见 <a href="00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html">实施与验收报告</a>。</p>
 <h2>4. 仍需人工 / 实机确认</h2><div class="note pending">手机 USB / 无线安装与文件往返、OEM 权限和安装限制、锁屏 / 旋转 / 受保护画面、真实手机 10 / 180 秒录屏与外部播放器回放，以及 Windows 原生选择 / 另存对话框仍待登记。当前测试只使用隔离模拟器与桌面 QA 实例，不代签手机验收。</div>
-<p>一期已暂缓矩阵继续保留在 <a href="00008_20261024164440_Android-DevKit-Phase1-TODO.html">一期 TODO</a>，没有恢复其他项目范围。</p>
+<p>一期 T-01～T-07 已于 2026-11-01 按用户决定全部取消，详见 <a href="00008_20261024164440_Android-DevKit-Phase1-TODO.html">一期范围与取消记录</a>；不再保留为待办，也不计为验收通过。本节二期独立的人工 / 实机待验范围不因一期取消而改变。</p>
 <h2>5. 复验入口</h2><pre>pnpm.cmd check
 pnpm.cmd test
 $env:PLAYWRIGHT_CHANNEL='chromium'

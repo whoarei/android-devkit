@@ -6,7 +6,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 当前版本：**0.6.1** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
 
-一期已按 2026-10-24 调整后的范围完成：现有功能及本轮故障专项已验证，v0.4.0 已发布，其余验收事项继续保留 TODO，保留在 [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
+一期已按 2026-10-24 调整后的范围完成：现有功能及故障专项已验证，v0.4.0 已发布。2026-11-01 按用户决定取消 T-01～T-07，全部移出待办；取消不代表相关验收已通过，历史证据见 [一期范围与取消记录](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
 
 0.4.0 完成一期功能收尾：新增 SDK 发现与复用、Java 环境检测与私有运行时配置、系统镜像按 API 分组、任务记录删除与采集清理、默认设备与就绪后安装、环境摘要复制及 AVD 空间统计；修复多模拟器目标歧义和升级安装时旧进程尚未退出的问题，并补充 35 场景故障专项验证。已有 SDK / Java 路径保持沿用。
 
@@ -129,7 +129,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 默认启动时静默检查；可以取消“启动时自动检查更新”，手动检查仍然可用。检查失败时可重试或前往下载页面，更新请求使用设置中的手动代理。便携版和开发版通过下载页手动更新。没有更新入口的旧版本，需要先手动安装包含此功能的新版本。
 
-若 Windows 安装器提示“无法终止 Android DevKit。请关闭后再试”，先取消安装，保存工作并完全退出 Android DevKit 后，再次运行安装包。启用托盘时，关闭窗口可能只会隐藏到托盘，需要从托盘菜单选择“退出…”；仍有残留时可在任务管理器结束 `android-devkit.exe` 后重试。更新安装器会先等待旧进程释放文件，最长 20 秒，再执行占用检查。
+若 Windows 安装器提示“无法终止 Android DevKit。请关闭后再试”，先取消安装，保存工作并完全退出 Android DevKit 后，再次运行安装包。当前版本关闭窗口会隐藏到托盘，需要从托盘菜单选择“退出…”以完全退出；仍有残留时可在任务管理器结束 `android-devkit.exe` 后重试。更新安装器会先等待旧进程释放文件，最长 20 秒，再执行占用检查。
 
 ### 数据存放位置
 
@@ -139,7 +139,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 | 新建 AVD                       | `%LOCALAPPDATA%\AndroidDevKit\avd`，可在设置中调整          |
 | 应用状态、任务、下载缓存与截图 | `%LOCALAPPDATA%\AndroidDevKit`                              |
 
-应用也会发现用户 `.android\avd` 下的已有模拟器。退出工作台与停止模拟器分开；有任务或待保存文件时，按退出面板提示处理。需要关闭窗口后继续在后台运行，可在设置中启用托盘。
+应用也会发现用户 `.android\avd` 下的已有模拟器。退出工作台与停止模拟器分开；有任务或待保存文件时，按退出面板提示处理。最小化或关闭窗口会隐藏到常驻托盘，后台任务继续；从托盘菜单选择“退出…”才会进入完整退出流程，无需在设置中开启托盘。
 
 ## 开发入门
 
@@ -245,7 +245,7 @@ powershell -NoProfile -File scripts/package-release.ps1
 
 - [二期范围与验收基线：真机使用效率](docs/00009_20261024174538_Android-DevKit-Phase2-Scope.html)
 - [二期实施、自动验证与实机待验报告](docs/00010_20261024234040_Android-DevKit-Phase2-Implementation-Report.html)
-- [一期 TODO 与完成范围](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)
+- [一期范围与取消记录](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)
 - [一期功能收口与验收记录](docs/00007_20261024162627_Android-DevKit-Phase1-Completion-Report.html)
 - [产品需求与交互方案](docs/00000_20261017232447_Android-DevKit-PRD.html)
 - [Tauri 技术方案](docs/00001_20261017234246_Android-DevKit-Technical-Design.html)
