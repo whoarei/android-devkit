@@ -80,7 +80,11 @@ pub fn needed(kind: &str) -> bool {
     matches!(kind, "sdk_install" | "sdk_remove" | "avd_create")
 }
 pub fn related(kind: &str) -> bool {
-    needed(kind) || matches!(kind, "java_prepare" | "bootstrap")
+    needed(kind)
+        || matches!(
+            kind,
+            "java_prepare" | "bootstrap" | "keystore_create" | "apk_sign"
+        )
 }
 pub fn normalize(path: &str) -> PathBuf {
     let p = PathBuf::from(path.trim().trim_matches('"'));

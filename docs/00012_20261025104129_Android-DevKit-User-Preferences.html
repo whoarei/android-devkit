@@ -35,7 +35,7 @@ table{border-collapse:collapse;width:100%;background:white;margin:18px 0}th,td{b
 <tr><td>外观与语言</td><td><code>theme</code>、<code>locale</code>、<code>zoomFactor</code></td><td>亮色、简体中文、100%。首次渲染前加载；Ctrl+± 与 Ctrl+滚轮记录实际原生缩放；Ctrl+0 始终回到 100%。</td></tr>
 <tr><td>窗口</td><td><code>window</code>：正常位置 x/y、逻辑宽高、DPI 比例、显示器名称、最大化状态</td><td>首次沿用 1280×800。位置使用物理屏幕坐标，尺寸使用逻辑像素。恢复普通尺寸后再最大化；最小化与隐藏不作为下次启动状态。</td></tr>
 <tr><td>默认目标与更新</td><td><code>defaultTarget</code>、<code>autoCheckUpdates</code></td><td>默认目标为空，启动检查更新开启。默认目标保留稳定标识，重连后重新验证，不保存 transportId 或 serverEpoch。</td></tr>
-<tr><td>导航与设备列表</td><td><code>lastPage</code>、<code>deviceFilter</code></td><td>设备工作台、全部设备。恢复页面不创建终端、重放任务或自动选中设备。</td></tr>
+<tr><td>导航与设备列表</td><td><code>lastPage</code>、<code>deviceFilter</code></td><td>设备工作台、全部设备。导航白名单已包含签名与 Keystore（<code>signing</code>）。恢复页面不创建终端、重放任务或自动选中设备。</td></tr>
 <tr><td>SDK 浏览偏好</td><td><code>sdkTab</code>、<code>sdkStatus</code>、<code>hideObsolete</code></td><td>Platforms、全部、隐藏未安装的过时组件。状态可保存全部/已安装/未安装/有更新；“待变更”依赖本次选择篮，不跨启动保留。</td></tr>
 <tr><td>任务列表</td><td><code>taskState</code></td><td>全部；可恢复进行中、已完成、失败、待确认、待检查、已取消筛选。分页和搜索词重置。</td></tr>
 <tr><td>录屏参数</td><td><code>recordingSeconds</code>、<code>recordingResolution</code></td><td>30 秒、原始分辨率；1–180 秒，原始或 720p。恢复参数不开始录制。</td></tr>
@@ -51,6 +51,7 @@ table{border-collapse:collapse;width:100%;background:white;margin:18px 0}th,td{b
 <tr><td>SDK 变更篮、创建/编辑 AVD 草稿、Java/下载源未应用草稿</td><td>未确认的操作不作为偏好；应用后由真实文件或 Settings 保存。</td></tr>
 <tr><td>APK/文件选择、远端浏览目录、重命名草稿、覆盖模式、许可与执行确认</td><td>依赖本次设备、文件指纹和用户确认；重启后重新选择和核对。</td></tr>
 <tr><td>无线连接地址/端口草稿、配对码</td><td>连接上下文会变化，配对码不保存。</td></tr>
+<tr><td>Keystore 密码、私钥密码与签名授权</td><td>仅用于本次操作，关闭密码面板清空；未执行授权 5 分钟失效，不进入偏好、任务参数或数据库。Keystore 登记及公开证书快照属于业务记录，独立保存。</td></tr>
 <tr><td>搜索词、展开行、分页、待删除选择、预览/弹窗、错误、进度</td><td>临时工作上下文；重置可避免恢复后看不到数据或误用旧选择。</td></tr>
 <tr><td>日志设备/PID/关键词过滤、原始信息开关、暂停、滚动序号、开始采集开关</td><td>进程与日志边界会变化；原始信息和采集开关每次明确选择。</td></tr>
 </tbody></table>

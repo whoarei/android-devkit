@@ -10,6 +10,7 @@ use std::{
 use tauri::Emitter;
 
 pub struct App {
+    pub signing: crate::signing::SigningState,
     pub terminals: crate::terminal::TerminalManager,
     pub store: Store,
     pub data: PathBuf,
@@ -61,6 +62,7 @@ impl App {
             }
         }
         Ok(Arc::new(Self {
+            signing: crate::signing::SigningState::default(),
             terminals: crate::terminal::TerminalManager::default(),
             store,
             data,
@@ -225,6 +227,12 @@ impl App {
     pub fn retry_plan(&self, task_id: &str) -> Result<Plan> {
         let _task_use = self.use_task_record(task_id, false)?;
         let task = self.store.task(task_id)?;
+        if matches!(task.operation.kind.as_str(), "keystore_create" | "apk_sign") {
+            return Err(AppError::new(
+                "SIGNING_REAUTHORIZE",
+                "请在签名与 Keystore 页面核对已有结果并重新提供密码；不会自动重放签名或生成密钥",
+            ));
+        }
         if task.active() {
             return Err(AppError::new("TASK_ACTIVE", "任务仍在运行"));
         }

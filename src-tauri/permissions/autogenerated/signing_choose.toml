@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-signing-choose"
+description = "Enables the signing_choose command without any pre-configured scope."
+commands.allow = ["signing_choose"]
+
+[[permission]]
+identifier = "deny-signing-choose"
+description = "Denies the signing_choose command without any pre-configured scope."
+commands.deny = ["signing_choose"]

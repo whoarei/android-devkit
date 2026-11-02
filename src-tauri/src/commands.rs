@@ -624,6 +624,10 @@ pub fn export_page(app: Service<'_>, artifact_id: String, offset: usize) -> Resu
 }
 #[tauri::command]
 pub async fn export_save(app: Service<'_>, artifact_id: String) -> Result<Option<String>> {
+    let (artifact, _) = app.checked_artifact(&artifact_id)?;
+    if matches!(artifact.kind.as_str(), "keystore" | "signed_apk") {
+        return crate::signing_commands::signing_result_save(app, artifact_id).await;
+    }
     let (artifact, source) = app.checked_artifact(&artifact_id)?;
     let file_name = if artifact.kind == "screenshot" {
         "android-screenshot.png"
@@ -738,6 +742,7 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     state.recover_commits()?;
     state.recover_recordings()?;
     state.recover_committed_phone_recordings()?;
+    crate::signing_tasks::recover(&state)?;
     // Cache cleanup is best effort; it must never prevent opening recovery UI.
     if let Err(error) = state.prune_phone_selections() {
         eprintln!("Unsubmitted phone cache cleanup: {error}");

@@ -38,6 +38,12 @@ mod regression_tests;
 mod repository;
 mod sdk_installer;
 mod sdk_source;
+mod signing;
+mod signing_commands;
+mod signing_publish;
+mod signing_tasks;
+#[cfg(test)]
+mod signing_tests;
 mod storage;
 mod task_records;
 mod terminal;
@@ -66,6 +72,21 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            signing_commands::signing_environment,
+            signing_commands::signing_records,
+            signing_commands::keystore_register,
+            signing_commands::keystore_forget,
+            signing_commands::apk_signature_inspect,
+            signing_commands::signing_certificate_inspect,
+            signing_commands::signing_certificate_export,
+            signing_commands::signing_prepare,
+            signing_commands::signing_plan_release,
+            signing_commands::signing_submit,
+            signing_commands::signing_choose,
+            signing_commands::signing_result_save,
+            signing_commands::signing_result_check,
+            signing_commands::signing_result_discard,
+            signing_commands::signing_open_file,
             preferences::preferences_load,
             preferences::preferences_patch,
             terminal::terminal_create,

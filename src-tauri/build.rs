@@ -4,6 +4,21 @@ fn main() {
         println!("cargo:rustc-link-arg=/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'");
     }
     const COMMANDS: &[&str] = &[
+        "signing_environment",
+        "signing_records",
+        "keystore_register",
+        "keystore_forget",
+        "apk_signature_inspect",
+        "signing_certificate_inspect",
+        "signing_certificate_export",
+        "signing_prepare",
+        "signing_plan_release",
+        "signing_submit",
+        "signing_choose",
+        "signing_result_save",
+        "signing_result_check",
+        "signing_result_discard",
+        "signing_open_file",
         "preferences_load",
         "preferences_patch",
         "terminal_create",

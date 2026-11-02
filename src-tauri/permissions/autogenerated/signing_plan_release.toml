@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-signing-plan-release"
+description = "Enables the signing_plan_release command without any pre-configured scope."
+commands.allow = ["signing_plan_release"]
+
+[[permission]]
+identifier = "deny-signing-plan-release"
+description = "Denies the signing_plan_release command without any pre-configured scope."
+commands.deny = ["signing_plan_release"]

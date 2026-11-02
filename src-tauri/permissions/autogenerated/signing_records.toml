@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-signing-records"
+description = "Enables the signing_records command without any pre-configured scope."
+commands.allow = ["signing_records"]
+
+[[permission]]
+identifier = "deny-signing-records"
+description = "Denies the signing_records command without any pre-configured scope."
+commands.deny = ["signing_records"]

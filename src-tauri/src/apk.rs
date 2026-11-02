@@ -298,6 +298,13 @@ pub fn parse_manifest(b: &[u8]) -> Result<std::collections::BTreeMap<String, Str
                     let data = u32_at(chunk, p + 16)?;
                     match chunk.get(p + 15) {
                         Some(3) => get(data),
+                        Some(0x12) => {
+                            if data == 0 {
+                                "false"
+                            } else {
+                                "true"
+                            }
+                        }
                         Some(0x10 | 0x11) => {
                             number = data.to_string();
                             &number

@@ -1,0 +1,441 @@
+.signing-tools {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.signing-tools[hidden] {
+  display: none;
+}
+.signing-toolbar,
+.signing-detail-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.signing-workflow,
+.signing-results {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.signing-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 9px;
+}
+.signing-environment {
+  position: relative;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.signing-environment.incomplete {
+  color: var(--warning);
+}
+.signing-environment summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  list-style: none;
+}
+.signing-environment summary::-webkit-details-marker {
+  display: none;
+}
+@media (pointer: coarse) {
+  .signing-environment summary {
+    width: 44px;
+    height: 44px;
+  }
+}
+.signing-environment-details {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 320px;
+  max-width: calc(100vw - 112px);
+  padding: 14px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px #0002;
+}
+.signing-environment-details p {
+  margin: 0 0 8px;
+}
+.signing-environment-details .signing-actions:empty {
+  display: none;
+}
+.signing-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.signing-actions input {
+  flex: 1;
+  min-width: 160px;
+}
+.signing-tabs {
+  display: flex;
+  gap: 8px;
+}
+.signing-tabs button {
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 14px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.signing-tabs button[aria-selected='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: inset 0 -2px var(--green);
+}
+.signing-toolbar > input {
+  flex: 1;
+  min-width: 200px;
+}
+.signing-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 30%) minmax(0, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.signing-records {
+  padding: 12px;
+  border-right: 1px solid var(--line);
+}
+.signing-records > button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.signing-records > button.selected {
+  border-color: var(--green);
+  background: var(--soft);
+}
+.signing-records > button > span {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.signing-records small,
+.signing-result small {
+  display: block;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.signing-detail {
+  padding: 20px;
+  min-width: 0;
+}
+.signing-detail h2,
+.signing-results h2,
+.signing-report h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+.signing-path {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+}
+.signing-empty {
+  padding: 35px 14px;
+  text-align: center;
+  color: var(--muted);
+}
+.signing-certificate {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 10px;
+  font-size: 12px;
+  margin: 18px 0;
+}
+.signing-certificate dt {
+  color: var(--muted);
+}
+.signing-certificate dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.signing-cert-row {
+  display: contents;
+}
+.signing-cert-row dd {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.signing-cert-row code {
+  flex: 1;
+  min-width: 100px;
+  overflow-wrap: anywhere;
+}
+.signing-file-row {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.signing-file-row > .field {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+}
+.signing-file-row > .field input,
+.signing-file-row > .button {
+  height: 36px;
+}
+.signing-password-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.signing-password-input input {
+  width: 100%;
+  padding-right: 42px;
+}
+.signing-password-input input::-ms-reveal {
+  display: none;
+}
+.signing-password-input .signing-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 28px;
+  border-radius: 4px;
+}
+.signing-password-toggle:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+.signing-workflow {
+  display: grid;
+  gap: 16px;
+}
+.signing-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.signing-report,
+.signing-comparison {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+.signing-apk-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.signing-apk-summary p {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.signing-apk-summary strong {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.signing-fingerprint {
+  display: block;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  margin: 10px 0;
+}
+.signing-warning {
+  border-left: 3px solid var(--green);
+  padding: 5px 12px;
+  background: var(--soft);
+  font-size: 12px;
+}
+.signing-output-options {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+.signing-plan-review {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+}
+.signing-plan-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+.signing-plan-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  background: var(--soft);
+  color: var(--green);
+  border-radius: 9px;
+}
+.signing-plan-heading > div {
+  min-width: 0;
+  flex: 1;
+}
+.signing-plan-heading strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+.signing-plan-heading p {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+.signing-plan-mode {
+  color: var(--muted);
+  font-size: 11px;
+  white-space: nowrap;
+}
+.signing-plan-fields {
+  margin: 0;
+  display: grid;
+  gap: 16px;
+  font-size: 12px;
+}
+.signing-plan-fields > div {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+.signing-plan-fields dt {
+  color: var(--muted);
+  padding-top: 1px;
+}
+.signing-plan-fields dd {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+.signing-plan-path {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.signing-plan-fields .signing-plan-output {
+  padding: 13px;
+  margin: 0 -13px;
+  border-radius: 7px;
+  background: var(--soft);
+}
+.signing-plan-fields .signing-plan-output.overwrite {
+  background: var(--warning-bg);
+}
+.signing-plan-notice {
+  font-size: 12px;
+  color: var(--warning);
+}
+.signing-plan-expiry {
+  margin: 0;
+}
+@media (max-width: 600px) {
+  .signing-plan-fields > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .signing-plan-heading {
+    flex-wrap: wrap;
+  }
+  .signing-plan-mode {
+    margin-left: auto;
+  }
+}
+.signing-result {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  flex-wrap: wrap;
+}
+.signing-result > div:first-child {
+  flex: 1;
+  min-width: 180px;
+}
+.signing-result p {
+  font-size: 12px;
+  margin: 5px 0;
+  overflow-wrap: anywhere;
+}
+.signing-result strong {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.signing-tools pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.signing-tools button:focus-visible,
+.signing-tools summary:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+@media (max-width: 760px) {
+  .signing-grid {
+    grid-template-columns: 1fr;
+  }
+  .signing-records {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .signing-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .signing-workflow,
+  .signing-results,
+  .signing-detail {
+    padding: 13px;
+  }
+  .signing-certificate {
+    grid-template-columns: 76px minmax(0, 1fr);
+  }
+}

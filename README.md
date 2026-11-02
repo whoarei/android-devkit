@@ -27,6 +27,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **灵活连接真机**：支持 USB、无线调试配对和网络 ADB，根据设备与网络条件选择连接方式，并查看连接与授权状态。
 - **明确每次 APK 安装的目标**：选择或拖入 APK，核对目标设备和应用信息后安装；默认保留应用数据，设备断线后不会自动改投其他设备。
 - **一次安装整组分包 APK**：多选 base / split APK 或选择目录，预先校验包名、版本、签名、设备兼容性与依赖，再提交安装。
+- **管理签名材料与签署 APK**：登记或新建 JKS / PKCS12，查看 alias 与证书、复制指纹、导出公开证书；验证及比较 APK 签名，另存签名后的单个 APK，再进入设备安装流程。
 - **录屏后预览与保存**：支持 1–180 秒无声 MP4、提前停止和中断后取回；完整缓存的视频会在重启后恢复到待保存文件。
 - **在共享存储传输文件**：浏览 Download、Pictures、Movies、DCIM，上传或下载文件与目录，明确处理同名冲突，替换中断后可恢复原件。
 - **集中排查设备与应用问题**：过滤实时日志、采集问题发生时的日志片段、截取设备画面，预览并导出排查资料。
@@ -131,6 +132,17 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 若 Windows 安装器提示“无法终止 Android DevKit。请关闭后再试”，先取消安装，保存工作并完全退出 Android DevKit 后，再次运行安装包。当前版本关闭窗口会隐藏到托盘，需要从托盘菜单选择“退出…”以完全退出；仍有残留时可在任务管理器结束 `android-devkit.exe` 后重试。更新安装器会先等待旧进程释放文件，最长 20 秒，再执行占用检查。
 
+### 7. 签名与 Keystore
+
+进入“签名与 Keystore”。标签栏旁仅显示一个环境图标：正常为灰绿色扳手，缺项或状态读取失败为警示图标，检测中为加载图标；鼠标移入图标即展开详情。鼠标离开图标且未进入详情时自动收起，移入详情则保持展开；也可点击外部或按 Esc 关闭，触屏与键盘仍可点击或按 Enter 展开。缺少 Java / keytool 时前往设置，缺少 Build-Tools 时前往 SDK 管理，签名页不重复提供配置面板或自动扫描。当前签名功能需要 Java 17 或更高版本，以及支持 16 KiB 对齐的较新 Build-Tools；本轮实测 Java 21 / 24 与 Build-Tools 36.0.0。
+
+- **Keystore**：登记已有 `.jks` / `.keystore` / `.p12` / `.pfx` 文件，提供本次密码检查 alias 和证书；也可先登记路径，稍后检查。多 alias 需要明确选择；纯证书条目可查看与导出。移除登记保留原文件。
+- **新建**：默认 PKCS12、RSA 3072、有效期 10950 天；仅生成到新文件。新密码至少 12 个字符，PKCS12 新建使用同一 ASCII 容器与私钥密码；需要中文密码或不同的私钥密码时选择 JKS。完成后请备份文件与密码。
+- **APK 校验**：选择或拖入 APK，查看完整性、签名方案与签名者；可与登记证书或独立 PEM / DER 证书比较。角色备注和证书一致均不代表一定能覆盖设备上的旧版本。
+- **APK 签名**：选择完整 APK、Keystore 和 alias，已有签名需勾选“覆盖原签名”。可选择新文件或覆盖已有输出文件；勾选“覆盖源文件”后跳过输出选择，签名验证成功后替换当前 APK。确认弹窗仅展示应用、文件目标与所选密钥，不再列出证书指纹、执行过程及重复说明。目标文件在确认后发生变化时停止覆盖；失败结果可另存。分包、多签名者与轮换谱系输入不进入本轮签名流程。完成后可进入“安装到设备”确认目标。
+
+密码不写入设置、任务或日志；关闭密码面板会清空输入，未执行授权 5 分钟失效。生成后未保存的密钥会保留在待处理结果中，普通批量清理不能删除；中断恢复后先提供密码核验，再保存同一密钥。已保存新密钥的应用内加密副本可在本页单独清理，已另存文件与登记信息保留。AAB、签名轮换、修改已有容器的密码或 alias 不在本轮范围内。
+
 ### 数据存放位置
 
 | 内容                           | 默认位置                                                    |
@@ -224,6 +236,20 @@ pnpm.cmd verify:faults
 
 真实 SDK / AVD 集成测试按需运行，入口见 [package.json](package.json) 中的 `verify:*` 命令；运行前检查脚本使用的 SDK 和测试目录。测试应用数据可通过 `ANDROID_DEVKIT_DATA_DIR` 隔离，该变量不改变所选 SDK。
 
+签名专项生成临时密钥并只读使用未签名样例 APK，验证官方工具签名、重签与密钥恢复；设置下列路径后执行：
+
+```powershell
+$env:ANDROID_DEVKIT_SIGNING_TEST_JAVA = 'C:\Program Files\Android\Android Studio\jbr\bin\java.exe'
+$env:ANDROID_DEVKIT_SIGNING_TEST_SDK = 'E:\Android\sdk'
+$env:ANDROID_DEVKIT_SIGNING_TEST_APK = "$PWD\.qa\runtime\fixture\unsigned.apk"
+pnpm.cmd verify:signing
+# 可选：新建并清理专用无界面 AVD，验证签名产物实际安装；需已有 API 29 default x86_64 镜像
+$env:ANDROID_DEVKIT_SIGNING_TEST_INSTALL = '1'
+pnpm.cmd verify:signing
+```
+
+界面专项为 `node scripts/run-ui-fixtures.cjs signing`。应用内 Java 桥的已编译类随源码提供，运行不需要 javac；修改桥后用 `pnpm.cmd signing:bridge E:\Android\sdk\build-tools\36.0.0\lib\apksigner.jar` 重新编译并更新哈希。编译需 JDK 17 或更高版本，可通过 `JAVAC` 指定编译器。
+
 托盘与单实例原生回归脚本为 `node scripts/check-tray-native.cjs .qa/<隔离测试目录>/native-process.json`。测试元数据需包含隔离应用的 `pid`、WebView2 `debugPort`、`executable` 和 `dataDirectory`；可执行文件和数据目录必须同在该测试目录。脚本验证最小化与关闭隐藏、重复启动恢复与聚焦、最大化状态保留、旧关闭配置兼容及未保存产物保护，报告写入同目录的 `tray-report.json`。
 
 ### 构建发行文件
@@ -241,6 +267,8 @@ powershell -NoProfile -File scripts/package-release.ps1
 
 ## 更多资料
 
+- [签名与 Keystore 工具方案（已实现）](docs/00013_20261101185325_Android-DevKit-Signing-Keystore-Plan.html)
+- [签名与 Keystore 实施与验证报告](docs/00014_20261101213659_Android-DevKit-Signing-Keystore-Implementation-Report.html)
 - [二期循环审核与修复报告](docs/00011_20261025010136_Android-DevKit-Phase2-Review-Report.html)
 
 - [二期范围与验收基线：真机使用效率](docs/00009_20261024174538_Android-DevKit-Phase2-Scope.html)

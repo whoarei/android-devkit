@@ -95,6 +95,16 @@ async fn bounded_read(
     Ok(result)
 }
 pub async fn run(spec: Spec) -> Result<Output> {
+    run_sensitive(spec, zeroize::Zeroizing::new(Vec::new())).await
+}
+// Secrets are never added to Spec/args or attached to tool errors.
+pub async fn run_sensitive(
+    mut spec: Spec,
+    mut secret: zeroize::Zeroizing<Vec<u8>>,
+) -> Result<Output> {
+    if let Some(input) = spec.stdin.take() {
+        secret.extend_from_slice(input.as_bytes());
+    }
     let deadline = tokio::time::Instant::now() + Duration::from_secs(spec.timeout);
     let mut child = spec.command().kill_on_drop(true).spawn()?;
     let stdin = child.stdin.take();
@@ -103,9 +113,8 @@ pub async fn run(spec: Spec) -> Result<Output> {
     let result = tokio::time::timeout_at(deadline, async {
         let input = async {
             if let Some(mut stdin) = stdin {
-                if let Some(input) = &spec.stdin {
-                    stdin.write_all(input.as_bytes()).await?;
-                }
+                stdin.write_all(&secret).await?;
+                zeroize::Zeroize::zeroize(&mut *secret);
             }
             std::io::Result::Ok(())
         };

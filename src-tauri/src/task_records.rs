@@ -65,6 +65,16 @@ impl App {
         if unsaved.contains(&task.id) {
             return Ok(Some(("files", "有待保存文件，请先处理")));
         }
+        if task.operation.kind == "apk_sign"
+            && (task.operation.optional("overwriteSource") == "true"
+                || task.operation.optional("overwriteOutput") == "true")
+            && task.operation.optional("sourceBackupResolved") != "true"
+        {
+            return Ok(Some((
+                "files",
+                "源文件覆盖的恢复材料尚待处理，请先检查签名结果",
+            )));
+        }
         if task.state == "needs_review"
             && task.operation.kind == "screen_record"
             && task.artifact.is_empty()
@@ -340,6 +350,36 @@ mod tests {
             task_ids: ids.iter().map(|s| s.to_string()).collect(),
             query: None,
         }
+    }
+    #[test]
+    fn source_replacement_backups_protect_history_until_resolved() {
+        let dir = tempfile::tempdir().unwrap();
+        let app = App::new(dir.path().into()).unwrap();
+        let mut record = task("source-overwrite", "needs_review");
+        record.phase = "publishing".into();
+        record.operation.kind = "apk_sign".into();
+        record
+            .operation
+            .args
+            .insert("overwriteSource".into(), "true".into());
+        app.store.save_task(&record).unwrap();
+        assert_eq!(
+            app.delete_task_records(ids(&["source-overwrite"]))
+                .unwrap()
+                .deleted,
+            0
+        );
+        record
+            .operation
+            .args
+            .insert("sourceBackupResolved".into(), "true".into());
+        app.store.save_task(&record).unwrap();
+        assert_eq!(
+            app.delete_task_records(ids(&["source-overwrite"]))
+                .unwrap()
+                .deleted,
+            1
+        );
     }
     #[test]
     fn deletes_records_persistently_preserving_identity_and_protecting_work() {

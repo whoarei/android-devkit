@@ -493,6 +493,7 @@ export function ArtifactsPanel({
   }, [open, previewOpen, query.refetch]);
   const allPending = query.data?.filter((a) => !a.acknowledged) ?? [];
   const pending = allPending.filter((a) => !taskScope || a.taskId === taskScope);
+  const clearable = pending.filter((a) => !['keystore', 'signed_apk'].includes(a.kind));
   const run = (work: () => Promise<void>) =>
     void guard(async () => {
       if (busy) return;
@@ -566,8 +567,8 @@ export function ArtifactsPanel({
             </span>
             <button
               className="text-button danger"
-              disabled={busy || !pending.length}
-              onClick={() => discard(pending.map((a) => a.id))}
+              disabled={busy || !clearable.length}
+              onClick={() => discard(clearable.map((a) => a.id))}
             >
               <Trash2 size={13} />
               {tr('全部忽略并清理')}
@@ -576,6 +577,9 @@ export function ArtifactsPanel({
           <p className="hint">
             {taskScope && <>{tr('仅显示当前任务的文件。')} </>}
             {tr('忽略会删除对应的本地缓存；已另存文件、原始采集段和任务记录保留。')}
+            {pending.some((a) => a.kind === 'keystore') && (
+              <> {tr('新密钥受保护；请在签名工具中核验或明确放弃。')}</>
+            )}
           </p>
           {(error || query.error) && (
             <p className="error-banner" role="alert">
@@ -598,7 +602,10 @@ export function ArtifactsPanel({
                   </small>
                 </div>
                 <div className="artifact-actions">
-                  <Btn disabled={busy} onClick={() => preview(a)}>
+                  <Btn
+                    disabled={busy || ['keystore', 'signed_apk'].includes(a.kind)}
+                    onClick={() => preview(a)}
+                  >
                     {tr('预览')}
                   </Btn>
                   <Btn
@@ -613,8 +620,17 @@ export function ArtifactsPanel({
                   </Btn>
                   <button
                     className="text-button danger"
-                    disabled={busy}
-                    onClick={() => discard([a.id])}
+                    disabled={busy || a.kind === 'keystore'}
+                    onClick={() =>
+                      a.kind === 'signed_apk'
+                        ? run(() =>
+                            call('signing_result_discard', {
+                              artifactId: a.id,
+                              expectedSha256: a.sha256,
+                            }),
+                          )
+                        : discard([a.id])
+                    }
                   >
                     {tr('忽略并清理')}
                   </button>
@@ -648,6 +664,8 @@ export function CloseDialog({ guard, close }: { guard: Guard; close: () => void 
     refetchInterval: 1000,
   });
   const s = query.data;
+  const protectedPending =
+    s?.unsaved.some((a) => ['keystore', 'signed_apk'].includes(a.kind)) ?? false;
   const resolve = (mode: string) =>
     void guard(async () => {
       await call('close_resolve', {
@@ -701,10 +719,14 @@ export function CloseDialog({ guard, close }: { guard: Guard; close: () => void 
             <input
               type="checkbox"
               checked={discard}
+              disabled={protectedPending}
               onChange={(e) => setDiscard(e.target.checked)}
             />
             {tr('忽略上述未保存文件并清理对应本地缓存')}
           </label>
+          {protectedPending && (
+            <p className="hint">{tr('请先保存签名结果；新密钥只能在签名工具中逐项明确放弃。')}</p>
+          )}
         </>
       ) : null}
       {s?.draining && (
@@ -715,15 +737,15 @@ export function CloseDialog({ guard, close }: { guard: Guard; close: () => void 
         {s?.trayEnabled && <Btn onClick={() => resolve('hide')}>{tr('隐藏到托盘')}</Btn>}
         {s?.tasks.length ? (
           <>
-            <Btn disabled={s.draining} onClick={() => resolve('wait')}>
+            <Btn disabled={s.draining || protectedPending} onClick={() => resolve('wait')}>
               {tr('完成任务后退出')}
             </Btn>
-            <Btn disabled={s.draining} onClick={() => resolve('cancel')}>
+            <Btn disabled={s.draining || protectedPending} onClick={() => resolve('cancel')}>
               {tr('取消任务并退出')}
             </Btn>
           </>
         ) : (
-          <Btn primary onClick={() => resolve('exit')}>
+          <Btn primary disabled={protectedPending} onClick={() => resolve('exit')}>
             {tr('退出')}
           </Btn>
         )}

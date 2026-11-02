@@ -44,6 +44,8 @@ impl Store {
         connection.execute_batch(
             "CREATE TABLE IF NOT EXISTS ui_preferences(key TEXT PRIMARY KEY,json TEXT NOT NULL);",
         )?;
+        // Additive migration: older releases can retain and ignore signing registrations.
+        connection.execute_batch("CREATE TABLE IF NOT EXISTS signing_keystores(id TEXT PRIMARY KEY,path_key TEXT UNIQUE NOT NULL,json TEXT NOT NULL);")?;
         let store = Self {
             connection: Mutex::new(connection),
         };
@@ -68,6 +70,27 @@ impl Store {
             .ok()
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or_default()
+    }
+    pub fn signing_records(&self) -> Result<Vec<crate::signing::KeystoreRecord>> {
+        let connection = self.connection.lock().unwrap();
+        let mut statement = connection
+            .prepare("SELECT json FROM signing_keystores ORDER BY rowid DESC LIMIT 256")?;
+        let rows = statement.query_map([], |row| row.get::<_, String>(0))?;
+        rows.map(|row| Ok(serde_json::from_str(&row?)?)).collect()
+    }
+    pub fn save_signing_record(&self, record: &crate::signing::KeystoreRecord) -> Result<()> {
+        self.connection.lock().unwrap().execute(
+            "INSERT INTO signing_keystores(id,path_key,json) VALUES(?1,?2,?3) ON CONFLICT(id) DO UPDATE SET path_key=excluded.path_key,json=excluded.json",
+            params![record.id, record.path.to_lowercase(), serde_json::to_string(record)?],
+        )?;
+        Ok(())
+    }
+    pub fn forget_signing_record(&self, id: &str) -> Result<()> {
+        self.connection
+            .lock()
+            .unwrap()
+            .execute("DELETE FROM signing_keystores WHERE id=?1", [id])?;
+        Ok(())
     }
     pub fn has_settings(&self) -> Result<bool> {
         Ok(self.connection.lock().unwrap().query_row(
@@ -368,6 +391,20 @@ impl Store {
         let mut q = c.prepare("SELECT json FROM artifacts ORDER BY rowid DESC")?;
         let rows = q.query_map([], |r| r.get::<_, String>(0))?;
         rows.map(|r| Ok(serde_json::from_str(&r?)?)).collect()
+    }
+    pub fn refresh_signing_key_artifact(&self, id: &str, path: &Path) -> Result<()> {
+        let (mut artifact, recorded_path) = self.artifact(id)?;
+        if artifact.kind != "keystore" || path != recorded_path || artifact.acknowledged {
+            return Err(AppError::new("SIGNING_RESULT", "请选择待恢复的密钥"));
+        }
+        artifact.sha256 = digest_file(path)?;
+        artifact.bytes = path.metadata()?.len() as usize;
+        artifact.title = "新建 Keystore（请备份）".into();
+        self.connection.lock().unwrap().execute(
+            "UPDATE artifacts SET json=?1 WHERE id=?2",
+            params![serde_json::to_string(&artifact)?, id],
+        )?;
+        Ok(())
     }
     pub fn artifact(&self, id: &str) -> Result<(Artifact, std::path::PathBuf)> {
         let (a, p): (String, String) = self.connection.lock().unwrap().query_row(

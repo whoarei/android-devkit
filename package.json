@@ -5,6 +5,9 @@
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
+    "test:signing-ui": "node scripts/check-signing-ui.cjs",
+    "signing:bridge": "node scripts/build-signing-bridge.cjs",
+    "verify:signing": "cargo test --manifest-path src-tauri/Cargo.toml --lib signing_real_tools_roundtrip_and_recovery -- --ignored --nocapture",
     "check:version": "node scripts/check-version.cjs",
     "test:ui-fixtures": "node scripts/run-ui-fixtures.cjs",
     "notices": "node scripts/collect-notices.cjs",

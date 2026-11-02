@@ -36,7 +36,7 @@ pub struct ApkSet {
     pub signers: Vec<String>,
     pub members: Vec<ApkMember>,
 }
-fn tool(settings: &Settings) -> Result<PathBuf> {
+pub(crate) fn tool(settings: &Settings) -> Result<PathBuf> {
     let root = Path::new(&settings.sdk_root).join("build-tools");
     let mut paths: Vec<_> = std::fs::read_dir(root)
         .into_iter()

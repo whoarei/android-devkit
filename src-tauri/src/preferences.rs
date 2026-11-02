@@ -31,7 +31,9 @@ pub struct UserPreferences {
     pub window: Option<WindowPlacement>,
     #[cfg_attr(
         test,
-        ts(type = "'devices' | 'terminal' | 'sdk' | 'tasks' | 'diagnostics' | 'settings'")
+        ts(
+            type = "'devices' | 'terminal' | 'sdk' | 'signing' | 'tasks' | 'diagnostics' | 'settings'"
+        )
     )]
     pub last_page: String,
     #[cfg_attr(test, ts(type = "'all' | 'usb' | 'emulator'"))]
@@ -105,6 +107,7 @@ impl UserPreferences {
                 &[
                     "devices",
                     "terminal",
+                    "signing",
                     "sdk",
                     "tasks",
                     "diagnostics",

@@ -82,6 +82,12 @@ impl App {
                 "screenshot" => ("artifacts", "png"),
                 "video" => ("artifacts", "mp4"),
                 "export" => ("exports", "txt"),
+                "keystore" | "signed_apk" => {
+                    return Err(AppError::new(
+                        "SIGNING_RESULT_PROTECTED",
+                        "请先保存签名结果，或在签名工具中逐项明确放弃；普通缓存清理不删除新密钥",
+                    ));
+                }
                 _ => {
                     return Err(AppError::new(
                         "UNSAFE_ARTIFACT",

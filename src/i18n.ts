@@ -1,13 +1,14 @@
 import { getPreference, rememberPreference, usePreferenceValue } from './preferences';
 import english from './locales/en.json';
 import nativeEnglish from './locales/en-native.json';
+import signingEnglish from './locales/en-signing.json';
 
 export type Locale = 'zh-CN' | 'en-US';
 export const getLocale = () => getPreference('locale');
 export const useLocale = () => usePreferenceValue('locale');
 export const setLocale = (value: Locale) => rememberPreference('locale', value);
 
-const messages: Record<string, string> = { ...nativeEnglish, ...english };
+const messages: Record<string, string> = { ...nativeEnglish, ...english, ...signingEnglish };
 const patterns = Object.entries(messages)
   .filter(([source]) => /\{\d+\}/.test(source))
   .sort(([a], [b]) => b.replace(/\{\d+\}/g, '').length - a.replace(/\{\d+\}/g, '').length)

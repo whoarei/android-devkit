@@ -38,11 +38,13 @@ import {
   Layers,
   Sun,
   Moon,
+  KeyRound,
 } from 'lucide-react';
 import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
 import { PhoneTools } from './PhoneTools';
+import { SigningTools } from './SigningTools';
 import { SdkManager } from './SdkManager';
 import { JavaConfiguration, JavaStatus } from './JavaEnvironment';
 import { defaultSdkDownload, sdkSourceName } from './SdkDownloadSettings';
@@ -66,7 +68,7 @@ import type {
   Target,
   Task,
 } from './types';
-type Page = 'devices' | 'terminal' | 'sdk' | 'tasks' | 'diagnostics' | 'settings';
+type Page = 'devices' | 'terminal' | 'sdk' | 'signing' | 'tasks' | 'diagnostics' | 'settings';
 const useUi = create<{
   selected: string;
   select: (selected: string) => void;
@@ -78,6 +80,7 @@ const titles: Record<Page, string> = {
   devices: '设备工作台',
   terminal: 'ADB 终端',
   sdk: 'SDK 管理',
+  signing: '签名与 Keystore',
   tasks: '任务中心',
   diagnostics: '环境诊断',
   settings: '设置',
@@ -262,6 +265,7 @@ export function App() {
     cleanups.push(listen('close-requested', () => setModal('close')));
     cleanups.push(
       getCurrentWebview().onDragDropEvent((event) => {
+        if (document.body.dataset.signingDrop === 'active') return;
         if (event.payload.type === 'drop' && document.body.dataset.phoneDrop === 'upload') {
           window.dispatchEvent(
             new CustomEvent('devkit-phone-drop', { detail: event.payload.paths }),
@@ -463,6 +467,7 @@ export function App() {
               ['devices', Smartphone],
               ['terminal', Terminal],
               ['sdk', Package],
+              ['signing', KeyRound],
               ['tasks', Activity],
             ] as const
           ).map(([id, Icon]) => (
@@ -538,11 +543,13 @@ export function App() {
                   ? t('设备会话直接进入 ADB Shell，通用命令行使用本机 PowerShell。')
                   : page === 'sdk'
                     ? t('按需准备组件，复用已有开发环境。')
-                    : page === 'tasks'
-                      ? t('每个操作的目标、阶段和结果都留在这里。')
-                      : page === 'diagnostics'
-                        ? t('从检测到的事实出发，定位环境与连接问题。')
-                        : t('为当前工作空间选择路径和行为。')}
+                    : page === 'signing'
+                      ? t('管理本地密钥，校验 APK 并生成新的签名产物。')
+                      : page === 'tasks'
+                        ? t('每个操作的目标、阶段和结果都留在这里。')
+                        : page === 'diagnostics'
+                          ? t('从检测到的事实出发，定位环境与连接问题。')
+                          : t('为当前工作空间选择路径和行为。')}
             </p>
           </div>
           <div className="page-actions">
@@ -1010,6 +1017,16 @@ export function App() {
           </>
         )}
         <TerminalPage data={data} visible={page === 'terminal'} openSdk={() => setPage('sdk')} />
+        <SigningTools
+          visible={page === 'signing'}
+          data={data}
+          openSettings={() => setPage('settings')}
+          openSdk={() => setPage('sdk')}
+          install={async (path) => {
+            setPage('devices');
+            await chooseApk(path);
+          }}
+        />
         <div hidden={page !== 'sdk'}>
           <SdkManager
             data={data}

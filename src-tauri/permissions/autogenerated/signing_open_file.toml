@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-signing-open-file"
+description = "Enables the signing_open_file command without any pre-configured scope."
+commands.allow = ["signing_open_file"]
+
+[[permission]]
+identifier = "deny-signing-open-file"
+description = "Denies the signing_open_file command without any pre-configured scope."
+commands.deny = ["signing_open_file"]

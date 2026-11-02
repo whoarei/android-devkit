@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-signing-environment"
+description = "Enables the signing_environment command without any pre-configured scope."
+commands.allow = ["signing_environment"]
+
+[[permission]]
+identifier = "deny-signing-environment"
+description = "Denies the signing_environment command without any pre-configured scope."
+commands.deny = ["signing_environment"]
