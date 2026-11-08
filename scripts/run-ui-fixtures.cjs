@@ -61,6 +61,7 @@ const root = path.resolve(__dirname, '..');
       : [
           'preferences',
           'network',
+          'wireless',
           'device',
           'terminal',
           'updater',

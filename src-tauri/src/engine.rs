@@ -186,6 +186,8 @@ impl App {
         let _task_use = self.use_task_record(id, false)?;
         let task = self.store.task(id)?;
         let op = task.operation.clone();
+        let _wireless_cleanup = crate::wireless::cleanup(&self, &op);
+        let secret = zeroize::Zeroizing::new(secret);
         let settings = self.store.settings();
         let key = if op.kind == "mirror_start" {
             format!(
@@ -213,6 +215,8 @@ impl App {
             || matches!(op.kind.as_str(), "bootstrap" | "java_prepare")
         {
             format!("sdk:{}", settings.sdk_root)
+        } else if matches!(op.kind.as_str(), "wireless_pair" | "wireless_qr_pair") {
+            format!("wireless:{}", op.optional("address"))
         } else {
             "adb-global".into()
         };
@@ -596,25 +600,22 @@ impl App {
                 self.stop_avd(id, settings, &a).await?;
                 Ok("用户数据、快照与应用管理的扩展存储已重置；外部镜像保留，设备已停止".into())
             }
+            "wireless_qr_pair" => self.pair_wireless_qr(id, op, settings).await,
             "wireless_pair" => {
-                let path = android::compatible_adb(settings).await?;
-                let mut s = Spec::new(path, vec!["pair".into(), op.arg("address")?.into()]);
-                s.stdin = Some(format!("{secret}\n"));
-                s.timeout = 60;
-                let out = process::run(s).await?;
-                if out.code != 0 {
-                    return Err(AppError::new(
-                        "PAIR_FAILED",
-                        "配对失败，请重新获取配对码，并核对配对地址、端口和网络",
-                    )
-                    .detail(out.text() + &out.stderr));
-                }
-                if !out.text().to_lowercase().contains("successfully paired") {
-                    return Err(AppError::new("PAIR_NOT_CONFIRMED", "配对结果未确认"));
-                }
-                Ok("配对成功，尚未确认连接。请输入手机无线调试页的连接端口继续。".into())
+                self.pair_and_connect(
+                    id,
+                    settings,
+                    op.arg("address")?,
+                    secret,
+                    op.optional("serviceName"),
+                )
+                .await
             }
-            "wireless_connect" | "network_connect" => {
+            "wireless_connect" => {
+                self.connect_wireless_endpoint(id, settings, op.arg("address")?)
+                    .await
+            }
+            "network_connect" => {
                 android::adb(
                     settings,
                     None,

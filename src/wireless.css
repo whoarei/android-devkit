@@ -1,0 +1,120 @@
+.wireless-tabs {
+  display: flex;
+  flex-wrap: wrap;
+}
+.wireless-qr {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  margin: 18px 0;
+}
+.wireless-qr img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 6px;
+}
+.wireless-qr small {
+  color: var(--muted);
+}
+.wireless-qr-placeholder {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  width: 240px;
+  min-height: 240px;
+  max-width: 100%;
+  padding: 18px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+.wireless-qr-placeholder p {
+  line-height: 1.7;
+}
+.wireless-services {
+  min-width: 0;
+  max-height: 210px;
+  overflow-y: auto;
+  margin: 16px 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.wireless-services legend {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 5px;
+}
+.wireless-services > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  cursor: pointer;
+}
+.wireless-services input {
+  width: auto;
+  flex-shrink: 0;
+}
+.wireless-services span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wireless-services strong,
+.wireless-services small {
+  display: block;
+}
+.wireless-services small {
+  margin-top: 5px;
+  color: var(--muted);
+}
+.wireless-services > p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+}
+.wireless-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.wireless-result svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.wireless-result span {
+  overflow-wrap: anywhere;
+}
+.wireless-dialog .modal-actions {
+  flex-wrap: wrap;
+  position: sticky;
+  bottom: -25px;
+  background: var(--surface-raised);
+  padding-block: 12px;
+  z-index: 1;
+}
+.wireless-dialog .tabs button {
+  white-space: normal;
+}
+@media (max-height: 760px) {
+  .wireless-dialog .modal-heading {
+    margin-bottom: 12px;
+  }
+  .wireless-qr {
+    margin-block: 12px;
+  }
+  .wireless-qr img,
+  .wireless-qr-placeholder {
+    width: 180px;
+    min-height: 180px;
+  }
+}

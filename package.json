@@ -20,6 +20,7 @@
     "test": "cargo test --manifest-path src-tauri/Cargo.toml",
     "test:ui": "node scripts/check-ui.cjs",
     "test:network-ui": "node scripts/check-network-ui.cjs",
+    "test:wireless-ui": "node scripts/check-wireless-ui.cjs",
     "test:device-ui": "node scripts/check-device-ui.cjs",
     "test:terminal-ui": "node scripts/check-terminal-ui.cjs",
     "test:updater-ui": "node scripts/check-updater-ui.cjs",

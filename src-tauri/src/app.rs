@@ -10,6 +10,7 @@ use std::{
 use tauri::Emitter;
 
 pub struct App {
+    pub wireless: crate::wireless::WirelessState,
     pub signing: crate::signing::SigningState,
     pub terminals: crate::terminal::TerminalManager,
     pub store: Store,
@@ -62,6 +63,7 @@ impl App {
             }
         }
         Ok(Arc::new(Self {
+            wireless: crate::wireless::WirelessState::default(),
             signing: crate::signing::SigningState::default(),
             terminals: crate::terminal::TerminalManager::default(),
             store,
@@ -137,7 +139,8 @@ impl App {
     pub async fn snapshot(&self) -> Result<Workspace> {
         let settings = self.store.settings();
         let epoch = self.epoch.load(Ordering::SeqCst);
-        let devices = android::devices(&settings, epoch).await;
+        let mut devices = android::devices(&settings, epoch).await;
+        self.wireless.classify(&mut devices);
         let mut avds = android::avds(&settings);
         let mut name_counts: HashMap<String, usize> = HashMap::new();
         for avd in &avds {
@@ -236,7 +239,10 @@ impl App {
         if task.active() {
             return Err(AppError::new("TASK_ACTIVE", "任务仍在运行"));
         }
-        if task.operation.kind == "wireless_pair" {
+        if matches!(
+            task.operation.kind.as_str(),
+            "wireless_pair" | "wireless_qr_pair"
+        ) {
             return Err(AppError::new("PAIR_CODE_REQUIRED", "请重新获取配对码"));
         }
         let mut operation = task.operation;

@@ -58,6 +58,8 @@ mod ui_preferences;
 mod updater;
 #[cfg(windows)]
 mod window_state;
+mod wireless;
+mod wireless_discovery;
 use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
@@ -78,6 +80,9 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            wireless::wireless_discover,
+            wireless::wireless_qr_start,
+            wireless::wireless_pair_start,
             device_apps::device_app_list,
             device_apps::device_app_detail,
             device_apps::device_app_prepare,

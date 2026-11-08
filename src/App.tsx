@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
 import type { ExportPreview } from './bindings';
+import { ConnectDevice } from './ConnectDevice';
 import { TaskCenter } from './TaskCenter';
 import { PhoneTools } from './PhoneTools';
 import { DeviceUtilities } from './DeviceUtilities';
@@ -1151,6 +1152,8 @@ export function App() {
       )}
       {modal === 'wireless' && (
         <ConnectDevice
+          tasks={data?.tasks ?? []}
+          hidden={!!plan}
           close={() => setModal(null)}
           prepare={prepare}
           busy={busy}
@@ -1533,136 +1536,6 @@ function CreateAvd({
             {t('查看创建计划')}
           </Button>
         )}
-      </div>
-    </Modal>
-  );
-}
-function ConnectDevice({
-  close,
-  prepare,
-  busy,
-  error,
-  clearError,
-}: {
-  close: () => void;
-  prepare: (k: string, a: Record<string, string>) => Promise<void>;
-  busy: boolean;
-  error: string;
-  clearError: () => void;
-}) {
-  const [mode, setMode] = useState<'pair' | 'connect' | 'network'>('pair'),
-    [host, setHost] = useState(''),
-    [pairPort, setPairPort] = useState(''),
-    [connectPort, setConnectPort] = useState(''),
-    [networkPort, setNetworkPort] = useState('5555'),
-    [code, setCode] = useState('');
-  const port = mode === 'pair' ? pairPort : mode === 'connect' ? connectPort : networkPort;
-  const setPort =
-    mode === 'pair' ? setPairPort : mode === 'connect' ? setConnectPort : setNetworkPort;
-  const addressHost = host.trim();
-  const address = `${addressHost.includes(':') && !addressHost.startsWith('[') ? `[${addressHost}]` : addressHost}:${port.trim()}`;
-  return (
-    <Modal title={t('连接设备')} onClose={close}>
-      <div className="tabs" aria-label={t('设备连接方式')}>
-        {(
-          [
-            ['pair', t('1. 无线配对')],
-            ['connect', t('2. 已配对连接')],
-            ['network', t('网络 ADB')],
-          ] as const
-        ).map(([value, label]) => (
-          <button
-            key={value}
-            className={mode === value ? 'selected' : ''}
-            aria-pressed={mode === value}
-            disabled={busy}
-            onClick={() => {
-              setMode(value);
-              setCode('');
-              clearError();
-            }}
-          >
-            {t(label)}
-          </button>
-        ))}
-      </div>
-      <p className="hint">
-        {mode === 'network'
-          ? t('直接连接设备已开启的 ADB TCP/IP 端口，无需配对码。电脑需能访问设备所在网络。')
-          : t('手机开启开发者选项 → 无线调试。电脑和手机应在可互通的同一网络。')}
-      </p>
-      <Field label={t('设备 IP 地址')}>
-        <input
-          placeholder="192.168.1.10"
-          value={host}
-          disabled={busy}
-          onChange={(e) => setHost(e.target.value)}
-        />
-      </Field>
-      <Field
-        label={mode === 'pair' ? t('配对端口') : t('连接端口')}
-        hint={
-          mode === 'network'
-            ? t('默认 5555，可改为设备实际监听的端口。支持 IPv4 / IPv6 地址。')
-            : t('配对端口与连接端口通常不同，请以手机当前页面为准。')
-        }
-      >
-        <input
-          inputMode="numeric"
-          value={port}
-          disabled={busy}
-          onChange={(e) => setPort(e.target.value)}
-        />
-      </Field>
-      {mode === 'pair' && (
-        <Field label={t('6 位配对码')}>
-          <input
-            autoComplete="off"
-            maxLength={6}
-            inputMode="numeric"
-            value={code}
-            disabled={busy}
-            onChange={(e) => setCode(e.target.value)}
-          />
-        </Field>
-      )}
-      {mode === 'network' ? (
-        <p className="hint">
-          {t('首次开启：先通过 USB 连接并允许调试，再执行')}{' '}
-          <code>{t('adb -s <USB 序列号> tcpip 5555')}</code>
-          {t('，然后使用设备 IP 连接。 已开启网络调试的设备可直接连接，建议仅在可信网络使用。')}
-        </p>
-      ) : (
-        <p className="hint">
-          {t('配对成功不代表已连接。取消配对需在手机的无线调试设置中选择“忘记”。')}
-        </p>
-      )}
-      {error && (
-        <p className="plan-warning" role="alert">
-          {t(error)}
-        </p>
-      )}
-      <div className="modal-actions">
-        <Button onClick={close}>{t('取消')}</Button>
-        <Button
-          primary
-          disabled={busy}
-          onClick={() =>
-            void prepare(
-              mode === 'pair'
-                ? 'wireless_pair'
-                : mode === 'network'
-                  ? 'network_connect'
-                  : 'wireless_connect',
-              {
-                address,
-                ...(mode === 'pair' ? { code: code.trim() } : {}),
-              },
-            )
-          }
-        >
-          {busy ? t('正在检查…') : mode === 'pair' ? t('配对') : t('连接并验证')}
-        </Button>
       </div>
     </Modal>
   );

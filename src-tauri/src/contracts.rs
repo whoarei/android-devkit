@@ -24,6 +24,8 @@ fn source() -> String {
         SdkPackage::decl(),
         Avd::decl(),
         Device::decl(),
+        crate::wireless::WirelessService::decl(),
+        crate::wireless::WirelessQr::decl(),
         Target::decl(),
         Operation::decl(),
         License::decl(),

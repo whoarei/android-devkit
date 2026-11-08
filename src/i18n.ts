@@ -5,6 +5,7 @@ import signingEnglish from './locales/en-signing.json';
 import deviceUtilitiesEnglish from './locales/en-device-utilities.json';
 import containersEnglish from './locales/en-containers.json';
 import deviceNativeEnglish from './locales/en-device-native.json';
+import wirelessEnglish from './locales/en-wireless.json';
 
 export type Locale = 'zh-CN' | 'en-US';
 export const getLocale = () => getPreference('locale');
@@ -18,6 +19,7 @@ const messages: Record<string, string> = {
   ...deviceUtilitiesEnglish,
   ...containersEnglish,
   ...deviceNativeEnglish,
+  ...wirelessEnglish,
 };
 const patterns = Object.entries(messages)
   .filter(([source]) => /\{\d+\}/.test(source))

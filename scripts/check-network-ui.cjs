@@ -105,6 +105,7 @@ const path = require('node:path');
     await page.getByRole('button', { name: '返回修改', exact: true }).click();
     await page.getByRole('button', { name: '连接设备', exact: true }).click();
     const dialog = page.getByRole('dialog', { name: '连接设备', exact: true });
+    await dialog.getByRole('button', { name: '手动连接', exact: true }).click();
     await dialog.getByLabel('设备 IP 地址', { exact: true }).fill(' 192.168.1.10 ');
     await dialog.getByLabel('配对端口', { exact: true }).fill('37123');
     await dialog.getByLabel('6 位配对码', { exact: true }).fill('123456');
@@ -141,7 +142,7 @@ const path = require('node:path');
     await dialog.getByLabel('连接端口', { exact: true }).fill('0');
     await dialog.getByRole('button', { name: '连接并验证', exact: true }).click();
     await dialog.getByRole('alert').filter({ hasText: '1～65535' }).waitFor();
-    await dialog.getByRole('button', { name: '2. 已配对连接', exact: true }).click();
+    await dialog.getByRole('button', { name: '已配对连接', exact: true }).click();
     assert.equal(await dialog.getByLabel('连接端口', { exact: true }).inputValue(), '');
     assert.equal(await dialog.getByRole('alert').count(), 0);
     await page.evaluate(() => {

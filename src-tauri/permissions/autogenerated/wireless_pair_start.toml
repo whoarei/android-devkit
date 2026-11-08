@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-wireless-pair-start"
+description = "Enables the wireless_pair_start command without any pre-configured scope."
+commands.allow = ["wireless_pair_start"]
+
+[[permission]]
+identifier = "deny-wireless-pair-start"
+description = "Denies the wireless_pair_start command without any pre-configured scope."
+commands.deny = ["wireless_pair_start"]

@@ -585,6 +585,7 @@ const path = require('node:path');
     assert.equal(await page.locator('html').getAttribute('lang'), 'en-US');
     await page.getByRole('button', { name: 'Connect device', exact: true }).click();
     dialog = page.getByRole('dialog', { name: 'Connect device', exact: true });
+    await dialog.getByRole('button', { name: 'Manual connection', exact: true }).click();
     await dialog.getByLabel('Device IP address', { exact: true }).fill('192.0.2.10');
     await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
     assert.equal(await page.getByLabel('设备 IP 地址', { exact: true }).inputValue(), '192.0.2.10');

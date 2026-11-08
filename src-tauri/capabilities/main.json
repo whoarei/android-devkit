@@ -3,6 +3,9 @@
   "description": "Local workbench only; all system actions validated by Rust",
   "windows": ["main"],
   "permissions": [
+    "allow-wireless-discover",
+    "allow-wireless-qr-start",
+    "allow-wireless-pair-start",
     "allow-device-app-list",
     "allow-device-app-detail",
     "allow-device-app-prepare",

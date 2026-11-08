@@ -38,6 +38,7 @@ const { chromium } = require('playwright');
   await page.getByRole('button', { name: '关闭面板', exact: true }).click();
   await page.getByRole('button', { name: '关闭错误', exact: true }).click();
   await page.getByRole('button', { name: '连接设备', exact: true }).click();
+  await page.getByRole('button', { name: '手动连接', exact: true }).click();
   await page.getByLabel('设备 IP 地址', { exact: true }).fill('not-an-ip');
   await page.getByLabel('配对端口', { exact: true }).fill('1234');
   await page.getByLabel('6 位配对码', { exact: true }).fill('123456');

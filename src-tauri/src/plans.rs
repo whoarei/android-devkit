@@ -357,6 +357,11 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
                 _ => "打开模拟器窗口",
             }
         }
+        "wireless_qr_pair" => {
+            app.wireless.validate_session(op.arg("sessionId")?)?;
+            effects.push("等待手机扫描二维码，完成配对并验证无线连接".into());
+            "扫码配对设备"
+        }
         "wireless_pair" => {
             let address = android::normalize_endpoint(op.arg("address")?)?;
             op.args.insert("address".into(), address);
@@ -364,13 +369,22 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
             if code.len() != 6 || !code.bytes().all(|b| b.is_ascii_digit()) {
                 return Err(AppError::new("INVALID_PAIR_CODE", "配对码应为 6 位数字"));
             }
+            if !op.optional("serviceName").is_empty() {
+                crate::wireless::validate_code_service(op.optional("serviceName"))?;
+            }
             effects.push(format!(
-                "配对 {}；配对成功后仍需验证连接",
+                "配对 {}，随后自动发现并验证无线连接",
                 op.arg("address")?
             ));
             "无线设备配对"
         }
-        "wireless_connect" | "wireless_disconnect" | "network_connect" | "network_disconnect" => {
+        "wireless_disconnect" => {
+            let address = crate::wireless::normalize_disconnect(op.arg("address")?)?;
+            op.args.insert("address".into(), address.clone());
+            effects.push(address);
+            "断开无线连接"
+        }
+        "wireless_connect" | "network_connect" | "network_disconnect" => {
             let address = android::normalize_endpoint(op.arg("address")?)?;
             op.args.insert("address".into(), address);
             effects.push(op.arg("address")?.into());
