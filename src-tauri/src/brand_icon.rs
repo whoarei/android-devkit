@@ -141,6 +141,17 @@ mod tests {
         let dark = render(&preferences, true);
         assert_eq!((light.width(), light.height()), source.dimensions());
         assert_ne!(light.rgba(), dark.rgba());
+        // Follow two original material highlights rather than counting output
+        // colors: monochrome themes legitimately collapse RGB hues to gray.
+        let material = || {
+            source
+                .as_raw()
+                .chunks_exact(4)
+                .enumerate()
+                .filter(|(_, pixel)| pixel[3] == 255 && pixel[1] > pixel[0].saturating_add(16))
+        };
+        let low = material().min_by_key(|(_, pixel)| pixel[0]).unwrap().0 * 4;
+        let high = material().max_by_key(|(_, pixel)| pixel[0]).unwrap().0 * 4;
         for icon in [light, dark] {
             for (original, tinted) in source
                 .as_raw()
@@ -149,13 +160,11 @@ mod tests {
             {
                 assert_eq!(original[3], tinted[3], "alpha/outline changed");
             }
-            let colors: std::collections::HashSet<_> = icon
-                .rgba()
-                .chunks_exact(4)
-                .filter(|pixel| pixel[3] == 255)
-                .map(|pixel| [pixel[0], pixel[1], pixel[2]])
-                .collect();
-            assert!(colors.len() > 100, "artwork relief was flattened");
+            assert_ne!(
+                &icon.rgba()[low..low + 3],
+                &icon.rgba()[high..high + 3],
+                "original material highlights were flattened"
+            );
         }
     }
 }
