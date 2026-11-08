@@ -37,6 +37,8 @@ git diff --check
 
 ## 构建、资产和核验
 
+CI 先运行 `scripts/prepare-nsis-tools.ps1`，通过 GitHub 官方资产 API 预取当前固定 Tauri CLI 对应的 NSIS 与辅助 DLL；同时校验 Tauri 上游固定 SHA-1 和官方资产 SHA-256，避免 release 下载地址连续返回 504。更新 CLI 时须重新核对工具版本和哈希。打包重试前恢复未打补丁的原始 EXE，确保 bundle marker 每次正确写入。
+
 正式构建、签名、打包和安装器检查全部在 CI 的干净检出中完成，无需运行本地 `tauri build`、`cargo build` 或发布打包脚本，也无需清理或迁移本地旧 `artifacts/`。只有用户明确要求本地构建或打包时，才另行执行。
 
 CI 使用 `scripts/build-windows-release.ps1`：先以 `tauri build --config src-tauri/tauri.release.conf.json --no-bundle -- --locked` 编译，再以同一配置执行 `tauri bundle --bundles nsis`；仅对临时网络下载错误最多重试打包四次，编译和非网络错误立即失败。之后通过 `package-release.ps1 -WithUpdater` 生成 minisign 安装器签名及 `latest.json`，并核验安装器内容、升级等待与签名。这里的构建命令用于核对工作流或远端排障，不作为本机发版步骤。`TAURI_SIGNING_PRIVATE_KEY` 仅保存在本仓库 Actions Secrets，与 remote-runner 复用同一签名身份；如果有密码，则通过 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 提供。缺少签名私钥必须使签名构建失败；不要生成新密钥替换现有公钥，也不要将私钥导出到本地或提交源码。本地未签名包不作为正式更新资产发布。
