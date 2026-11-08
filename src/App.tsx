@@ -1,6 +1,7 @@
 import { t, useLocale, setLocale, type Locale } from './i18n';
 import { useTheme, useResolvedTheme, setTheme } from './theme';
 import { AppearanceControls, AppearancePicker } from './AppearanceSettings';
+import { BrandMark } from './BrandMark';
 import { version } from '../package.json';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -409,7 +410,7 @@ export function App() {
     <div className="app-shell">
       <header className="titlebar">
         <div className="titlebar-brand">
-          <img className="brand-mark" src="/android-devkit.png" alt="" aria-hidden="true" />
+          <BrandMark />
           Android DevKit
         </div>
         <div

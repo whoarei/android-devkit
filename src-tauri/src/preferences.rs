@@ -210,5 +210,14 @@ pub fn preferences_patch(
     {
         return Err(AppError::new("INVALID_PREFERENCE", "用户配置无效"));
     }
-    app.store.patch_preferences(&patch)
+    let preferences = app.store.patch_preferences(&patch)?;
+    if ["theme", "colorTheme", "customColor"]
+        .iter()
+        .any(|key| patch.get(key).is_some())
+    {
+        if let Some(handle) = app.handle.lock().unwrap().clone() {
+            crate::lifecycle::refresh_tray_icon(&handle);
+        }
+    }
+    Ok(preferences)
 }

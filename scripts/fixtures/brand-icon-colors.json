@@ -1,0 +1,198 @@
+[
+  {
+    "palette": "default",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#000000",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "default",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#636363",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "blue",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#3563f5",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "blue",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#3563f5",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "green",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#038276",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "green",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#038276",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "yellow",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#877028",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "yellow",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#877028",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "pink",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#ba4984",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "pink",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#ba4984",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "orange",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#b1594b",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "orange",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#b1594b",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "purple",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#9748ed",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "purple",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#9748ed",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "black",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#000000",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "black",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#636363",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#35b8bd",
+    "dark": false,
+    "fill": "#267f86",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#35b8bd",
+    "dark": true,
+    "fill": "#267f86",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#000000",
+    "dark": false,
+    "fill": "#000000",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#000000",
+    "dark": true,
+    "fill": "#636363",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#FFFFFF",
+    "dark": false,
+    "fill": "#6e7279",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#FFFFFF",
+    "dark": true,
+    "fill": "#6e7279",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#FFFF00",
+    "dark": false,
+    "fill": "#737710",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#FFFF00",
+    "dark": true,
+    "fill": "#737710",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#808080",
+    "dark": false,
+    "fill": "#727374",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#808080",
+    "dark": true,
+    "fill": "#727374",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#F55CA6",
+    "dark": false,
+    "fill": "#ba4984",
+    "foreground": "#ffffff"
+  },
+  {
+    "palette": "custom",
+    "customColor": "#F55CA6",
+    "dark": true,
+    "fill": "#ba4984",
+    "foreground": "#ffffff"
+  }
+]

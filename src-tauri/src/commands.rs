@@ -523,7 +523,11 @@ pub fn window_action(window: tauri::WebviewWindow, action: String) -> Result<()>
         "close" => window.close(),
         _ => return Err(AppError::new("INVALID_ACTION", "窗口动作无效")),
     };
-    result.map_err(|e| AppError::new("WINDOW", e.to_string()))
+    result.map_err(|e| AppError::new("WINDOW", e.to_string()))?;
+    if action.starts_with("theme_") {
+        crate::lifecycle::refresh_tray_icon(window.app_handle());
+    }
+    Ok(())
 }
 #[tauri::command]
 pub fn close_status(app: Service<'_>) -> Result<CloseStatus> {

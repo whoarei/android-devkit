@@ -19,12 +19,10 @@ pub fn create_tray(handle: &tauri::AppHandle) -> Result<()> {
         MenuItem::with_id(handle, "quit", "退出…", true, None::<&str>).map_err(window_error)?;
     let menu = Menu::with_items(handle, &[&show, &status, &quit]).map_err(window_error)?;
     handle.manage(TrayItems { show, status, quit });
-    let icon = handle
-        .default_window_icon()
-        .ok_or_else(|| AppError::new("TRAY_UNAVAILABLE", "无法加载托盘图标"))?;
+    let icon = crate::brand_icon::for_handle(handle)?;
     TrayIconBuilder::with_id("devkit")
         .menu(&menu)
-        .icon(icon.clone())
+        .icon(icon)
         .tooltip("Android DevKit")
         .show_menu_on_left_click(false)
         .on_menu_event(|h, event| {
@@ -85,6 +83,9 @@ pub fn hide_to_tray(h: &tauri::AppHandle) -> Result<()> {
 }
 
 pub fn on_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
+    if window.label() == "main" && matches!(event, tauri::WindowEvent::ThemeChanged(_)) {
+        refresh_tray_icon(window.app_handle());
+    }
     // Also cover OS shortcuts and the native taskbar/system menu, not just our title bar.
     if window.label() == "main"
         && matches!(event, tauri::WindowEvent::Resized(_))
@@ -95,6 +96,23 @@ pub fn on_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
         if let Err(error) = hide_to_tray(window.app_handle()) {
             eprintln!("Minimize to tray: {error}");
         }
+    }
+}
+pub fn refresh_tray_icon(handle: &tauri::AppHandle) {
+    let latest = handle.clone();
+    // Read acknowledged preferences on the UI thread, after any preceding theme
+    // change. Queued rapid switches must never repaint an older selection last.
+    if let Err(error) = handle.run_on_main_thread(move || {
+        let Some(tray) = latest.tray_by_id("devkit") else {
+            return;
+        };
+        let result = crate::brand_icon::for_handle(&latest)
+            .and_then(|icon| tray.set_icon(Some(icon)).map_err(window_error));
+        if let Err(error) = result {
+            eprintln!("Tray appearance: {error}");
+        }
+    }) {
+        eprintln!("Tray appearance: {error}");
     }
 }
 pub fn update_tray(h: &tauri::AppHandle, app: &App) {

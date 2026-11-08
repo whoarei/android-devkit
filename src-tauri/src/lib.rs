@@ -6,6 +6,7 @@ mod apk_containers;
 mod app;
 mod avd_settings;
 mod bootstrap;
+mod brand_icon;
 mod capacity;
 mod commands;
 #[cfg(test)]

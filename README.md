@@ -4,7 +4,9 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.9.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.9.1** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+
+0.9.1 让 **标题栏 Logo 与系统托盘图标跟随主题配色**：预设及自定义颜色即时同步，保留原图形、透明边缘和内部细节；浅色、深色及跟随系统时调整图标明度以保持可辨识，重启后恢复所选配色。成功、警告和错误状态继续使用各自的状态颜色。
 
 0.9.0 新增 **完整主题配色与无线扫码配对**：各页面、弹窗与终端统一科技风格，支持默认、蓝、绿、黄、粉、橙、紫、黑及自定义颜色，可独立选择浅色、深色或跟随系统；标题栏与设置均可调整，保留已有明暗偏好。无线调试支持扫码或自动发现设备后输入配对码，配对后自动连接并验证，同时保留手动连接入口；需要 Android 11+ 与可互通且允许 mDNS 的局域网。
 
@@ -54,8 +56,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.9.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.9.0/AndroidDevKit-0.9.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.9.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.9.0/AndroidDevKit-0.9.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.9.1-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.9.1/AndroidDevKit-0.9.1-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.9.1-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.9.1/AndroidDevKit-0.9.1-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 

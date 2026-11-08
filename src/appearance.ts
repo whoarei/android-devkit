@@ -1,17 +1,18 @@
 import type { UserPreferences } from './bindings';
+import themeColors from '../src-tauri/resources/theme-colors.json';
 
 export type Appearance = Pick<UserPreferences, 'theme' | 'colorTheme' | 'customColor'>;
 export type ResolvedTheme = 'light' | 'dark';
 export const colorThemes = [
-  { id: 'default', name: '默认', color: '#000000' },
-  { id: 'blue', name: '蓝色', color: '#3563f5' },
-  { id: 'green', name: '绿色', color: '#00b8a0' },
-  { id: 'yellow', name: '黄色', color: '#ffcc33' },
-  { id: 'pink', name: '粉色', color: '#f55ca6' },
-  { id: 'orange', name: '橙色', color: '#ff7b61' },
-  { id: 'purple', name: '紫色', color: '#a34dff' },
-  { id: 'black', name: '黑色', color: '#000000' },
-  { id: 'custom', name: '自定义', color: '#35b8bd' },
+  { id: 'default', name: '默认', color: themeColors.default },
+  { id: 'blue', name: '蓝色', color: themeColors.blue },
+  { id: 'green', name: '绿色', color: themeColors.green },
+  { id: 'yellow', name: '黄色', color: themeColors.yellow },
+  { id: 'pink', name: '粉色', color: themeColors.pink },
+  { id: 'orange', name: '橙色', color: themeColors.orange },
+  { id: 'purple', name: '紫色', color: themeColors.purple },
+  { id: 'black', name: '黑色', color: themeColors.black },
+  { id: 'custom', name: '自定义', color: themeColors.custom },
 ] as const;
 
 export const validColor = (color: string) => /^#[\da-f]{6}$/i.test(color);
@@ -50,6 +51,34 @@ function readableColor(color: string, background: string, dark: boolean) {
   }
   return dark ? '#ffffff' : '#0a101c';
 }
+function foregroundOn(color: string) {
+  return contrastRatio(color, '#ffffff') >= 4.5
+    ? '#ffffff'
+    : contrastRatio(color, '#101522') >= 4.5
+      ? '#101522'
+      : '#000000';
+}
+
+// The original green artwork is two inks: R is the neutral detail and G-R is
+// the colored material. Recolor those inks while keeping its alpha and relief.
+// Native tray rendering uses the same matrix in brand_icon.rs.
+export function brandColorMatrix(fill: string, foreground: string) {
+  const ink = channels(foreground);
+  return [
+    ...channels(fill).flatMap((value, index) => [
+      ink[index] / 255 - value / 128,
+      value / 128,
+      0,
+      0,
+      0,
+    ]),
+    0,
+    0,
+    0,
+    1,
+    0,
+  ].join(' ');
+}
 export function appearanceTokens(preferences: Appearance, resolved: ResolvedTheme) {
   const dark = resolved === 'dark';
   const monochrome = preferences.colorTheme === 'black';
@@ -64,12 +93,19 @@ export function appearanceTokens(preferences: Appearance, resolved: ResolvedThem
   // Use their brightest possible fill as the contrast floor for all accents.
   const accent = readableColor(base, dark ? mixColor(surface, '#ffffff', 0.14) : raised, dark);
   const fill = preferences.colorTheme === 'default' ? (dark ? '#e3e8ef' : '#172b46') : base;
-  const onAccent =
-    contrastRatio(fill, '#ffffff') >= 4.5
-      ? '#ffffff'
-      : contrastRatio(fill, '#101522') >= 4.5
-        ? '#101522'
-        : '#000000';
+  const onAccent = foregroundOn(fill);
+  // Keep the original light phone/terminal detail. Bound the colored material
+  // against that detail, then lift near-black colors on a dark titlebar/tray.
+  let brandFill = readableColor(base, '#ffffff', false);
+  if (dark) {
+    for (let step = 0; step <= 100; step++) {
+      const candidate = mixColor(brandFill, '#ffffff', step / 100);
+      if (contrastRatio(candidate, '#0d1524') >= 3) {
+        brandFill = candidate;
+        break;
+      }
+    }
+  }
   return {
     '--page': page,
     '--surface': surface,
@@ -91,6 +127,8 @@ export function appearanceTokens(preferences: Appearance, resolved: ResolvedThem
     '--accent-hover': mixColor(fill, onAccent === '#ffffff' ? '#000000' : '#ffffff', 0.09),
     '--focus': accent,
     '--icon': accent,
+    '--brand-fill': brandFill,
+    '--brand-foreground': '#ffffff',
     '--border-strong': accent,
     '--soft': mixColor(surface, accent, dark ? 0.1 : 0.055),
     '--hover': mixColor(surface, accent, dark ? 0.12 : 0.07),

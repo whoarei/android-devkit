@@ -17,6 +17,7 @@ const palettes = [
 ];
 const names = ['默认', '蓝色', '绿色', '黄色', '粉色', '橙色', '紫色', '黑色', '自定义'];
 const modes = ['light', 'dark', 'system'];
+const brandColors = require('./fixtures/brand-icon-colors.json');
 
 (async () => {
   fs.mkdirSync(output, { recursive: true });
@@ -195,6 +196,47 @@ const modes = ['light', 'dark', 'system'];
         assert((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05) >= 4.5, JSON.stringify(pair));
       }
     };
+    const assertBrand = async () => {
+      const brand = await page.locator('.brand-mark').evaluate((node) => {
+        const style = getComputedStyle(document.documentElement);
+        return {
+          palette: document.documentElement.dataset.colorTheme,
+          dark: document.documentElement.dataset.theme === 'dark',
+          customColor: window.__preferences.customColor,
+          fill: style.getPropertyValue('--brand-fill').trim(),
+          foreground: style.getPropertyValue('--brand-foreground').trim(),
+          matrix: node.querySelector('feColorMatrix')?.getAttribute('values'),
+          artwork: node.querySelector('image')?.getAttribute('href'),
+        };
+      });
+      const expected = brandColors.find(
+        (item) =>
+          item.palette === brand.palette &&
+          item.dark === brand.dark &&
+          (item.palette !== 'custom' ||
+            item.customColor.toLowerCase() === brand.customColor.toLowerCase()),
+      );
+      assert(expected, JSON.stringify(brand));
+      assert.equal(brand.fill, expected.fill);
+      assert.equal(brand.foreground, expected.foreground);
+      assert.equal(brand.artwork, '/android-devkit.png', 'Keep the original brand artwork');
+      const hex = (value) => [1, 3, 5].map((index) => parseInt(value.slice(index, index + 2), 16));
+      const fill = hex(expected.fill),
+        foreground = hex(expected.foreground);
+      const matrix = fill.flatMap((value, index) => [
+        foreground[index] / 255 - value / 128,
+        value / 128,
+        0,
+        0,
+        0,
+      ]);
+      matrix.push(0, 0, 0, 1, 0);
+      assert.deepEqual(
+        brand.matrix.split(/\s+/).map(Number),
+        matrix,
+        'Logo and tray share the same recoloring matrix',
+      );
+    };
     const statusColors = [];
     for (const palette of palettes) {
       await choose(palette);
@@ -205,10 +247,14 @@ const modes = ['light', 'dark', 'system'];
           value,
         );
         await assertContrast();
+        await assertBrand();
         statusColors.push(
-          await page.evaluate(() =>
-            getComputedStyle(document.documentElement).getPropertyValue('--success').trim(),
-          ),
+          await page.evaluate(() => {
+            const style = getComputedStyle(document.documentElement);
+            return ['--success', '--warning', '--danger']
+              .map((name) => style.getPropertyValue(name).trim())
+              .join('|');
+          }),
         );
       }
     }
@@ -223,6 +269,7 @@ const modes = ['light', 'dark', 'system'];
       for (const value of ['light', 'dark']) {
         await mode.selectOption(value);
         await assertContrast();
+        await assertBrand();
       }
     }
     await page.getByLabel('十六进制颜色', { exact: true }).fill('#GGGGGG');
@@ -237,8 +284,10 @@ const modes = ['light', 'dark', 'system'];
     );
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+    await assertBrand();
     await page.emulateMedia({ colorScheme: 'light' });
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+    await assertBrand();
     assert.equal(await page.evaluate(() => window.__preferences.theme), 'system');
     assert.equal(
       await page.evaluate(
@@ -251,6 +300,7 @@ const modes = ['light', 'dark', 'system'];
     await mode.waitFor();
     assert.equal(await mode.inputValue(), 'system');
     assert.equal(await root.getAttribute('data-color-theme'), 'purple');
+    await assertBrand();
     assert.equal(
       await page.evaluate(
         () => JSON.parse(localStorage.getItem('android-devkit.appearance.v1')).colorTheme,
@@ -364,7 +414,7 @@ const modes = ['light', 'dark', 'system'];
     await page.keyboard.press('Escape');
     assert.deepEqual(errors, []);
     console.log(
-      'Appearance UI: all 27 palette/mode combinations, contrast, custom colors, system changes, persistence/cache precedence, seven pages, drafts, live terminal, English and 480px layout passed.',
+      'Appearance UI: all 27 palette/mode combinations, logo/tray color contract, contrast, custom colors, semantic status colors, system changes, persistence/cache precedence, seven pages, drafts, live terminal, English and 480px layout passed.',
     );
   } finally {
     await browser.close();
