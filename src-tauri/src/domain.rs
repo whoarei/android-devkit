@@ -283,6 +283,8 @@ impl Operation {
                 | "avd_wipe"
                 | "avd_force_stop"
                 | "app_reinstall"
+                | "device_app_clear"
+                | "device_app_uninstall"
                 | "adb_restart"
                 | "screen_cleanup"
         ) || (matches!(self.kind.as_str(), "file_upload" | "file_download")

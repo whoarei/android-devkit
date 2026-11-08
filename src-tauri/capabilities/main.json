@@ -3,6 +3,11 @@
   "description": "Local workbench only; all system actions validated by Rust",
   "windows": ["main"],
   "permissions": [
+    "allow-device-app-list",
+    "allow-device-app-detail",
+    "allow-device-app-prepare",
+    "allow-device-tools",
+    "allow-apk-container-prepare",
     "allow-signing-environment",
     "allow-signing-records",
     "allow-keystore-register",

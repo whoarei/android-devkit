@@ -561,7 +561,9 @@ function TaskRow({
                           ? task.state === 'queued'
                             ? '取消等待录屏'
                             : '停止并保存录屏'
-                          : '取消',
+                          : task.operation.kind === 'mirror_start'
+                            ? '停止投屏'
+                            : '取消',
                       )
                     : t('此步骤完成后取消')
               }

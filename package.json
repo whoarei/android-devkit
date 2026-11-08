@@ -1,10 +1,12 @@
 {
   "name": "android-devkit",
   "private": true,
-  "version": "0.7.0",
+  "version": "0.8.0",
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
+    "test:device-utilities-ui": "node scripts/check-device-utilities-ui.cjs",
+    "verify:device-utilities": "powershell -NoProfile -File scripts/build-split-fixtures.ps1 && cargo test --manifest-path src-tauri/Cargo.toml --lib device_utilities_real_sdk_workflows -- --ignored --nocapture",
     "test:signing-ui": "node scripts/check-signing-ui.cjs",
     "signing:bridge": "node scripts/build-signing-bridge.cjs",
     "verify:signing": "cargo test --manifest-path src-tauri/Cargo.toml --lib signing_real_tools_roundtrip_and_recovery -- --ignored --nocapture",

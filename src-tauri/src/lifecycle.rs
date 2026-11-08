@@ -233,7 +233,9 @@ impl App {
         }
         self.draining.store(true, Ordering::SeqCst);
         for t in status.tasks {
-            if mode == "cancel" || t.operation.kind == "log_record" {
+            if mode == "cancel"
+                || matches!(t.operation.kind.as_str(), "log_record" | "mirror_start")
+            {
                 if let Err(error) = self.cancel_task(&t.id) {
                     self.draining.store(false, Ordering::SeqCst);
                     return Err(error);

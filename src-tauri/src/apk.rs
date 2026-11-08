@@ -17,7 +17,7 @@ impl App {
         {
             return Err(AppError::new(
                 "APK_ONLY",
-                "请选择 APK 文件；AAB、APKS、APKM 和 XAPK 容器暂不支持直接导入",
+                "请选择 APK 文件；APKS、XAPK、APKM 请从分包安装入口导入，AAB 需先生成 APK 集合",
             ));
         }
         let meta = path.metadata()?;

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Android DevKit · 设备应用、安装包与投屏实施报告</title>
+<style>*{box-sizing:border-box}body{margin:0;padding:24px;background:#f3f6f2;color:#203a2b;font:15px/1.8 'Segoe UI','Microsoft YaHei',sans-serif}main{max-width:1120px;margin:auto;background:white;padding:32px}h1{font-size:28px;line-height:1.4}h2{margin-top:30px;font-size:21px}.note{background:#edf5ec;border-left:4px solid #34805a;padding:16px}.meta{color:#607365;font-size:13px}.table{overflow:auto}table{width:100%;border-collapse:collapse}th,td{padding:11px;border:1px solid #d5e1d5;text-align:left;vertical-align:top}th{background:#edf5ec}a{color:#146e45}code{overflow-wrap:anywhere}pre{background:#f3f6f2;padding:16px;overflow:auto}li{margin:7px 0}.screens{display:flex;gap:20px;flex-wrap:wrap}.screens img{max-width:100%;width:360px;object-fit:contain;align-self:flex-start}@media(max-width:700px){body{padding:0}main{padding:18px}h1{font-size:25px}table{min-width:680px}}@media print{body{padding:0;background:white}main{padding:0}.table{overflow:visible}table{min-width:0}tr{break-inside:avoid}}</style></head>
+<body><main>
+<p class="meta">ANDROID DEVKIT / IMPLEMENTATION REPORT · 创建于北京时间 2026-11-08 09:45:25</p>
+<h1>设备应用管理、安装包导入与投屏实施报告</h1>
+<p class="note">三项能力已接入当前源码：应用管理、APKS / XAPK / APKM 导入、scrcpy 投屏控制。本轮纳入 v0.8.0，安装版、便携包和签名更新资产沿用现有发布流程；正式状态以对应 Release 为准。此前取消的一期 T-01～T-07 不恢复为待办。</p>
+<h2>已实现能力</h2>
+<div class="table"><table><thead><tr><th>能力</th><th>用户入口与行为</th><th>目标与结果保护</th></tr></thead><tbody>
+<tr><td>设备应用管理</td><td>设备详情 → 应用管理；默认第三方应用，支持包名搜索、系统筛选、键盘选择、版本 / UID / API / 安装路径查看，以及启动、停止、清数据、卸载和导出 APK。</td><td>绑定设备 epoch、transport-id、serial 和 Android 用户；执行前复查包名、版本、安装位置及完整安装 / 更新时间。清数据和卸载需确认；系统应用禁止停止、清数据和卸载。</td></tr>
+<tr><td>完整 APK 导出</td><td>单文件导出为 .apk；多文件包含全部已安装 base / split，保存为可重新导入的普通 .apks 集合，在待保存文件中另存。</td><td>逐文件核对大小与设备 SHA-256，复查源应用身份；完整发布后登记，提交与登记间中断可按已记录摘要恢复。原应用和私有数据保持原状。</td></tr>
+<tr><td>安装包容器</td><td>设备详情 → 分包 APK 安装 → 导入 APKS / XAPK / APKM。含 toc.pb 的官方 APKS 通过 bundletool 按 API、ABI、语言、密度选包；普通集合按原生 ABI 优先级筛选。</td><td>先暂存不可变副本；拒绝路径穿越、重复 / 链接路径、超量解压、无效 ZIP 和 OBB 扩展数据，再复用签名、版本、依赖和设备兼容性校验。选包集合绑定准备时连接，不能转投其他设备。</td></tr>
+<tr><td>投屏与控制</td><td>设备详情 → 投屏与控制；按需准备官方 scrcpy，选择控制 / 只读、最大边长及 30 / 60 FPS；独立窗口，关闭或停止任务结束。</td><td>每次会话使用私有本地 ADB 代理，把 serial 选择改写为冻结 transport-id；仅暴露目标设备，拒绝共享服务控制。断线结束，无自动重连；仅结束自有进程。并行安装和传输可继续。</td></tr>
+<tr><td>工具准备与界面</td><td>官方工具以确认计划下载，显示进度、取消与失败；中英文、亮暗主题、窄屏、焦点约束、任务与退出流程沿用现有交互。</td><td>固定 scrcpy 5.0.1 与 bundletool 1.18.3 的下载 URL、大小和 SHA-256，安装到本应用私有 tools 目录；启动前复查文件，活动投屏时禁止替换其工具。</td></tr>
+</tbody></table></div>
+<h2>验证记录</h2>
+<div class="table"><table><thead><tr><th>检查</th><th>当前结果</th><th>证据与范围</th></tr></thead><tbody>
+<tr><td>Rust 常规回归</td><td>163 通过，0 失败，16 个显式集成入口默认跳过。</td><td>完整 Windows 回归通过，包含原故障注入与恢复、PowerShell 伪终端、IPC 合约及本轮新增测试。沙箱内伪终端无提示符，在真实 Windows 环境复跑通过。</td></tr>
+<tr><td>构建与静态检查</td><td>TypeScript、Vite、Windows 桌面程序构建、Clippy 全 target / 警告视为错误、Rust / 前端格式与差异检查通过。</td><td>主包仍有既有的大于 500 kB 提示，不影响构建；未生成新发行安装包。</td></tr>
+<tr><td>生产界面夹具</td><td>全部 13 套通过；新增设备工具 13 组，无页面错误。</td><td>包括五类应用动作、Android 用户与精确目标、系统应用保护、异步旧响应、重复提交、卸载后刷新、断线禁用、同 serial 不同 transport / epoch 隔离、投屏依赖与停止、英文暗色 480px 布局。使用模拟 IPC，不代替真实设备验证。</td></tr>
+<tr><td>投屏协议专项</td><td>6 项通过。</td><td>真实字节流 tport 握手、serial → transport 改写、危险请求拦截、请求长度上限、参数白名单、重复目标与输出限流。</td></tr>
+<tr><td>真实 SDK 与双模拟器流程</td><td id="real-result">通过，专项耗时 136.55 秒；两个专用 AVD 均已停止和删除。</td><td id="real-evidence">实际下载校验 bundletool / scrcpy；官方 toc.pb APKS 生成与选包、普通 APKS / XAPK / APKM 安装、完整 APK 导出重导入、跨目标拒绝、系统应用保护、应用启动停止、投屏渲染 / 并发启动应用 / 停止、清数据只影响目标、升级后的旧卸载计划拒绝及目标卸载全部通过。<a href="evidence/device-utilities-real-sdk.json">结构化证据</a>；本机目录 <code>.qa/runtime/device-utilities-1794102315</code>。</td></tr>
+</tbody></table></div>
+<p>界面证据：<a href="evidence/device-utilities-ui.json">新增 13 组检查</a>。本机详细运行目录位于 <code>.qa/app/device-utilities</code> 与 <code>.qa/runtime/device-utilities-*</code>。</p>
+<p>480px 英文暗色截图已在本机复查，保留于 <code>.qa/app/device-utilities/apps-en-dark-480.png</code> 与 <code>mirror-en-dark-480.png</code>；按项目发布约定，截图和缓存不纳入发布提交。</p>
+<h2>兼容范围与待实机确认</h2>
+<ul><li>当前面向 Windows 11 x64；手机型号、OEM 安装限制、USB / 无线调试、实体手机输入与编码器组合仍需使用实际手机确认，本轮专用模拟器证据不计为全品牌手机验收。多 Android 用户的界面参数有夹具验证，真实专项使用用户 0，未实测用户切换矩阵。</li><li>XAPK / APKM 支持可读取 ZIP 中的 APK 集合，明确拒绝 OBB 扩展数据；不导入 AAB，不绕过加密容器或访问应用私有数据。普通集合包含无法可靠合并的变体时拒绝，用户可改用官方 APKS 按设备选包。</li><li>应用列表以包名标识，不额外读取所有应用图标和显示名称；导出仅包含已安装 APK，不备份账号和应用数据。系统应用保持只读 / 启动 / 导出边界。</li><li>投屏默认无音频、无自动剪贴板同步。控制模式的键鼠和 scrcpy 原生拖入会直接作用于当前设备，原生拖入在投屏窗口反馈，行为类似现有交互终端；独立的 DevKit 安装和传输仍走任务确认。</li><li>本轮对应 v0.8.0；安装包、便携包和更新资产的正式状态见 <a href="https://github.com/whoarei/android-devkit/releases/tag/v0.8.0">Release 页面</a>。旧版取消事项和二期实体手机待验范围沿用已有决定。</li></ul>
+<h2>复现入口与主要模块</h2>
+<pre>pnpm.cmd check
+pnpm.cmd test
+pnpm.cmd bindings
+pnpm.cmd test:ui-fixtures
+pnpm.cmd verify:device-utilities</pre>
+<p>真实专项只在 <code>.qa/runtime</code> 创建隔离数据和自己的 AVD，使用既有 <code>E:\Android\sdk</code> 与 Android Studio JBR；下载固定版本工具，构造临时测试 APK 和官方 APKS，结束后停止并删除专用 AVD。</p>
+<p>源码：<a href="../src-tauri/src/device_apps.rs">应用管理后端</a> · <a href="../src-tauri/src/apk_containers.rs">容器导入</a> · <a href="../src-tauri/src/mirroring.rs">投屏与目标代理</a> · <a href="../src-tauri/src/device_tools.rs">工具准备</a> · <a href="../src/DeviceUtilities.tsx">设备工具界面</a> · <a href="../src-tauri/src/device_workflow_tests.rs">真实 SDK 专项</a>。</p>
+<p>官方依据：<a href="https://developer.android.com/tools/bundletool">bundletool 的设备配置与 extract-apks</a>、<a href="https://github.com/google/bundletool/releases/tag/1.18.3">bundletool 1.18.3</a>、<a href="https://github.com/Genymobile/scrcpy/releases/tag/v5.0.1">scrcpy 5.0.1 官方发行</a>、<a href="https://github.com/Genymobile/scrcpy/blob/master/doc/connection.md">scrcpy 设备选择</a>。下载与哈希固定在 <a href="../src-tauri/resources/device-tools.json">工具清单</a>，不在运行时追踪 latest。</p>
+</main></body></html>

@@ -1,0 +1,19 @@
+{
+  "applicationManagement": true,
+  "containerFormats": [
+    "raw-apks",
+    "xapk",
+    "apkm"
+  ],
+  "exportReimport": true,
+  "isolatedAvds": 2,
+  "officialApks": true,
+  "scrcpyCancelled": true,
+  "scrcpyConcurrentAppOperation": true,
+  "scrcpyRendered": true,
+  "staleVersionRefused": true,
+  "status": "passed",
+  "systemMutationBlocked": true,
+  "targetBinding": true,
+  "userDevicesUsed": false
+}

@@ -93,6 +93,8 @@ const path = require('node:path');
               throw { code: 'CATALOG_REQUIRED', message: 'Refresh catalog' };
             return window.__toolPackage || '';
           }
+          if (command === 'device_tools')
+            return [{ name: 'bundletool', version: '1.18.3', ready: true }];
           if (command === 'catalog_refresh') {
             window.__missingCatalog = false;
             return [];
@@ -102,14 +104,21 @@ const path = require('node:path');
               ? new Promise((resolve) => {
                   window.__resolvePicker = resolve;
                 })
-              : args.kind === 'download_directory'
-                ? ['C:\\Downloads']
-                : args.kind === 'apk_files'
-                  ? ['C:\\base.apk', 'C:\\config.zh.apk']
-                  : ['C:\\中文 空格'];
+              : args.kind === 'apk_container'
+                ? ['C:\\fixture.apks']
+                : args.kind === 'download_directory'
+                  ? ['C:\\Downloads']
+                  : args.kind === 'apk_files'
+                    ? ['C:\\base.apk', 'C:\\config.zh.apk']
+                    : ['C:\\中文 空格'];
           if (command === 'apk_set_prepare') {
             if (window.__rejectApk) throw { message: 'Fixture signature mismatch' };
             return apk;
+          }
+          if (command === 'apk_container_prepare') {
+            if (window.__rejectContainer)
+              throw { code: 'APK_CONTAINER_PATH', message: 'Fixture unsafe archive' };
+            return { ...apk, target: args.target };
           }
           if (command === 'device_files')
             return args.path === '/sdcard'
@@ -218,6 +227,26 @@ const path = require('node:path');
     await apkDialog.getByRole('button', { name: '选择多个 APK…' }).click();
     await apkDialog.locator('[data-apk-set]').waitFor();
     assert.match(await apkDialog.innerText(), /config.zh.apk/);
+    await apkDialog.getByRole('button', { name: '导入 APKS / XAPK / APKM…' }).click();
+    await apkDialog.getByText('此集合已绑定当前设备连接；连接变化后请重新导入。').waitFor();
+    const containerCall = await page.evaluate(() =>
+      window.__calls.find((c) => c.command === 'apk_container_prepare'),
+    );
+    assert.equal(containerCall.args.path, 'C:\\fixture.apks');
+    assert.equal(containerCall.args.target.serial, 'phase2-phone');
+    assert.equal(containerCall.args.target.transportId, '7');
+    assert.equal(containerCall.args.target.serverEpoch, 1);
+    await page.evaluate(() => {
+      window.__rejectContainer = true;
+    });
+    await apkDialog.getByRole('button', { name: '导入 APKS / XAPK / APKM…' }).click();
+    await apkDialog.getByRole('alert').filter({ hasText: 'Fixture unsafe archive' }).waitFor();
+    assert.equal(await apkDialog.locator('[data-apk-set]').count(), 0);
+    await page.evaluate(() => {
+      window.__rejectContainer = false;
+    });
+    await apkDialog.getByRole('button', { name: '重新导入所选安装包' }).click();
+    await apkDialog.locator('[data-apk-set]').waitFor();
     // Failed re-selection must not leave the previous APK ready to install.
     await page.evaluate(() => {
       window.__rejectApk = true;

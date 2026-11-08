@@ -4,7 +4,15 @@ import { Folder, Layers, Video, Upload, Download, RefreshCw, ArrowUp } from 'luc
 import { call, errorText, size, taskActive } from './api';
 import { t } from './i18n';
 import { Button, Field, Modal } from './ui';
-import type { ApkSet, Device, Target, Task, RemoteEntry, TransferSet } from './bindings';
+import type {
+  ApkSet,
+  Device,
+  Target,
+  Task,
+  RemoteEntry,
+  TransferSet,
+  DeviceToolStatus,
+} from './bindings';
 import './phone-tools.css';
 
 type Prepare = (
@@ -29,7 +37,17 @@ export function PhoneTools({
   const [error, setError] = useState('');
   const [apk, setApk] = useState<ApkSet | null>(null);
   const [toolPackage, setToolPackage] = useState('');
+  const [bundletoolReady, setBundletoolReady] = useState(false);
+  const [containerPath, setContainerPath] = useState('');
+  const importContainer = async (path: string) => {
+    if (apk) await call('phone_selection_release', { kind: 'apk', id: apk.id });
+    setApk(null);
+    setContainerPath(path);
+    setApk(await call<ApkSet>('apk_container_prepare', { path, target }));
+  };
   const checkTools = async (refreshCatalog = false) => {
+    const tools = await call<DeviceToolStatus[]>('device_tools');
+    setBundletoolReady(tools?.some((tool) => tool.name === 'bundletool' && tool.ready) ?? false);
     try {
       setToolPackage(await call<string>('apk_set_tools'));
     } catch (e) {
@@ -155,7 +173,8 @@ export function PhoneTools({
   const preparedDependencies = tasks
     .filter(
       (task) =>
-        ['sdk_install', 'java_prepare'].includes(task.operation.kind) && !taskActive(task.state),
+        ['sdk_install', 'java_prepare', 'device_tool_prepare'].includes(task.operation.kind) &&
+        !taskActive(task.state),
     )
     .map((task) => task.id)
     .sort()
@@ -257,6 +276,7 @@ export function PhoneTools({
                           if (apk)
                             await call('phone_selection_release', { kind: 'apk', id: apk.id });
                           setApk(null);
+                          setContainerPath('');
                           setApk(await call<ApkSet>('apk_set_prepare', { paths }));
                         }
                       })
@@ -265,6 +285,35 @@ export function PhoneTools({
                     {t(kind === 'apk_files' ? '选择多个 APK…' : '选择 APK 目录…')}
                   </Button>
                 ))}
+                <Button
+                  disabled={busy || !ready || !!toolPackage}
+                  onClick={() =>
+                    void run(async () => {
+                      const paths = await call<string[]>('phone_choose', { kind: 'apk_container' });
+                      if (paths[0]) await importContainer(paths[0]);
+                    })
+                  }
+                >
+                  {t('导入 APKS / XAPK / APKM…')}
+                </Button>
+                {containerPath && !apk && (
+                  <Button
+                    disabled={busy || !ready || !!toolPackage}
+                    onClick={() => void run(() => importContainer(containerPath))}
+                  >
+                    {t('重新导入所选安装包')}
+                  </Button>
+                )}
+                {!bundletoolReady && (
+                  <Button
+                    disabled={busy}
+                    onClick={() =>
+                      void run(() => prepare('device_tool_prepare', { tool: 'bundletool' }))
+                    }
+                  >
+                    {t('准备 APKS 选包工具')}
+                  </Button>
+                )}
                 {toolPackage && (
                   <Button
                     disabled={busy}
@@ -282,6 +331,11 @@ export function PhoneTools({
                   {t('检查校验工具，缺目录时刷新')}
                 </Button>
               </div>
+              <p className="hint">
+                {t(
+                  'APKS 按当前设备配置选包；XAPK / APKM 导入 APK 集合。含 OBB 扩展数据的包会明确拒绝，AAB 需先生成 APK 集合。',
+                )}
+              </p>
               {busy && <p role="status">{t('正在暂存并校验文件，请稍候…')}</p>}
               {apk && (
                 <div className="phone-review" data-apk-set={apk.id}>
@@ -291,6 +345,9 @@ export function PhoneTools({
                   <p className="hint">
                     {t('签名证书 SHA-256')}：{apk.signers.join(', ')}
                   </p>
+                  {apk.target && (
+                    <p className="hint">{t('此集合已绑定当前设备连接；连接变化后请重新导入。')}</p>
+                  )}
                   <ul>
                     {apk.members.map((member) => (
                       <li key={member.sha256}>

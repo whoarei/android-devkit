@@ -35,6 +35,7 @@ fn set() -> ApkSet {
         version_code: "1".into(),
         signers: vec!["a".repeat(64)],
         members: vec![member(""), member("config.zh")],
+        target: None,
     }
 }
 #[test]

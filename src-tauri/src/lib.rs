@@ -2,6 +2,7 @@
 mod acceptance;
 mod android;
 mod apk;
+mod apk_containers;
 mod app;
 mod avd_settings;
 mod bootstrap;
@@ -10,6 +11,10 @@ mod commands;
 #[cfg(test)]
 mod contracts;
 mod dependencies;
+mod device_apps;
+mod device_tools;
+#[cfg(test)]
+mod device_workflow_tests;
 mod domain;
 mod engine;
 mod exports;
@@ -18,6 +23,7 @@ mod fault_tests;
 mod java;
 mod lifecycle;
 mod log_buffer;
+mod mirroring;
 mod observe;
 mod phone_apk;
 mod phone_files;
@@ -72,6 +78,11 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            device_apps::device_app_list,
+            device_apps::device_app_detail,
+            device_apps::device_app_prepare,
+            device_tools::device_tools,
+            apk_containers::apk_container_prepare,
             signing_commands::signing_environment,
             signing_commands::signing_records,
             signing_commands::keystore_register,

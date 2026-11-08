@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-device-app-list"
+description = "Enables the device_app_list command without any pre-configured scope."
+commands.allow = ["device_app_list"]
+
+[[permission]]
+identifier = "deny-device-app-list"
+description = "Denies the device_app_list command without any pre-configured scope."
+commands.deny = ["device_app_list"]

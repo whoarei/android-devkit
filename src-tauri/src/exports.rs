@@ -81,6 +81,8 @@ impl App {
             let (directory, extension) = match artifact.kind.as_str() {
                 "screenshot" => ("artifacts", "png"),
                 "video" => ("artifacts", "mp4"),
+                "apk" => ("artifacts", "apk"),
+                "apk_set" => ("artifacts", "apks"),
                 "export" => ("exports", "txt"),
                 "keystore" | "signed_apk" => {
                     return Err(AppError::new(

@@ -361,6 +361,10 @@ pub async fn phone_choose(kind: String) -> Result<Vec<String>> {
             "apk_directory" | "download_directory" => dialog.pick_folder().map(|p| vec![p]),
             "upload_directory" => dialog.pick_folders(),
             "apk_files" => dialog.add_filter("Android APK", &["apk"]).pick_files(),
+            "apk_container" => dialog
+                .add_filter("Android APK containers", &["apks", "xapk", "apkm"])
+                .pick_file()
+                .map(|p| vec![p]),
             "upload_files" => dialog.pick_files(),
             _ => return Err(AppError::new("DIALOG_KIND", "选择类型无效")),
         };
@@ -630,11 +634,13 @@ pub async fn export_save(app: Service<'_>, artifact_id: String) -> Result<Option
     }
     let (artifact, source) = app.checked_artifact(&artifact_id)?;
     let file_name = if artifact.kind == "screenshot" {
-        "android-screenshot.png"
+        "android-screenshot.png".to_string()
     } else if artifact.kind == "video" {
-        "android-screenrecord.mp4"
+        "android-screenrecord.mp4".to_string()
+    } else if matches!(artifact.kind.as_str(), "apk" | "apk_set") {
+        artifact.title.clone()
     } else {
-        "android-devkit-export.txt"
+        "android-devkit-export.txt".to_string()
     };
     let result = tokio::task::spawn_blocking(move || -> Result<Option<String>> {
         let Some(dest) = rfd::FileDialog::new().set_file_name(file_name).save_file() else {
@@ -742,6 +748,7 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     state.recover_commits()?;
     state.recover_recordings()?;
     state.recover_committed_phone_recordings()?;
+    state.recover_device_app_exports()?;
     crate::signing_tasks::recover(&state)?;
     // Cache cleanup is best effort; it must never prevent opening recovery UI.
     if let Err(error) = state.prune_phone_selections() {

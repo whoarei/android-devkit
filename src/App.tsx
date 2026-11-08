@@ -44,6 +44,7 @@ import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Obser
 import type { ExportPreview } from './bindings';
 import { TaskCenter } from './TaskCenter';
 import { PhoneTools } from './PhoneTools';
+import { DeviceUtilities } from './DeviceUtilities';
 import { SigningTools } from './SigningTools';
 import { SdkManager } from './SdkManager';
 import { JavaConfiguration, JavaStatus } from './JavaEnvironment';
@@ -977,6 +978,15 @@ export function App() {
                         </Button>
                       )}
                   </div>
+                  {target && (
+                    <DeviceUtilities
+                      key={`utilities:${deviceKey(target)}`}
+                      target={target}
+                      tasks={data?.tasks ?? []}
+                      prepare={(kind, args, target) => prepare(kind, args, target, true)}
+                      planOpen={Boolean(plan) || javaOpen}
+                    />
+                  )}
                   {target && (
                     <PhoneTools
                       key={deviceKey(target)}

@@ -603,7 +603,7 @@ export function ArtifactsPanel({
                 </div>
                 <div className="artifact-actions">
                   <Btn
-                    disabled={busy || ['keystore', 'signed_apk'].includes(a.kind)}
+                    disabled={busy || ['keystore', 'signed_apk', 'apk', 'apk_set'].includes(a.kind)}
                     onClick={() => preview(a)}
                   >
                     {tr('预览')}

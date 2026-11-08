@@ -4,6 +4,11 @@ fn main() {
         println!("cargo:rustc-link-arg=/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'");
     }
     const COMMANDS: &[&str] = &[
+        "device_app_list",
+        "device_app_detail",
+        "device_app_prepare",
+        "device_tools",
+        "apk_container_prepare",
         "signing_environment",
         "signing_records",
         "keystore_register",

@@ -71,6 +71,7 @@ const root = path.resolve(__dirname, '..');
           'p0',
           'phone',
           'signing',
+          'device-utilities',
         ]) {
       execFileSync(process.execPath, [path.join(__dirname, `check-${script}-ui.cjs`)], {
         cwd: root,

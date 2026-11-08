@@ -55,6 +55,41 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
     let mut warnings = Vec::new();
     let mut licenses = Vec::new();
     let title = match op.kind.as_str() {
+        "device_tool_prepare" => {
+            let name = op.arg("tool")?;
+            let tool = crate::device_tools::definition(name)?;
+            effects.push(format!("{name} {} · {:.1} MiB", tool.version, tool.size as f64 / 1048576.0));
+            effects.push(format!("下载地址：{}", tool.url));
+            effects.push("下载后校验 SHA-256，仅安装到本应用私有工具目录".into());
+            licenses.push(License {
+                id: format!("{name}-upstream"),
+                text: format!("{name} 按 Apache License 2.0 提供；官方发行包中其他组件保留各自许可。源码与完整许可见 {}。下载仅用于本机工具集成。", if name == "scrcpy" { "https://github.com/Genymobile/scrcpy" } else { "https://github.com/google/bundletool" }),
+                hash: digest(format!("{name}:{}:Apache-2.0", tool.version).as_bytes()),
+            });
+            "准备设备工具"
+        }
+        "mirror_start" => {
+            crate::mirroring::plan(app, &mut op, &mut effects, &mut warnings)?;
+            "投屏与控制"
+        }
+        "device_app_launch" | "device_app_stop" | "device_app_clear" | "device_app_uninstall" | "device_app_export" => {
+            if op.target.is_none() { return Err(AppError::new("TARGET_REQUIRED", "请选择设备")); }
+            crate::device_apps::validate_package(op.arg("package")?)?;
+            op.arg("userId")?.parse::<u32>().map_err(|_| AppError::new("ANDROID_USER", "Android 用户无效"))?;
+            let hash = op.arg("appFingerprint")?;
+            if hash.len() != 64 || !hash.bytes().all(|b|b.is_ascii_hexdigit()) { return Err(AppError::new("APP_CHANGED", "请重新读取并确认应用信息")); }
+            if op.optional("system") == "true" && matches!(op.kind.as_str(),"device_app_stop"|"device_app_clear"|"device_app_uninstall") {
+                return Err(AppError::new("SYSTEM_APP_PROTECTED", "系统应用仅提供查看、启动与 APK 导出"));
+            }
+            effects.push(format!("{} · {} · Android user {}", op.arg("package")?,op.optional("version"),op.arg("userId")?));
+            match op.kind.as_str() {
+                "device_app_clear" => { warnings.push("将永久删除该 Android 用户下的应用数据、账号与设置，无法撤销。".into()); "清除应用数据" },
+                "device_app_uninstall" => { warnings.push("将移除该 Android 用户下的应用及其数据，无法撤销。其他用户的安装保留。".into()); "卸载应用" },
+                "device_app_stop" => { warnings.push("将停止应用，未保存的应用内工作可能丢失。".into()); "停止应用" },
+                "device_app_export" => { effects.push("校验并导出当前安装的完整 APK 集合，不包含应用数据".into()); "导出 APK" },
+                _ => "启动应用",
+            }
+        }
         "java_prepare" => {
             let package = crate::java::package()?;
             licenses.push(crate::java::license());
@@ -66,6 +101,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
         }
         "adb_start" => "启动设备服务",
         "adb_restart" => {
+            if app.store.active_tasks()?.iter().any(|t|t.operation.kind == "mirror_start") { return Err(AppError::new("MIRROR_ACTIVE", "请先停止投屏，再重启 ADB")); }
             warnings.push("将中断本机其他工具及设备连接，旧会话全部失效。".into());
             "重启共享 ADB"
         }
@@ -390,6 +426,7 @@ pub fn build(app: &App, mut op: Operation) -> Result<Plan> {
         "apk_set_install" => {
             if op.target.is_none() { return Err(AppError::new("TARGET_REQUIRED", "请选择安装设备")); }
             let set = crate::phone_apk::load(app, op.arg("setId")?)?;
+            crate::phone_apk::check_target(&set, op.target.as_ref().unwrap())?;
             op.args.insert("setHash".into(), digest_file(&crate::phone_apk::set_dir(app, &set.id)?.join("set.json"))?);
             op.args.insert("package".into(), set.package.clone());
             op.args.insert("version".into(), set.version.clone());

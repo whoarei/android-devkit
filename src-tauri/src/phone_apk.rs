@@ -35,6 +35,21 @@ pub struct ApkSet {
     pub version_code: String,
     pub signers: Vec<String>,
     pub members: Vec<ApkMember>,
+    #[serde(default)]
+    pub target: Option<Target>,
+}
+pub fn check_target(set: &ApkSet, target: &Target) -> Result<()> {
+    if set
+        .target
+        .as_ref()
+        .is_some_and(|prepared| prepared != target)
+    {
+        return Err(AppError::new(
+            "APK_CONTAINER_TARGET_CHANGED",
+            "安装包按原设备连接准备，请为当前设备重新导入",
+        ));
+    }
+    Ok(())
 }
 pub(crate) fn tool(settings: &Settings) -> Result<PathBuf> {
     let root = Path::new(&settings.sdk_root).join("build-tools");
@@ -174,7 +189,7 @@ pub fn validate_set(set: &ApkSet) -> Result<()> {
     }
     Ok(())
 }
-fn metadata(path: &Path) -> Result<(BTreeMap<String, String>, Vec<String>)> {
+pub(crate) fn metadata(path: &Path) -> Result<(BTreeMap<String, String>, Vec<String>)> {
     let mut zip = zip::ZipArchive::new(std::fs::File::open(path)?)
         .map_err(|_| AppError::new("INVALID_APK", "无效的 APK ZIP"))?;
     if zip.len() > 100_000 {
@@ -260,6 +275,7 @@ impl App {
                 version_code: String::new(),
                 signers: vec![],
                 members: vec![],
+                target: None,
             };
             let mut total = 0u64;
             for (i, path) in paths.iter().enumerate() {
@@ -389,6 +405,7 @@ impl App {
             .target
             .as_ref()
             .ok_or_else(|| AppError::new("TARGET_REQUIRED", "请选择设备"))?;
+        check_target(&set, target)?;
         let devices = crate::android::devices(settings, self.epoch.load(Ordering::SeqCst)).await;
         let device = checked_target(target, &devices, self.epoch.load(Ordering::SeqCst))?;
         let api = device

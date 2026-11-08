@@ -4,7 +4,9 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.7.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.8.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+
+0.8.0 新增 **设备应用管理、安装包容器导入及投屏控制**：管理当前 Android 用户的应用并导出完整 APK 集合，导入 APKS / XAPK / APKM，按需准备官方 bundletool / scrcpy，在独立窗口投屏与操作。沿用设备目标保护、确认计划与任务中心；真实双模拟器流程及界面回归已通过，实体手机仍待验收。
 
 一期已按 2026-10-24 调整后的范围完成：现有功能及故障专项已验证，v0.4.0 已发布。2026-11-01 按用户决定取消 T-01～T-07，全部移出待办；取消不代表相关验收已通过，历史证据见 [一期范围与取消记录](docs/00008_20261024164440_Android-DevKit-Phase1-TODO.html)。
 
@@ -29,6 +31,9 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **灵活连接真机**：支持 USB、无线调试配对和网络 ADB，根据设备与网络条件选择连接方式，并查看连接与授权状态。
 - **明确每次 APK 安装的目标**：选择或拖入 APK，核对目标设备和应用信息后安装；默认保留应用数据，设备断线后不会自动改投其他设备。
 - **一次安装整组分包 APK**：多选 base / split APK 或选择目录，预先校验包名、版本、签名、设备兼容性与依赖，再提交安装。
+- **直接导入安装包容器**：APKS 使用官方 bundletool 按所选设备配置选包；XAPK / APKM 导入 APK 集合并筛选兼容架构，含 OBB 扩展数据的包会明确拒绝。
+- **集中管理设备应用**：查看当前 Android 用户的应用、版本、安装路径与系统属性，启动、停止、清数据、卸载或导出完整 APK 集合。
+- **投屏并操作设备**：按需准备经过校验的官方 scrcpy，选择控制或只读模式，在独立窗口投屏；支持画面大小、帧率和停止会话。
 - **管理签名材料与签署 APK**：登记或新建 JKS / PKCS12，查看 alias 与证书、复制指纹、导出公开证书；验证及比较 APK 签名，另存签名后的单个 APK，再进入设备安装流程。
 - **录屏后预览与保存**：支持 1–180 秒无声 MP4、提前停止和中断后取回；完整缓存的视频会在重启后恢复到待保存文件。
 - **在共享存储传输文件**：浏览 Download、Pictures、Movies、DCIM，上传或下载文件与目录，明确处理同名冲突，替换中断后可恢复原件。
@@ -47,8 +52,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.7.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.7.0/AndroidDevKit-0.7.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.7.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.7.0/AndroidDevKit-0.7.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.8.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.8.0/AndroidDevKit-0.8.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.8.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.8.0/AndroidDevKit-0.8.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
@@ -98,7 +103,9 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 点击目标设备卡片上的“安装 APK”并选择文件，或将单个 APK 拖到该设备行。在安装面板核对设备名称、序列号和 APK 信息，点击“确认安装计划”，确认后提交任务。
 
-默认覆盖安装并保留应用数据。安装目标会绑定到本次选定的设备连接；设备断开后不会自动改投其他设备。支持单个完整 `.apk`，也可从设备详情进入“分包 APK 安装”，多选 base / split APK 或选择目录，校验签名、版本与依赖后一次安装；AAB、APKS、APKM、XAPK 容器暂不支持直接导入。
+默认覆盖安装并保留应用数据。安装目标会绑定到本次选定的设备连接；设备断开后不会自动改投其他设备。支持单个完整 `.apk`，也可从设备详情进入“分包 APK 安装”，多选 base / split APK、选择目录或导入 APKS / XAPK / APKM，校验签名、版本与依赖后一次安装。AAB 需先生成 APK 集合；含 OBB 扩展数据的容器暂不支持。
+
+APKS 含官方目录表时，首次使用先在同一面板准备 bundletool；工具按需从 Google 官方 GitHub 发行下载，固定版本及 SHA-256 校验，安装到应用私有目录并沿用手动代理。根据设备 API、ABI、语言和屏幕密度选包后仍执行现有签名与集合校验。没有目录表的 APKS，以及 XAPK / APKM，按普通 APK 集合处理；架构分包按目标设备的兼容优先级筛选。容器结果绑定准备时的设备连接，切换设备或重新连接后需重新导入。
 
 安装进度和结果保留在“任务中心”，可按任务名称、设备或状态检索。
 
@@ -145,6 +152,22 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 密码不写入设置、任务或日志；关闭密码面板会清空输入，未执行授权 5 分钟失效。生成后未保存的密钥会保留在待处理结果中，普通批量清理不能删除；中断恢复后先提供密码核验，再保存同一密钥。已保存新密钥的应用内加密副本可在本页单独清理，已另存文件与登记信息保留。AAB、签名轮换、修改已有容器的密码或 alias 不在本轮范围内。
 
+### 8. 管理设备上的应用
+
+在设备详情点击“应用管理”。默认只显示当前 Android 用户的第三方应用，可按包名搜索或显示系统应用。选择应用查看版本、UID、最低 / 目标 API 及安装路径，再选择启动、停止、导出 APK、清除应用数据或卸载。
+
+清数据和卸载需再次核对计划，执行前复查设备连接、Android 用户、版本和安装位置；确认后应用升级或用户切换会使计划失效。系统应用仅提供查看、启动与 APK 导出。操作进入任务中心，完成后可刷新核对结果。
+
+APK 导出校验每个 base / split 的 SHA-256；单 APK 保存为 `.apk`，整组保存为可重新导入的普通 `.apks` 集合。在“待保存文件”另存，导出不包含应用私有数据。已发布但来不及登记的完整导出会在重启后核验恢复，损坏或残缺文件不会被标为成功。
+
+### 9. 投屏与控制
+
+点击设备详情中的“投屏与控制”，首次使用选择“准备投屏工具”，核对下载与许可计划后准备官方 scrcpy。工具固定版本、大小及 SHA-256，并安装到应用私有目录；再次启动时核对工具文件。可选择键鼠控制或只读、原始 / 1280 / 1920 / 2560 最大边长，以及 30 / 60 FPS。
+
+确认后打开独立投屏窗口。默认无音频、不自动同步剪贴板；控制模式下的键鼠与拖入操作直接作用于当前设备，原生拖入操作在投屏窗口反馈。设备连接通过本次投屏的私有 ADB 代理绑定到原 transport-id，断开后结束，不自动重连或改投。关闭投屏窗口，或从投屏面板 / 任务中心选择“停止投屏”即可结束；共享 ADB 与设备继续运行。
+
+投屏期间可以继续安装应用、操作文件和查看日志；同一设备只保留一个投屏会话。准备替换工具或重启 ADB 前需先停止投屏。最小化 / 关闭工作台窗口仍隐藏到托盘并保留会话，真正退出时结束本应用的投屏任务。
+
 ### 数据存放位置
 
 | 内容                           | 默认位置                                                    |
@@ -152,6 +175,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 | Android SDK                    | 设置中选择的目录，新配置默认为 `%LOCALAPPDATA%\Android\Sdk` |
 | 新建 AVD                       | `%LOCALAPPDATA%\AndroidDevKit\avd`，可在设置中调整          |
 | 应用状态、任务、下载缓存与截图 | `%LOCALAPPDATA%\AndroidDevKit`                              |
+| 按需准备的 scrcpy / bundletool | `%LOCALAPPDATA%\AndroidDevKit\tools`                        |
 
 应用也会发现用户 `.android\avd` 下的已有模拟器。退出工作台与停止模拟器分开；有任务或待保存文件时，按退出面板提示处理。最小化或关闭窗口会隐藏到常驻托盘，后台任务继续；从托盘菜单选择“退出…”才会进入完整退出流程，无需在设置中开启托盘。
 
@@ -238,6 +262,8 @@ pnpm.cmd verify:faults
 
 真实 SDK / AVD 集成测试按需运行，入口见 [package.json](package.json) 中的 `verify:*` 命令；运行前检查脚本使用的 SDK 和测试目录。测试应用数据可通过 `ANDROID_DEVKIT_DATA_DIR` 隔离，该变量不改变所选 SDK。
 
+新增设备工具专项使用 `pnpm.cmd verify:device-utilities`：下载校验官方 bundletool / scrcpy、生成带 toc.pb 的 APKS，在两个专用 API 29 模拟器中检查应用管理、APK 导出再导入、三种容器、设备目标隔离和投屏并发 / 停止，结束后清理测试 AVD。界面专项为 `node scripts/run-ui-fixtures.cjs device-utilities`，不会操作真实设备。
+
 签名专项生成临时密钥并只读使用未签名样例 APK，验证官方工具签名、重签与密钥恢复；设置下列路径后执行：
 
 ```powershell
@@ -269,6 +295,7 @@ powershell -NoProfile -File scripts/package-release.ps1
 
 ## 更多资料
 
+- [设备应用管理、安装包导入与投屏实施报告](docs/00015_20261108094525_Android-DevKit-Device-Tools-Implementation-Report.html)
 - [签名与 Keystore 工具方案（已实现）](docs/00013_20261101185325_Android-DevKit-Signing-Keystore-Plan.html)
 - [签名与 Keystore 实施与验证报告](docs/00014_20261101213659_Android-DevKit-Signing-Keystore-Implementation-Report.html)
 - [二期循环审核与修复报告](docs/00011_20261025010136_Android-DevKit-Phase2-Review-Report.html)

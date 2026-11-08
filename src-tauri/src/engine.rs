@@ -96,6 +96,18 @@ impl App {
                 ));
             }
         }
+        if plan.operation.kind == "mirror_start"
+            && self.store.active_tasks()?.iter().any(|task| {
+                task.operation.kind == "mirror_start"
+                    && task.operation.target.as_ref().map(|t| &t.serial)
+                        == plan.operation.target.as_ref().map(|t| &t.serial)
+            })
+        {
+            return Err(AppError::new(
+                "MIRROR_ACTIVE",
+                "该设备已有投屏会话，请先停止原会话",
+            ));
+        }
         let mut op = plan.operation;
         let code = op.args.remove("code").unwrap_or_default();
         let task = Task {
@@ -175,7 +187,17 @@ impl App {
         let task = self.store.task(id)?;
         let op = task.operation.clone();
         let settings = self.store.settings();
-        let key = if op.kind == "log_record" {
+        let key = if op.kind == "mirror_start" {
+            format!(
+                "mirror:{}",
+                op.target
+                    .as_ref()
+                    .map(crate::observe::key)
+                    .unwrap_or_default()
+            )
+        } else if op.kind == "device_tool_prepare" {
+            format!("tool:{}", op.optional("tool"))
+        } else if op.kind == "log_record" {
             format!(
                 "record:{}",
                 op.target
@@ -196,11 +218,12 @@ impl App {
         };
         let lock = self.lock(&key);
         let _guard = lock.lock().await;
-        let _slot = if op.target.is_some() && op.kind != "log_record" {
-            Some(self.device_slots.acquire().await.unwrap())
-        } else {
-            None
-        };
+        let _slot =
+            if op.target.is_some() && !matches!(op.kind.as_str(), "log_record" | "mirror_start") {
+                Some(self.device_slots.acquire().await.unwrap())
+            } else {
+                None
+            };
         let _sdk_write = if matches!(
             op.kind.as_str(),
             "sdk_install" | "sdk_remove" | "bootstrap" | "avd_create" | "java_prepare"
@@ -211,6 +234,7 @@ impl App {
         };
         let _sdk_read = if (op.kind.starts_with("avd_") && op.kind != "avd_create")
             || op.kind == "apk_install_wait"
+            || op.kind == "mirror_start"
         {
             Some(self.sdk_gate.read().await)
         } else {
@@ -262,6 +286,7 @@ impl App {
                 t.state = if (op.kind == "log_record" && !t.artifact.is_empty())
                     || (op.kind == "screen_record"
                         && matches!(t.phase.as_str(), "recording" | "pulling"))
+                    || (op.kind == "device_app_export" && t.phase == "publishing")
                     || (matches!(op.kind.as_str(), "file_upload" | "file_download")
                         && op.optional("conflicts") == "replace"
                         && t.phase == "publishing")
@@ -350,6 +375,16 @@ impl App {
             None
         };
         match op.kind.as_str() {
+            "device_tool_prepare" => {
+                self.prepare_device_tool(id, op.arg("tool")?, settings)
+                    .await
+            }
+            "mirror_start" => Box::pin(self.mirror_screen(id, op, settings)).await,
+            "device_app_launch"
+            | "device_app_stop"
+            | "device_app_clear"
+            | "device_app_uninstall"
+            | "device_app_export" => Box::pin(self.execute_device_app(id, op, settings)).await,
             "java_prepare" => {
                 self.prepare_private_java(id, settings).await?;
                 Ok("Java 已就绪，可返回原安装计划".into())

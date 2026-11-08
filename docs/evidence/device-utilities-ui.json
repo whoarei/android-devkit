@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "explicit device and Android user; third-party apps by default",
+    "case-insensitive search and keyboard app selection",
+    "stale detail response cannot replace a newer selection",
+    "all five app actions review the exact package, Android user and frozen transport",
+    "inline changed-app error, synchronous duplicate guard and busy focus containment",
+    "system app mutations disabled while details, launch and APK export remain available",
+    "settled app task refreshes list and clears removed selection",
+    "closing and switching devices discards pending metadata",
+    "disconnected target disables every app action without switching devices",
+    "missing scrcpy blocks mirroring and opens reviewed private-tool preparation",
+    "same serial on another transport or ADB epoch cannot claim the current mirroring session",
+    "read-only, resolution and FPS options preserve the target; stop cancels only owned session",
+    "English, dark theme, 480px layout, focus trap and closed-form reset"
+  ],
+  "pageErrors": []
+}
