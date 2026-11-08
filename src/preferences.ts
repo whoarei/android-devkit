@@ -3,11 +3,13 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { useState, useSyncExternalStore } from 'react';
 import { defaultUserPreferences, type UserPreferences } from './bindings';
+import { applyAppearance } from './appearance';
 
 type EditableKey = Exclude<keyof UserPreferences, 'window' | 'zoomFactor'>;
 type Patch = Partial<Pick<UserPreferences, EditableKey>>;
 const native = isTauri();
 const previewKey = 'android-devkit.preferences.v1';
+const appearanceCacheKey = 'android-devkit.appearance.v1';
 const legacyKeys = {
   theme: 'android-devkit.theme',
   locale: 'android-devkit.locale',
@@ -28,13 +30,19 @@ const subscribe = (listener: () => void) => {
   };
 };
 function publish() {
-  const { theme, locale } = preferences;
+  const { locale } = preferences;
   document.documentElement.lang = locale;
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
-  const color = theme === 'dark' ? '#111814' : '#f7f9f5';
-  document.documentElement.style.backgroundColor = color;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+  applyAppearance(preferences);
+  // Only cache acknowledged preferences for the pre-CSS paint. SQLite remains
+  // authoritative; a missing/unavailable WebView cache cannot prevent loading.
+  if (initialized) {
+    try {
+      const { theme, colorTheme, customColor } = preferences;
+      localStorage.setItem(appearanceCacheKey, JSON.stringify({ theme, colorTheme, customColor }));
+    } catch {
+      /* Storage can be disabled while SQLite remains available. */
+    }
+  }
   listeners.forEach((listener) => listener());
 }
 function readLegacy(): Patch {
@@ -62,7 +70,7 @@ export async function initializePreferences(): Promise<void> {
     if (native) {
       const loaded = await invoke<UserPreferences>('preferences_load', { legacy });
       if (!loaded?.theme) throw Error('Missing preferences response');
-      preferences = loaded;
+      preferences = { ...defaultUserPreferences, ...loaded };
     } else {
       const saved = JSON.parse(localStorage.getItem(previewKey) || '{}');
       preferences = { ...defaultUserPreferences, ...legacy, ...saved };
@@ -115,7 +123,7 @@ export function savePreferences(patch: Patch): Promise<void> {
         : { ...preferences, ...patch };
       if (!next?.theme) throw Error('Missing preferences response');
       if (!native) localStorage.setItem(previewKey, JSON.stringify(next));
-      preferences = next;
+      preferences = { ...defaultUserPreferences, ...next };
       for (const key of Object.keys(patch) as EditableKey[]) {
         delete failed[key];
         if (requested[key] === patch[key]) delete requested[key];

@@ -601,6 +601,53 @@ mod tests {
     }
 
     #[test]
+    fn appearance_preferences_migrate_validate_and_survive_reopen() {
+        use super::*;
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("appearance.db");
+        let store = Store::open(&path).unwrap();
+        // A pre-palette installation keeps its explicit mode and receives the
+        // new optional fields without replacing any operational settings.
+        store
+            .connection
+            .lock()
+            .unwrap()
+            .execute_batch("INSERT INTO ui_preferences VALUES('theme','\"dark\"')")
+            .unwrap();
+        let migrated = store.preferences().unwrap();
+        assert_eq!(migrated.theme, "dark");
+        assert_eq!(migrated.color_theme, "default");
+        assert_eq!(migrated.custom_color, "#35b8bd");
+        for palette in [
+            "default", "blue", "green", "yellow", "pink", "orange", "purple", "black", "custom",
+        ] {
+            store
+                .patch_preferences(&serde_json::json!({"colorTheme": palette}))
+                .unwrap();
+        }
+        let patch =
+            serde_json::json!({"theme":"system", "colorTheme":"custom", "customColor":"#F55CA6"});
+        let expected = store.patch_preferences(&patch).unwrap();
+        for bad in [
+            serde_json::json!({"colorTheme":"unknown"}),
+            serde_json::json!({"customColor":"#fff"}),
+            serde_json::json!({"customColor":"#gggggg"}),
+            serde_json::json!({"customColor":"#123456; color:red"}),
+            serde_json::json!({"customColor":"#你好ab"}),
+            serde_json::json!({"customColor":""}),
+            serde_json::json!({"theme":"light", "customColor":"invalid"}),
+        ] {
+            assert!(store.patch_preferences(&bad).is_err());
+            assert_eq!(store.preferences().unwrap(), expected);
+        }
+        assert!(!store.has_settings().unwrap());
+        drop(store);
+        let reopened = Store::open(&path).unwrap();
+        assert_eq!(reopened.preferences().unwrap(), expected);
+        assert!(!reopened.has_settings().unwrap());
+    }
+
+    #[test]
     fn concurrent_ui_and_native_patches_do_not_overwrite_each_other() {
         use super::*;
         let dir = tempfile::tempdir().unwrap();

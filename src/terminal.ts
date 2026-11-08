@@ -63,14 +63,15 @@ export function initializeTerminals() {
   return initialized;
 }
 function applyTheme(runtime: Runtime) {
-  const dark = document.documentElement.dataset.theme === 'dark';
+  const style = getComputedStyle(document.documentElement);
+  const color = (name: string) => style.getPropertyValue(name).trim();
   runtime.terminal.options.theme = {
-    background: dark ? '#0d1912' : '#11231b',
-    foreground: '#dbe9de',
-    cursor: '#a4dab5',
-    cursorAccent: '#11231b',
-    selectionBackground: '#72998260',
-    black: '#15251c',
+    background: color('--terminal-background'),
+    foreground: color('--terminal-foreground'),
+    cursor: color('--terminal-cursor'),
+    cursorAccent: color('--terminal-background'),
+    selectionBackground: color('--terminal-selection'),
+    black: '#15253c',
     red: '#ed9285',
     green: '#a4dab5',
     yellow: '#e9c98b',

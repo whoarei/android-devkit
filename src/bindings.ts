@@ -2,7 +2,7 @@
 export type AppError = { code: string, message: string, detail: string, };
 export type Settings = { sdkRoot: string, avdRoots: Array<string>, javaPath: string, proxy: string, bootTimeoutSecs: number, sdkSites: Array<SdkSite>, sdkChannel: number, sdkDownload: SdkDownloadSource, };
 export type WindowPlacement = { x: number, y: number, width: number, height: number, scaleFactor: number, monitor: string, maximized: boolean, };
-export type UserPreferences = { theme: 'light' | 'dark', locale: 'zh-CN' | 'en-US', defaultTarget: string, autoCheckUpdates: boolean, zoomFactor: number, window: WindowPlacement | null, lastPage: 'devices' | 'terminal' | 'sdk' | 'signing' | 'tasks' | 'diagnostics' | 'settings', deviceFilter: 'all' | 'usb' | 'emulator', sdkTab: 'platforms' | 'tools' | 'sites', sdkStatus: 'all' | 'installed' | 'missing' | 'updates', hideObsolete: boolean, taskState: 'all' | 'active' | 'succeeded' | 'failed' | 'waiting_confirmation' | 'needs_review' | 'cancelled', recordingSeconds: number, recordingResolution: 'original' | '720p', logQuotaMib: number, logMinutes: number, };
+export type UserPreferences = { theme: 'light' | 'dark' | 'system', colorTheme: 'default' | 'blue' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple' | 'black' | 'custom', customColor: string, locale: 'zh-CN' | 'en-US', defaultTarget: string, autoCheckUpdates: boolean, zoomFactor: number, window: WindowPlacement | null, lastPage: 'devices' | 'terminal' | 'sdk' | 'signing' | 'tasks' | 'diagnostics' | 'settings', deviceFilter: 'all' | 'usb' | 'emulator', sdkTab: 'platforms' | 'tools' | 'sites', sdkStatus: 'all' | 'installed' | 'missing' | 'updates', hideObsolete: boolean, taskState: 'all' | 'active' | 'succeeded' | 'failed' | 'waiting_confirmation' | 'needs_review' | 'cancelled', recordingSeconds: number, recordingResolution: 'original' | '720p', logQuotaMib: number, logMinutes: number, };
 export type SdkDownloadSource = { kind: string, name: string, url: string, verifyOfficial: boolean, };
 export type SdkSourceCheck = { sites: Array<SdkSiteStatus>, archiveUrl: string, archiveError: string, checkedAt: number, };
 export type SdkSite = { name: string, url: string, enabled: boolean, };
@@ -56,7 +56,9 @@ export type AppUpdateProgress = { phase: string, downloaded: number, total: numb
 export type TerminalInfo = { id: string, generation: string, kind: string, label: string, target: Target | null, sdkRoot: string, state: string, reason: string, exitCode: number | null, };
 export type TerminalEvent = { generation: string, kind: string, offset: number, data: Array<number>, state: string, reason: string, exitCode: number | null, };
 export const defaultUserPreferences: UserPreferences = {
-  "theme": "light",
+  "theme": "system",
+  "colorTheme": "default",
+  "customColor": "#35b8bd",
   "locale": "zh-CN",
   "defaultTarget": "",
   "autoCheckUpdates": true,

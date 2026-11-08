@@ -13,7 +13,7 @@
   max-width: 100%;
   height: auto;
   background: #fff;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 .wireless-qr small {
   color: var(--muted);
@@ -29,7 +29,7 @@
   text-align: center;
   color: var(--muted);
   border: 1px dashed var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 .wireless-qr-placeholder p {
   line-height: 1.7;
@@ -41,7 +41,7 @@
   margin: 16px 0;
   padding: 8px 12px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 .wireless-services legend {
   font-size: 12px;
@@ -83,7 +83,7 @@
   padding: 12px;
   margin: 16px 0;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 12px;
   line-height: 1.7;
 }

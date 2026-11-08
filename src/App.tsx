@@ -1,5 +1,6 @@
 import { t, useLocale, setLocale, type Locale } from './i18n';
-import { useTheme, setTheme, type Theme } from './theme';
+import { useTheme, useResolvedTheme, setTheme } from './theme';
+import { AppearanceControls, AppearancePicker } from './AppearanceSettings';
 import { version } from '../package.json';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -90,7 +91,8 @@ const titles: Record<Page, string> = {
 type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
 export function App() {
   const locale = useLocale();
-  const theme = useTheme();
+  const theme = useResolvedTheme();
+  const themeMode = useTheme();
   const terminalCount = useTerminals((state) => state.sessions.length);
   const updater = useSoftwareUpdate();
   const { selected, select } = useUi();
@@ -181,10 +183,10 @@ export function App() {
   }, [locale]);
   useEffect(() => {
     if (native)
-      void call('window_action', { action: theme === 'dark' ? 'theme_dark' : 'theme_light' }).catch(
-        (error) => setError(errorText(error)),
+      void call('window_action', { action: `theme_${themeMode}` }).catch((error) =>
+        setError(errorText(error)),
       );
-  }, [theme]);
+  }, [themeMode]);
   const prepare = async (
     kind: string,
     args: Record<string, string> = {},
@@ -417,6 +419,7 @@ export function App() {
           }}
           onDoubleClick={() => void call('window_action', { action: 'maximize' })}
         />
+        <AppearancePicker />
         <button
           className="locale-switch"
           aria-label={theme === 'light' ? t('切换为暗色主题') : t('切换为亮色主题')}
@@ -1558,7 +1561,6 @@ function SettingsPanel({
   done: () => void;
 }) {
   const locale = useLocale();
-  const theme = useTheme();
   const [form, setForm] = useState<Settings>(
     initial ?? {
       sdkRoot: '',
@@ -1590,12 +1592,7 @@ function SettingsPanel({
       <SoftwareUpdateSection updater={updater} />
       <section>
         <h3>{t('界面偏好')}</h3>
-        <Field label={t('界面主题')} hint={t('立即生效并自动保存')}>
-          <select value={theme} onChange={(event) => setTheme(event.target.value as Theme)}>
-            <option value="light">{t('亮色')}</option>
-            <option value="dark">{t('暗色')}</option>
-          </select>
-        </Field>
+        <AppearanceControls />
         <Field label={t('界面语言')} hint={t('立即生效并自动保存')}>
           <select value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
             <option value="zh-CN">简体中文</option>

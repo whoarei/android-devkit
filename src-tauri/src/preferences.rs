@@ -21,8 +21,16 @@ pub struct WindowPlacement {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(default, rename_all = "camelCase", deny_unknown_fields)]
 pub struct UserPreferences {
-    #[cfg_attr(test, ts(type = "'light' | 'dark'"))]
+    #[cfg_attr(test, ts(type = "'light' | 'dark' | 'system'"))]
     pub theme: String,
+    #[cfg_attr(
+        test,
+        ts(
+            type = "'default' | 'blue' | 'green' | 'yellow' | 'pink' | 'orange' | 'purple' | 'black' | 'custom'"
+        )
+    )]
+    pub color_theme: String,
+    pub custom_color: String,
     #[cfg_attr(test, ts(type = "'zh-CN' | 'en-US'"))]
     pub locale: String,
     pub default_target: String,
@@ -60,7 +68,9 @@ pub struct UserPreferences {
 impl Default for UserPreferences {
     fn default() -> Self {
         Self {
-            theme: "light".into(),
+            theme: "system".into(),
+            color_theme: "default".into(),
+            custom_color: "#35b8bd".into(),
             locale: "zh-CN".into(),
             default_target: String::new(),
             auto_check_updates: true,
@@ -100,7 +110,14 @@ impl UserPreferences {
 
     pub fn validate(&self) -> Result<()> {
         let choices = [
-            (self.theme.as_str(), &["light", "dark"][..]),
+            (self.theme.as_str(), &["light", "dark", "system"][..]),
+            (
+                self.color_theme.as_str(),
+                &[
+                    "default", "blue", "green", "yellow", "pink", "orange", "purple", "black",
+                    "custom",
+                ][..],
+            ),
             (self.locale.as_str(), &["zh-CN", "en-US"][..]),
             (
                 self.last_page.as_str(),
@@ -152,6 +169,11 @@ impl UserPreferences {
             .iter()
             .any(|(value, options)| !options.contains(value))
             || !valid_target
+            || self.custom_color.len() != 7
+            || !self.custom_color.starts_with('#')
+            || !self.custom_color.as_bytes()[1..]
+                .iter()
+                .all(u8::is_ascii_hexdigit)
             || self.default_target.len() > 2048
             || !self.zoom_factor.is_finite()
             || self.zoom_factor <= 0.0

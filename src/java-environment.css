@@ -7,7 +7,7 @@
   margin: 12px 0;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
 }
 .java-status .hint {
   margin: 5px 0 0;
@@ -27,12 +27,12 @@
   align-items: flex-start;
   gap: 10px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   padding: 14px;
   cursor: pointer;
 }
 .java-options > label.selected {
-  border-color: var(--green);
+  border-color: var(--accent);
   background: var(--soft);
 }
 .java-options small {
@@ -47,7 +47,7 @@
 .java-check-result {
   padding: 11px 13px;
   background: var(--soft);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   margin: 14px 0;
 }
 .java-inline-actions {
@@ -89,7 +89,7 @@
 }
 .java-task progress {
   width: 100%;
-  accent-color: var(--green);
+  accent-color: var(--accent);
 }
 .java-dialog code {
   overflow-wrap: anywhere;

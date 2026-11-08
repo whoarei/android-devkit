@@ -617,8 +617,8 @@ const path = require('node:path');
         scheme: root.colorScheme,
       };
     });
-    assert.equal(palette.page, 'rgb(17, 24, 20)');
-    assert.equal(palette.surface, 'rgb(26, 38, 30)');
+    assert.equal(palette.page, 'rgb(10, 16, 28)');
+    assert.equal(palette.surface, 'rgb(18, 30, 48)');
     assert.equal(palette.scheme, 'dark');
     const contrast = (a, b) => {
       const light = (color) => {

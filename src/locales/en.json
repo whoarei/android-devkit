@@ -820,5 +820,22 @@
   "传输进度": "Transfer progress",
   "取消传输": "Cancel transfer",
   "取消等待录屏": "Cancel queued recording",
-  "放弃并清理原录屏": "Discard original device recording"
+  "放弃并清理原录屏": "Discard original device recording",
+  "外观": "Appearance",
+  "外观设置": "Appearance settings",
+  "关闭外观设置": "Close appearance settings",
+  "跟随系统": "System",
+  "主题配色": "Theme color",
+  "默认": "Default",
+  "蓝色": "Blue",
+  "绿色": "Green",
+  "黄色": "Yellow",
+  "粉色": "Pink",
+  "橙色": "Orange",
+  "紫色": "Purple",
+  "黑色": "Black",
+  "自定义颜色": "Custom color",
+  "自定义": "Custom",
+  "十六进制颜色": "Hex color",
+  "输入 # 和六位十六进制颜色值，按回车或离开输入框应用。": "Enter # and six hexadecimal digits. Press Enter or leave the field to apply."
 }

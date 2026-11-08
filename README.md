@@ -4,7 +4,9 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.8.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.9.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+
+0.9.0 新增 **完整主题配色与无线扫码配对**：各页面、弹窗与终端统一科技风格，支持默认、蓝、绿、黄、粉、橙、紫、黑及自定义颜色，可独立选择浅色、深色或跟随系统；标题栏与设置均可调整，保留已有明暗偏好。无线调试支持扫码或自动发现设备后输入配对码，配对后自动连接并验证，同时保留手动连接入口；需要 Android 11+ 与可互通且允许 mDNS 的局域网。
 
 0.8.0 新增 **设备应用管理、安装包容器导入及投屏控制**：管理当前 Android 用户的应用并导出完整 APK 集合，导入 APKS / XAPK / APKM，按需准备官方 bundletool / scrcpy，在独立窗口投屏与操作。沿用设备目标保护、确认计划与任务中心；真实双模拟器流程及界面回归已通过，实体手机仍待验收。
 
@@ -41,7 +43,7 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 - **直接操作交互终端**：从设备详情进入对应的 ADB Shell，也可打开本机 PowerShell；支持多会话、实时交互、切页保留输出和直接关闭会话。
 - **收进托盘继续工作**：最小化或关闭窗口后后台任务和终端继续运行，托盘点击恢复、右键退出；重复启动自动唤起已有窗口。
 - **查进度、找结果、保存文件**：在任务中心搜索历史操作，按状态筛选任务、查看失败原因；通过带角标的待保存文件入口预览、另存或清理缓存副本。
-- **按自己的习惯使用界面**：随时切换中英文和亮暗主题，偏好自动保存，下次启动继续使用；支持 `Ctrl` + `+` / `-` 放大或缩小整个界面，`Ctrl` + `0` 恢复默认大小。
+- **按自己的习惯使用界面**：统一的科技风格支持默认、蓝、绿、黄、粉、橙、紫、黑及自定义主题色，可独立选择浅色、深色或跟随系统；支持中英文切换，偏好自动保存，下次启动继续使用。使用 `Ctrl` + `+` / `-` 放大或缩小整个界面，`Ctrl` + `0` 恢复默认大小。
 - **在应用内检查更新**：启动时静默检查新版本，也可手动查看更新说明；安装版支持验证更新签名后安装并重新打开，便携版提供下载入口。
 
 以下使用说明对应当前源码，发行版的具体功能与变更以对应 Release 说明为准。
@@ -52,8 +54,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.8.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.8.0/AndroidDevKit-0.8.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.8.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.8.0/AndroidDevKit-0.8.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.9.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.9.0/AndroidDevKit-0.9.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.9.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.9.0/AndroidDevKit-0.9.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
@@ -125,7 +127,7 @@ APKS 含官方目录表时，首次使用先在同一面板准备 bundletool；�
 
 “环境诊断 → 预览并复制环境摘要”默认脱敏，核对预览后可直接复制，不产生待保存导出副本；需要原始设备标识时先显式勾选包含原始标识。
 
-标题栏和“设置 → 界面偏好”均可切换语言与主题，选择会自动保存。
+标题栏“外观”和“设置 → 界面偏好”均可选择主题配色与明暗模式。配色支持默认、蓝、绿、黄、粉、橙、紫、黑和自定义；自定义颜色可用取色器或输入 `#RRGGBB`，文本输入按回车或离开输入框后应用。明暗模式支持浅色、深色和跟随系统，切换会同步更新所有页面、弹窗和终端外观，保留当前草稿与会话。已有用户的亮暗选择会保留，新用户默认跟随系统。标题栏也保留一键亮暗切换和语言切换入口；选择均自动保存。
 
 ### 5. 使用 ADB 终端
 

@@ -60,6 +60,7 @@ const root = path.resolve(__dirname, '..');
       ? requested
       : [
           'preferences',
+          'appearance',
           'network',
           'wireless',
           'device',

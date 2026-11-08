@@ -1,7 +1,7 @@
 {
   "name": "android-devkit",
   "private": true,
-  "version": "0.8.0",
+  "version": "0.9.0",
   "type": "module",
   "packageManager": "pnpm@11.25.0",
   "scripts": {
@@ -12,6 +12,7 @@
     "verify:signing": "cargo test --manifest-path src-tauri/Cargo.toml --lib signing_real_tools_roundtrip_and_recovery -- --ignored --nocapture",
     "check:version": "node scripts/check-version.cjs",
     "test:ui-fixtures": "node scripts/run-ui-fixtures.cjs",
+    "test:appearance-ui": "node scripts/check-appearance-ui.cjs",
     "notices": "node scripts/collect-notices.cjs",
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",

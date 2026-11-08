@@ -32,7 +32,7 @@ table{border-collapse:collapse;width:100%;background:white;margin:18px 0}th,td{b
 <table>
 <thead><tr><th>范围</th><th>字段</th><th>默认值 / 恢复规则</th></tr></thead>
 <tbody>
-<tr><td>外观与语言</td><td><code>theme</code>、<code>locale</code>、<code>zoomFactor</code></td><td>亮色、简体中文、100%。首次渲染前加载；Ctrl+± 与 Ctrl+滚轮记录实际原生缩放；Ctrl+0 始终回到 100%。</td></tr>
+<tr><td>外观与语言</td><td><code>theme</code>、<code>colorTheme</code>、<code>customColor</code>、<code>locale</code>、<code>zoomFactor</code></td><td>新用户默认跟随系统、默认配色、自定义色 #35b8bd、简体中文、100%；旧版显式选择的亮暗模式保留。theme 支持 light/dark/system；colorTheme 支持 default/blue/green/yellow/pink/orange/purple/black/custom，自定义色限定 #RRGGBB。首次渲染前加载；Ctrl+± 与 Ctrl+滚轮记录实际原生缩放；Ctrl+0 始终回到 100%。</td></tr>
 <tr><td>窗口</td><td><code>window</code>：正常位置 x/y、逻辑宽高、DPI 比例、显示器名称、最大化状态</td><td>首次沿用 1280×800。位置使用物理屏幕坐标，尺寸使用逻辑像素。恢复普通尺寸后再最大化；最小化与隐藏不作为下次启动状态。</td></tr>
 <tr><td>默认目标与更新</td><td><code>defaultTarget</code>、<code>autoCheckUpdates</code></td><td>默认目标为空，启动检查更新开启。默认目标保留稳定标识，重连后重新验证，不保存 transportId 或 serverEpoch。</td></tr>
 <tr><td>导航与设备列表</td><td><code>lastPage</code>、<code>deviceFilter</code></td><td>设备工作台、全部设备。导航白名单已包含签名与 Keystore（<code>signing</code>）。恢复页面不创建终端、重放任务或自动选中设备。</td></tr>
@@ -64,6 +64,8 @@ table{border-collapse:collapse;width:100%;background:white;margin:18px 0}th,td{b
 <li>窗口移动/缩放事件使用 250ms 空闲合并；关闭和正常退出前同步刷新最后一次窗口状态。普通大小来自 Win32 正常窗口范围，最大化/最小化期间不会误存全屏大小或 -32000 坐标。</li>
 <li>恢复时按显示器工作区和当前 DPI 调整大小、限制位置；显示器已断开时居中到可用显示器。恢复前窗口隐藏，避免先闪现默认大小。</li>
 <li>纯浏览器预览在配置模块中使用单个 localStorage 对象；该预览存储不是桌面应用的数据源。</li>
+<li>标题栏“外观”与设置页共用配色控件；预设配色、自定义颜色、明暗模式均通过偏好补丁保存。系统明暗变化只更新解析后的外观，不覆盖 system 选择；原生窗口也保持系统主题跟随。切换配色不重建终端或重置未提交表单。</li>
+<li>WebView 仅缓存数据库已确认的外观到 <code>android-devkit.appearance.v1</code>，供样式表加载前绘制背景；此缓存不参与偏好导入。启动始终以 SQLite 为准，缓存缺失、损坏或不可写不影响偏好加载。主题色自动适配文字对比度，运行状态色保持独立，选中项不用左侧强调线。</li>
 </ul>
 <h2>新增配置的维护规则与回归</h2>
 <ol>

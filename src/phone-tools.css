@@ -26,7 +26,7 @@
 .phone-review {
   border: 1px solid var(--line);
   padding: 14px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   margin-top: 16px;
   overflow-wrap: anywhere;
 }
@@ -42,7 +42,7 @@
   overflow: auto;
   max-height: 360px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 .phone-file-list table {
   width: 100%;

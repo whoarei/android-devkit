@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { t, useLocale } from './i18n';
-import { useTheme } from './theme';
+import { useAppearance } from './theme';
 import { native } from './api';
 import type { Device, Workspace } from './types';
 import type { TerminalInfo } from './bindings';
@@ -207,7 +207,7 @@ export function TerminalPage({
   openSdk: () => void;
 }) {
   useLocale();
-  const theme = useTheme();
+  const appearance = useAppearance();
   const { sessions, activeId, error, select, clearError } = useTerminals();
   const active = sessions.find((session) => session.id === activeId);
   const [snippets, setSnippets] = useState(false);
@@ -216,7 +216,7 @@ export function TerminalPage({
   }, []);
   useEffect(() => {
     themeTerminals();
-  }, [theme]);
+  }, [appearance]);
   useEffect(() => {
     setSnippets(false);
   }, [activeId, visible]);

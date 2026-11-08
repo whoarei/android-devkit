@@ -33,7 +33,7 @@
   overflow: auto;
   max-height: 430px;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   background: var(--surface-subtle);
 }
 .device-app-row {
@@ -78,7 +78,7 @@
 .device-app-detail {
   min-width: 0;
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   padding: 16px;
   background: var(--surface-raised);
 }
@@ -137,7 +137,7 @@
   padding: 14px;
   background: var(--surface-muted);
   border: 1px solid var(--line);
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   overflow-wrap: anywhere;
 }
 .device-tool-setup p,

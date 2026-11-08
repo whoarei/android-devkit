@@ -519,6 +519,7 @@ pub fn window_action(window: tauri::WebviewWindow, action: String) -> Result<()>
         "drag" => window.start_dragging(),
         "theme_light" => window.set_theme(Some(tauri::Theme::Light)),
         "theme_dark" => window.set_theme(Some(tauri::Theme::Dark)),
+        "theme_system" => window.set_theme(None),
         "close" => window.close(),
         _ => return Err(AppError::new("INVALID_ACTION", "窗口动作无效")),
     };
@@ -764,11 +765,19 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     if let Some(window) = app.get_webview_window("main") {
         platform::install(&window);
         let preferences = app.state::<Arc<App>>().store.preferences()?;
-        window.set_theme(Some(if preferences.theme == "dark" {
-            tauri::Theme::Dark
-        } else {
-            tauri::Theme::Light
-        }))?;
+        window.set_theme(match preferences.theme.as_str() {
+            "dark" => Some(tauri::Theme::Dark),
+            "light" => Some(tauri::Theme::Light),
+            _ => None,
+        })?;
+        let dark = window.theme()? == tauri::Theme::Dark;
+        let rgb = match (preferences.color_theme.as_str(), dark) {
+            ("black", true) => (12, 12, 15),
+            ("black", false) => (245, 245, 246),
+            (_, true) => (10, 16, 28),
+            (_, false) => (241, 245, 251),
+        };
+        window.set_background_color(Some(tauri::window::Color(rgb.0, rgb.1, rgb.2, 255)))?;
         #[cfg(windows)]
         if let Err(error) = crate::window_state::install(&window, app.state::<Arc<App>>().inner()) {
             eprintln!("Window preferences: {error}");
