@@ -15,7 +15,7 @@
 
 ## 发布前检查
 
-Windows PowerShell 中用 `pnpm.cmd` 避开脚本 shim 限制。逐条执行并检查退出码，不能在长串命令中忽略前一步失败。工具链版本从 `rust-toolchain.toml`、`package.json` 和 CI 读取，不在 skill 内锁定副本。
+新版本发布直接使用现有 GitHub Actions。本地只做仓库、版本、变更说明和工作流的轻量检查，不先安装构建依赖、不编译应用、不打包，也不重复运行 CI 的完整回归。工具链版本从 `rust-toolchain.toml`、`package.json` 和 CI 读取，不在 skill 内锁定副本。逐条检查命令退出码，避免后续成功命令掩盖前一步失败。
 
 ```powershell
 git status --short
@@ -28,40 +28,26 @@ git ls-remote --tags origin
 $releaseVersion = (Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json).version
 $releaseTag = "v$releaseVersion"
 node scripts/check-version.cjs $releaseTag
-
-pnpm.cmd install --frozen-lockfile
-cargo fetch --locked --manifest-path src-tauri/Cargo.toml
-cargo fmt --manifest-path src-tauri/Cargo.toml --all -- --check
-pnpm.cmd check
-cargo test --locked --manifest-path src-tauri/Cargo.toml
-pnpm.cmd bindings
-git diff --exit-code -- src/bindings.ts
-pnpm.cmd exec playwright install chromium
-$env:PLAYWRIGHT_CHANNEL = 'chromium'
-pnpm.cmd test:ui-fixtures
+git diff --check
 ```
 
-`$releaseRepo` 必须先从核对后的远端确定。`origin/main` 须先正常 fetch 更新后才可用于判断未推送提交。浏览器 fixture 使用独立端口 `19328` 和模拟 IPC，不访问真实设备；不要停止用户正在运行的开发服务来腾端口。IPC 生成差异必须处理并提交，不通过撤销生成结果来让检查变绿。
+`$releaseRepo` 必须先从核对后的远端确定。`origin/main` 须先正常 fetch 更新后才可用于判断未推送提交。CI 负责锁定依赖安装、Rust 格式、TypeScript / Vite、Clippy、Rust 测试、IPC 合约生成及隔离浏览器回归；已有功能验证记录按候选代码复用。本地检查发现需要修改 IPC 合约时更新生成文件并提交，不通过撤销生成结果来让 CI 变绿。
+
+只做发布准备时，交付版本与修改摘要、轻量检查结果和待执行的 CI 步骤即可，不等待本地安装包。已获授权的手动工作流可用于远端构建验证，但不创建公开 Release。
 
 ## 构建、资产和核验
 
-本地普通构建无需签名私钥，可用于功能验证：
+正式构建、签名、打包和安装器检查全部在 CI 的干净检出中完成，无需运行本地 `tauri build`、`cargo build` 或发布打包脚本，也无需清理或迁移本地旧 `artifacts/`。只有用户明确要求本地构建或打包时，才另行执行。
 
-```powershell
-pnpm.cmd tauri build -- --locked
-& './scripts/package-release.ps1'
-node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
-```
+CI 使用 `pnpm.cmd tauri build --config src-tauri/tauri.release.conf.json -- --locked` 和 `package-release.ps1 -WithUpdater`，生成 minisign 安装器签名及 `latest.json`，并核验安装器内容、升级等待与签名。这里的构建命令用于核对工作流或远端排障，不作为本机发版步骤。`TAURI_SIGNING_PRIVATE_KEY` 仅保存在本仓库 Actions Secrets，与 remote-runner 复用同一签名身份；如果有密码，则通过 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 提供。缺少签名私钥必须使签名构建失败；不要生成新密钥替换现有公钥，也不要将私钥导出到本地或提交源码。本地未签名包不作为正式更新资产发布。
 
-正式 CI 使用 `pnpm.cmd tauri build --config src-tauri/tauri.release.conf.json -- --locked` 和 `package-release.ps1 -WithUpdater`，生成 minisign 安装器签名及 `latest.json`。`TAURI_SIGNING_PRIVATE_KEY` 仅保存在本仓库 Actions Secrets，与 remote-runner 复用同一签名身份；如果有密码，则通过 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` 提供。缺少签名私钥必须使签名构建失败；不要生成新密钥替换现有公钥，也不要将私钥导出到本地或提交源码。本地未签名包不作为正式更新资产发布。
-
-当前产物关系：
+CI 工作区中的产物关系（本地无需生成这些文件）：
 
 | 路径                                               | 内容                                   |
 | -------------------------------------------------- | -------------------------------------- |
 | `src-tauri/target/release/android-devkit.exe`      | 原始 release 程序                      |
 | `src-tauri/target/release/bundle/nsis/*-setup.exe` | NSIS 安装包                            |
-| `artifacts/windows/`                               | 本地易运行程序、安装包、许可和构建信息 |
+| `artifacts/windows/`                               | CI 打包中间文件、许可和构建信息 |
 | `artifacts/release/`                               | CI 上传与 Release 使用的发行文件       |
 
 `artifacts/release/` 只应包含：
@@ -77,7 +63,7 @@ node scripts/check-installer.cjs 'C:/Program Files/7-Zip/7z.exe'
 
 ZIP 内恰好为 `AndroidDevKit.exe`、两份许可文件和 `build-info.json`。`SHA256SUMS.txt` 对除自身之外的七个 Release 文件求摘要；build-info 另外记录 ZIP 内原始 EXE 的大小和摘要，以及安装器摘要。校验器同时核对这些关系，并检查 `latest.json` 版本、Windows x64 平台、安装器地址及签名与独立 `.sig` 文件一致。历史无更新清单的六文件包仍可验证，但新的正式发布必须包含全部八个文件。
 
-打包脚本会保留输出目录旧文件，并且可能复制同版本的旧安装器，所以必须先成功完成本次 NSIS 构建，不能拿历史 `artifacts/` 目录证明候选提交已打包。CI 的干净检出可避免此问题。`scripts/check-installer.cjs` 解包检查安装器与便携程序的 payload；Tauri 会将内嵌 bundle marker 从 `UNK` 改成 `NSS`，归一化后应一致。不要用安装器内 EXE 的原始摘要直接要求等于便携 EXE 摘要。
+打包脚本会保留输出目录旧文件，并且可能复制同版本的旧安装器，所以只使用本次候选提交在 CI 成功构建的资产，不能拿历史本地 `artifacts/` 目录证明候选提交已打包。CI 的干净检出可避免旧文件混入。CI 中的 `scripts/check-installer.cjs` 解包检查安装器与便携程序的 payload；Tauri 会将内嵌 bundle marker 从 `UNK` 改成 `NSS`，归一化后应一致。不要用安装器内 EXE 的原始摘要直接要求等于便携 EXE 摘要。
 
 目前安装模式为当前用户，发行平台 Windows x64；需要 Windows 11 与 WebView2。安装器缺少 WebView2 时使用官方引导程序。签名状态、干净机器安装 / 卸载及其他限制以这次实际检查为准，不因打包成功就宣称验证完成。
 
@@ -111,6 +97,6 @@ Expand-Archive -LiteralPath (Join-Path $downloadDirectory "AndroidDevKit-$releas
 node $assetVerifier $downloadDirectory $releaseVersion --portable $portableDirectory --require-updater
 ```
 
-`$assetVerifier` 指向本 skill 的 `scripts/verify-release-assets.cjs`。该脚本不访问网络、不上传、不删除文件。临时目录使用完按需要清理，先核对绝对路径后再删除。
+`$assetVerifier` 指向本 skill 的 `scripts/verify-release-assets.cjs`。该脚本不访问网络、不上传、不删除文件。发布后本地只下载、解压和验证正式成品；需要独立验签时使用已有可用工具，不为验签重新编译应用或测试程序。临时目录使用完按需要清理，先核对绝对路径后再删除。
 
 若 GitHub CLI 连接失败，先核对认证与已有会话中的代理设置；只在当前进程使用已确认的代理，不写死历史端口、不改全局 Git / 系统代理，不输出令牌。认证或网络问题报告为阻塞原因，不能据此新建仓库、重复发布或忽略远端检查。
