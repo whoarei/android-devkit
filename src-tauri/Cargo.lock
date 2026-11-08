@@ -34,7 +34,7 @@ dependencies = [
 
 [[package]]
 name = "android-devkit"
-version = "0.9.1"
+version = "0.9.2"
 dependencies = [
  "arboard",
  "base64 0.22.1",
@@ -64,6 +64,7 @@ dependencies = [
  "ts-rs",
  "uuid",
  "webview2-com",
+ "windows",
  "windows-sys 0.61.2",
  "winreg 0.55.0",
  "zeroize",

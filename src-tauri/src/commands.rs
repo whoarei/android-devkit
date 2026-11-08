@@ -525,7 +525,7 @@ pub fn window_action(window: tauri::WebviewWindow, action: String) -> Result<()>
     };
     result.map_err(|e| AppError::new("WINDOW", e.to_string()))?;
     if action.starts_with("theme_") {
-        crate::lifecycle::refresh_tray_icon(window.app_handle());
+        crate::lifecycle::refresh_native_icons(window.app_handle());
     }
     Ok(())
 }
@@ -762,6 +762,10 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     *state.handle.lock().unwrap() = Some(app.handle().clone());
     state.monitor();
     app.manage(state);
+    #[cfg(windows)]
+    if let Err(error) = crate::taskbar::install(app.handle()) {
+        eprintln!("Taskbar icon worker: {error}");
+    }
     if let Err(error) = crate::lifecycle::create_tray(app.handle()) {
         // A missing system tray must not prevent startup or leave the app unreachable.
         eprintln!("System tray: {error}");
@@ -791,6 +795,7 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
         {
             eprintln!("UI zoom preference: {error}");
         }
+        crate::lifecycle::refresh_native_icons(app.handle());
         window.show()?;
     }
     Ok(())

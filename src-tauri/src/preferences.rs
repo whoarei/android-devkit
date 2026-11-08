@@ -216,7 +216,7 @@ pub fn preferences_patch(
         .any(|key| patch.get(key).is_some())
     {
         if let Some(handle) = app.handle.lock().unwrap().clone() {
-            crate::lifecycle::refresh_tray_icon(&handle);
+            crate::lifecycle::refresh_native_icons(&handle);
         }
     }
     Ok(preferences)

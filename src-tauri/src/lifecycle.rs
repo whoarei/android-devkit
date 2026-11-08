@@ -84,7 +84,7 @@ pub fn hide_to_tray(h: &tauri::AppHandle) -> Result<()> {
 
 pub fn on_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
     if window.label() == "main" && matches!(event, tauri::WindowEvent::ThemeChanged(_)) {
-        refresh_tray_icon(window.app_handle());
+        refresh_native_icons(window.app_handle());
     }
     // Also cover OS shortcuts and the native taskbar/system menu, not just our title bar.
     if window.label() == "main"
@@ -98,21 +98,31 @@ pub fn on_window_event(window: &tauri::Window, event: &tauri::WindowEvent) {
         }
     }
 }
-pub fn refresh_tray_icon(handle: &tauri::AppHandle) {
+pub fn refresh_native_icons(handle: &tauri::AppHandle) {
     let latest = handle.clone();
     // Read acknowledged preferences on the UI thread, after any preceding theme
     // change. Queued rapid switches must never repaint an older selection last.
     if let Err(error) = handle.run_on_main_thread(move || {
-        let Some(tray) = latest.tray_by_id("devkit") else {
-            return;
-        };
-        let result = crate::brand_icon::for_handle(&latest)
-            .and_then(|icon| tray.set_icon(Some(icon)).map_err(window_error));
-        if let Err(error) = result {
-            eprintln!("Tray appearance: {error}");
+        match crate::brand_icon::for_handle(&latest) {
+            Ok(icon) => {
+                // Window and Shell updates must also work when the tray is unavailable.
+                if let Some(window) = latest.get_webview_window("main") {
+                    if let Err(error) = window.set_icon(icon.clone()) {
+                        eprintln!("Window appearance: {error}");
+                    }
+                }
+                if let Some(tray) = latest.tray_by_id("devkit") {
+                    if let Err(error) = tray.set_icon(Some(icon.clone())) {
+                        eprintln!("Tray appearance: {error}");
+                    }
+                }
+                #[cfg(windows)]
+                crate::taskbar::refresh_shell(&latest, icon);
+            }
+            Err(error) => eprintln!("Native appearance: {error}"),
         }
     }) {
-        eprintln!("Tray appearance: {error}");
+        eprintln!("Native appearance: {error}");
     }
 }
 pub fn update_tray(h: &tauri::AppHandle, app: &App) {

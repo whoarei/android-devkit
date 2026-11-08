@@ -53,6 +53,8 @@ mod signing_tasks;
 mod signing_tests;
 mod storage;
 mod task_records;
+#[cfg(windows)]
+mod taskbar;
 mod terminal;
 #[cfg(windows)]
 mod ui_preferences;
@@ -63,6 +65,9 @@ mod wireless;
 mod wireless_discovery;
 use tauri::Manager;
 pub fn run() {
+    let context = tauri::generate_context!();
+    #[cfg(windows)]
+    taskbar::initialize_identity(&context.config().identifier);
     tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             lifecycle::show_window(app);
@@ -163,6 +168,6 @@ pub fn run() {
             updater::install_app_update,
             updater::open_app_download
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("Android DevKit failed to run");
 }
