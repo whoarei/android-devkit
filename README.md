@@ -4,7 +4,9 @@
 
 Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管理、模拟器、真机连接、APK 安装和日志查看集中在一个桌面应用中。适合准备测试环境、验证应用和排查设备问题，可复用已有 Android SDK 与 AVD。
 
-当前版本：**0.9.2** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+当前版本：**0.10.0** · [下载发行版](https://github.com/whoarei/android-devkit/releases/latest) · [反馈问题](https://github.com/whoarei/android-devkit/issues)
+
+0.10.0 新增 **Keystore Base64 一键复制**：选择已校验的 Keystore，点击“生成 Base64”，输入容器密码后点击“验证密码并复制”。密码框支持小眼睛核对明文；复制成功自动关闭弹窗并提示“已复制”，密码错误或剪贴板写入失败则在弹窗报错。每次操作重新验密，无需选择 alias 或提供私钥密码；生成整个文件的单行 Base64，适用于 CI/CD 密钥配置。密码及编码内容不写入登记、任务或日志，已复制内容保留在系统剪贴板。
 
 0.9.2 将主题图标同步扩展到 **Windows 任务栏与 Alt+Tab**：主窗口、任务栏与托盘共用当前预设或自定义配色，支持明暗变化和启动恢复。固定入口使用保存在应用数据目录的多尺寸主题 ICO，更新当前程序对应的任务栏和开始菜单快捷方式并通知 Windows 刷新；保留快捷方式的目标、参数和工作目录，维持稳定的任务栏分组身份。Shell 刷新在后台合并连续配色输入。
 
@@ -58,8 +60,8 @@ Android DevKit 是一个面向 Windows 的 Android 开发工作台，将 SDK 管
 
 运行环境为 **Windows 11 x64**，需要 WebView2 Runtime。在 [GitHub Releases](https://github.com/whoarei/android-devkit/releases/latest) 选择版本后，可以下载：
 
-- **安装包** [AndroidDevKit-0.9.2-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.9.2/AndroidDevKit-0.9.2-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
-- **便携包** [AndroidDevKit-0.9.2-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.9.2/AndroidDevKit-0.9.2-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
+- **安装包** [AndroidDevKit-0.10.0-setup.exe](https://github.com/whoarei/android-devkit/releases/download/v0.10.0/AndroidDevKit-0.10.0-setup.exe)：按向导为当前 Windows 用户安装；缺少 WebView2 时，安装器会下载官方引导程序。
+- **便携包** [AndroidDevKit-0.10.0-windows-x64.zip](https://github.com/whoarei/android-devkit/releases/download/v0.10.0/AndroidDevKit-0.10.0-windows-x64.zip)：解压后运行 `AndroidDevKit.exe`，保留包内的许可与构建信息文件。
 
 当前发行包未使用 Windows Authenticode 代码签名；应用内更新使用独立的更新包签名校验。Android SDK 组件和系统镜像按需单独下载，使用时需接受对应的 Google / Android 许可。
 
