@@ -802,6 +802,7 @@
   "目录为空": "This folder is empty",
   "修改时间": "Modified",
   "类型": "Type",
+  "大小": "Size",
   "正在读取并准备文件清单，请稍候…": "Reading and preparing the file manifest…",
   "已准备 {0} 项 · {1} 字节": "Prepared {0} items · {1} bytes",
   "目标已存在": "Destination exists",

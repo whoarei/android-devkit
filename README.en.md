@@ -21,40 +21,46 @@ Android DevKit is an Android development workbench for Windows 11 x64. It brings
 
 ## Screenshots
 
-Some screenshots are from earlier versions; the current interface may differ.
+Screenshots show the current interface with demonstration data.
 
 ### Device workbench
 
 View physical devices and emulators in one place, connect devices, start emulators, and select an APK installation target.
 
-![Device workbench](docs/assets/m3-devices.png)
+![Device workbench](docs/assets/readme/devices-en-US.png)
 
 ### SDK management
 
 Review installed components and prepare platforms, development tools, and system images as needed.
 
-![SDK management](docs/assets/m3-sdk.png)
+![SDK management](docs/assets/readme/sdk-en-US.png)
 
-### App management and screen mirroring
+### App management
 
-Inspect installed apps and perform common actions. Configure the control mode, screen size, and frame rate before opening a separate mirroring window.
+Inspect app versions, system requirements, and APK details, then launch, stop, export, or uninstall apps.
 
-<img src="docs/assets/device-utilities-apps-en-dark-480.png" alt="Device app management" width="360"> <img src="docs/assets/device-utilities-mirror-en-dark-480.png" alt="Screen mirroring and control settings" width="360">
+![Device app management](docs/assets/readme/apps-en-US.png)
+
+### Screen mirroring and control
+
+Choose keyboard and mouse control or read-only mode, then configure the screen size and frame rate before opening a separate mirroring window.
+
+![Screen mirroring and control settings](docs/assets/readme/mirroring-en-US.png)
 
 ### Live logs
 
 Filter Logcat by level, tag, PID, package name, and keywords, then preview and export logs.
 
-![Live log filtering](docs/assets/m4-live-logs.png)
+![Live log filtering](docs/assets/readme/logs-en-US.png)
 
-### Screen recording preview
+### Screen recording
 
-Record the device screen, retrieve the video, preview it, and save it as MP4.
+Set the recording duration and resolution, then retrieve the completed video, preview it, and save it as MP4.
 
-![Screen recording preview](docs/assets/phase2-native-video.png)
+![Screen recording settings](docs/assets/readme/recording-en-US.png)
 
 ### File transfer
 
 Browse shared folders, upload and download files, and choose how to handle name conflicts before transferring.
 
-![File transfer and conflict resolution](docs/assets/phase2-files.png)
+![File transfer and conflict resolution](docs/assets/readme/files-en-US.png)

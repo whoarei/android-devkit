@@ -21,40 +21,46 @@ Android DevKit 是面向 Windows 11 x64 的 Android 开发工作台，将 SDK、
 
 ## 主要功能截图
 
-部分截图来自较早版本，界面以当前版本为准。
+截图展示当前版本界面，使用演示数据。
 
 ### 设备工作台
 
 统一查看真机与模拟器，连接设备、启动模拟器，并选择目标安装 APK。
 
-![设备工作台](docs/assets/m3-devices.png)
+![设备工作台](docs/assets/readme/devices-zh-CN.png)
 
 ### SDK 管理
 
 查看已安装组件，按需准备平台、开发工具与系统镜像。
 
-![SDK 管理](docs/assets/m3-sdk.png)
+![SDK 管理](docs/assets/readme/sdk-zh-CN.png)
 
-### 应用管理与投屏
+### 应用管理
 
-查看设备应用并执行常用操作；设置投屏模式、画面大小与帧率后打开独立投屏窗口。
+查看已安装应用的版本、系统要求和 APK 信息，启动、停止、导出或卸载应用。
 
-<img src="docs/assets/device-utilities-apps-en-dark-480.png" alt="设备应用管理" width="360"> <img src="docs/assets/device-utilities-mirror-en-dark-480.png" alt="投屏与控制设置" width="360">
+![设备应用管理](docs/assets/readme/apps-zh-CN.png)
+
+### 投屏与控制
+
+选择键鼠控制或只读模式，设置画面大小与帧率后打开独立投屏窗口。
+
+![投屏与控制设置](docs/assets/readme/mirroring-zh-CN.png)
 
 ### 实时日志
 
 按级别、Tag、PID、应用包名和关键词筛选 Logcat，预览并导出日志。
 
-![实时日志筛选](docs/assets/m4-live-logs.png)
+![实时日志筛选](docs/assets/readme/logs-zh-CN.png)
 
-### 录屏预览
+### 设备录屏
 
-录制设备画面，取回视频后预览并另存为 MP4。
+设置录屏时长与分辨率，录制完成后取回视频，预览并另存为 MP4。
 
-![录屏预览](docs/assets/phase2-native-video.png)
+![设备录屏设置](docs/assets/readme/recording-zh-CN.png)
 
 ### 文件传输
 
 浏览共享目录，上传、下载文件，并在传输前选择同名文件的处理方式。
 
-![文件传输与冲突处理](docs/assets/phase2-files.png)
+![文件传输与冲突处理](docs/assets/readme/files-zh-CN.png)
