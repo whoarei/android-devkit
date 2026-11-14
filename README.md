@@ -35,6 +35,12 @@ Android DevKit 是面向 Windows 11 x64 的 Android 开发工作台，将 SDK、
 
 ![SDK 管理](docs/assets/readme/sdk-zh-CN.png)
 
+### 签名与 Keystore
+
+集中管理 Keystore，查看 alias、证书与指纹，导出证书或生成 Base64，并进入 APK 校验与签名流程。
+
+![签名与 Keystore](docs/assets/readme/signing-zh-CN.png)
+
 ### 应用管理
 
 查看已安装应用的版本、系统要求和 APK 信息，启动、停止、导出或卸载应用。
@@ -46,6 +52,12 @@ Android DevKit 是面向 Windows 11 x64 的 Android 开发工作台，将 SDK、
 选择键鼠控制或只读模式，设置画面大小与帧率后打开独立投屏窗口。
 
 ![投屏与控制设置](docs/assets/readme/mirroring-zh-CN.png)
+
+### ADB 终端
+
+打开设备 ADB Shell 或本机 PowerShell，以多标签切换会话，保留交互输出并使用常用命令。
+
+![ADB 终端与多会话](docs/assets/readme/terminal-zh-CN.png)
 
 ### 实时日志
 

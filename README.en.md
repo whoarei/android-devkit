@@ -35,6 +35,12 @@ Review installed components and prepare platforms, development tools, and system
 
 ![SDK management](docs/assets/readme/sdk-en-US.png)
 
+### Signing and Keystores
+
+Manage Keystores, inspect aliases, certificates, and fingerprints, export certificates or generate Base64, and access APK verification and signing.
+
+![Signing and Keystores](docs/assets/readme/signing-en-US.png)
+
 ### App management
 
 Inspect app versions, system requirements, and APK details, then launch, stop, export, or uninstall apps.
@@ -46,6 +52,12 @@ Inspect app versions, system requirements, and APK details, then launch, stop, e
 Choose keyboard and mouse control or read-only mode, then configure the screen size and frame rate before opening a separate mirroring window.
 
 ![Screen mirroring and control settings](docs/assets/readme/mirroring-en-US.png)
+
+### ADB terminal
+
+Open device ADB Shell or local PowerShell sessions, switch between tabs, retain interactive output, and use common commands.
+
+![ADB terminal with multiple sessions](docs/assets/readme/terminal-en-US.png)
 
 ### Live logs
 
