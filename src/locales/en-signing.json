@@ -1,4 +1,11 @@
 {
+  "生成 Base64": "Generate Base64",
+  "生成 Keystore Base64": "Generate Keystore Base64",
+  "验证容器密码后，直接将整个 Keystore 文件的单行 Base64 复制到剪贴板。": "Verify the Keystore password to copy single-line Base64 for the entire file directly to the clipboard.",
+  "每次生成均需验证容器密码；密码仅用于本次操作。": "The Keystore password is verified for every generation and used only for this operation.",
+  "Base64 不是加密，请像原 Keystore 文件一样保管；复制内容会保留在系统剪贴板。": "Base64 is not encryption. Protect it like the original Keystore file; copied content remains in the system clipboard.",
+  "验证密码并复制": "Verify password and copy",
+  "签名工具暂不可用": "Signing tools are temporarily unavailable",
   "验证通过后覆盖源 APK；证书不同可能无法覆盖原安装。": "Overwrite the source APK after verification. A different certificate may prevent upgrading the installed app.",
   "源文件覆盖的恢复材料尚待处理，请先检查签名结果": "Source replacement recovery files are pending; review the signing result first",
   "覆盖源文件": "Overwrite source file",

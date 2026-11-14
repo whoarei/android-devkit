@@ -16,6 +16,7 @@ fn main() {
         "signing_records",
         "keystore_register",
         "keystore_forget",
+        "keystore_copy_base64",
         "apk_signature_inspect",
         "signing_certificate_inspect",
         "signing_certificate_export",

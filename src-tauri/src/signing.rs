@@ -404,7 +404,7 @@ pub(crate) async fn bridge<T: serde::de::DeserializeOwned>(
     alias: &str,
     input: Zeroizing<Vec<u8>>,
 ) -> Result<T> {
-    let output = sensitive_tool(app, task, bridge_spec(app, mode, file, alias)?, input).await?;
+    let mut output = sensitive_tool(app, task, bridge_spec(app, mode, file, alias)?, input).await?;
     if output.code != 0 {
         let kind = serde_json::from_slice::<serde_json::Value>(&output.stdout)
             .ok()
@@ -430,8 +430,46 @@ pub(crate) async fn bridge<T: serde::de::DeserializeOwned>(
         )
         .detail(kind));
     }
-    serde_json::from_slice(&output.stdout)
-        .map_err(|_| AppError::new("SIGNING_RESPONSE", "签名工具结果无法可靠识别"))
+    let result = serde_json::from_slice(&output.stdout)
+        .map_err(|_| AppError::new("SIGNING_RESPONSE", "签名工具结果无法可靠识别"));
+    output.stdout.zeroize();
+    result
+}
+pub async fn keystore_base64(
+    app: &Arc<App>,
+    record_id: &str,
+    secrets: Passwords,
+) -> Result<String> {
+    secrets.validate(false)?;
+    let _slot = app
+        .signing
+        .slots
+        .acquire()
+        .await
+        .map_err(|_| AppError::new("SIGNING_TOOL", "签名工具暂不可用"))?;
+    let record = select_record(app, record_id)?;
+    let path = bounded_file(Path::new(&record.path), MAX_KEYSTORE)?;
+    if record.sha256.is_empty() || digest_file(&path)? != record.sha256 {
+        return Err(AppError::new(
+            "SIGNING_CHANGED",
+            "密钥文件已变化，请重新检查",
+        ));
+    }
+    #[derive(Deserialize)]
+    struct EncodedKeystore {
+        content: String,
+        sha256: String,
+    }
+    let result: EncodedKeystore =
+        bridge(app, None, "base64", &path, "", secrets.bridge_input(false)).await?;
+    let mut content = Zeroizing::new(result.content);
+    if result.sha256 != record.sha256 {
+        return Err(AppError::new(
+            "SIGNING_CHANGED",
+            "密钥文件已变化，请重新检查",
+        ));
+    }
+    Ok(std::mem::take(&mut *content))
 }
 pub async fn inspect(
     app: &Arc<App>,

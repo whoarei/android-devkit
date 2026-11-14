@@ -31,6 +31,21 @@ pub fn keystore_forget(app: Service<'_>, record_id: String) -> Result<()> {
     Ok(())
 }
 #[tauri::command]
+pub async fn keystore_copy_base64(
+    app: Service<'_>,
+    record_id: String,
+    secrets: Passwords,
+) -> Result<()> {
+    let content = zeroize::Zeroizing::new(keystore_base64(app.inner(), &record_id, secrets).await?);
+    tokio::task::spawn_blocking(move || {
+        arboard::Clipboard::new()
+            .and_then(|mut clipboard| clipboard.set_text(content.as_str()))
+            .map_err(|_| AppError::new("CLIPBOARD_FAILED", "复制失败，请重试"))
+    })
+    .await
+    .map_err(|_| AppError::new("CLIPBOARD_FAILED", "复制失败，请重试"))?
+}
+#[tauri::command]
 pub async fn apk_signature_inspect(app: Service<'_>, path: String) -> Result<ApkSignatureReport> {
     let _sdk = app.sdk_gate.read().await;
     inspect_apk(app.inner(), Path::new(&path)).await

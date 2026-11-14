@@ -22,6 +22,9 @@ const path = require('node:path');
       window.__failInspect = false;
       window.__missingJava = false;
       window.__existingOutput = false;
+      window.__failBase64Copy = false;
+      window.__holdBase64Copy = false;
+      window.__clipboardText = 'unchanged clipboard';
       const certificate = {
         subject: 'CN=Fixture',
         issuer: 'CN=Fixture',
@@ -215,6 +218,17 @@ const path = require('node:path');
             return structuredClone(task);
           }
           if (command === 'keystore_register') return args.record;
+          if (command === 'keystore_copy_base64') {
+            if (args.secrets.storePassword !== 'base64-fixture-password')
+              throw { message: 'Wrong fixture password' };
+            if (window.__holdBase64Copy)
+              await new Promise((resolve) => {
+                window.__finishBase64Copy = resolve;
+              });
+            if (window.__failBase64Copy) throw { message: 'Fixture clipboard unavailable' };
+            window.__clipboardText = 'Zml4dHVyZS1rZXlzdG9yZQ==';
+            return null;
+          }
           if (command === 'signing_result_discard') {
             window.__pendingArtifacts = window.__pendingArtifacts.filter(
               (artifact) => artifact.id !== args.artifactId,
@@ -293,6 +307,103 @@ const path = require('node:path');
     await tool.getByRole('button', { name: /Fixture key/ }).click();
     const aliases = tool.getByLabel('密钥 alias', { exact: true });
     assert.equal(await aliases.inputValue(), '');
+    // Whole-file encoding is independent of aliases and requires fresh password verification.
+    await tool.getByRole('button', { name: '生成 Base64', exact: true }).click();
+    let base64Dialog = page.getByRole('dialog', { name: '生成 Keystore Base64', exact: true });
+    assert.equal(
+      await base64Dialog.getByRole('button', { name: '验证密码并复制', exact: true }).isDisabled(),
+      true,
+    );
+    assert.equal(await base64Dialog.getByLabel('Base64 编码内容', { exact: true }).count(), 0);
+    assert.equal(
+      await base64Dialog.getByLabel('私钥密码（留空使用容器密码）', { exact: true }).count(),
+      0,
+    );
+    assert.equal(
+      await page.evaluate(() => window.__calls.some((c) => c.command === 'keystore_copy_base64')),
+      false,
+    );
+    await base64Dialog.getByLabel('容器密码', { exact: true }).fill('wrong');
+    assert.equal(
+      await base64Dialog.getByLabel('容器密码', { exact: true }).getAttribute('type'),
+      'password',
+    );
+    await base64Dialog.getByRole('button', { name: '显示容器密码', exact: true }).click();
+    assert.equal(
+      await base64Dialog.getByLabel('容器密码', { exact: true }).getAttribute('type'),
+      'text',
+    );
+    assert.equal(await base64Dialog.getByLabel('容器密码', { exact: true }).inputValue(), 'wrong');
+    await base64Dialog.getByRole('button', { name: '隐藏容器密码', exact: true }).click();
+    assert.equal(
+      await base64Dialog.getByLabel('容器密码', { exact: true }).getAttribute('type'),
+      'password',
+    );
+    fs.mkdirSync(path.resolve(__dirname, '../.qa/signing'), { recursive: true });
+    await base64Dialog.screenshot({
+      path: path.resolve(__dirname, '../.qa/signing/keystore-base64.png'),
+    });
+    await base64Dialog.getByRole('button', { name: '验证密码并复制', exact: true }).click();
+    await base64Dialog.getByRole('alert').getByText('Wrong fixture password').waitFor();
+    assert.equal(await base64Dialog.getByLabel('Base64 编码内容', { exact: true }).count(), 0);
+    assert.equal(await base64Dialog.getByLabel('容器密码', { exact: true }).inputValue(), '');
+    assert.equal(await page.evaluate(() => window.__clipboardText), 'unchanged clipboard');
+    assert.equal(await tool.getByRole('status').count(), 0);
+    await page.evaluate(() => {
+      window.__failBase64Copy = true;
+    });
+    await base64Dialog.getByLabel('容器密码', { exact: true }).fill('base64-fixture-password');
+    await base64Dialog.getByRole('button', { name: '验证密码并复制', exact: true }).click();
+    await base64Dialog.getByRole('alert').getByText('Fixture clipboard unavailable').waitFor();
+    assert.equal(await base64Dialog.getByLabel('容器密码', { exact: true }).inputValue(), '');
+    assert.equal(await base64Dialog.locator('textarea').count(), 0);
+    assert.equal(await page.evaluate(() => window.__clipboardText), 'unchanged clipboard');
+    assert.equal(await tool.getByRole('status').count(), 0);
+    await page.evaluate(() => {
+      window.__failBase64Copy = false;
+      window.__holdBase64Copy = true;
+    });
+    await base64Dialog.getByLabel('容器密码', { exact: true }).fill('base64-fixture-password');
+    await base64Dialog.getByRole('button', { name: '验证密码并复制', exact: true }).click();
+    await page.waitForFunction(() => !!window.__finishBase64Copy);
+    assert.equal(
+      await base64Dialog.getByRole('button', { name: '验证密码并复制', exact: true }).isDisabled(),
+      true,
+    );
+    assert.equal(await tool.getByRole('status').count(), 0);
+    assert.equal(await page.evaluate(() => window.__clipboardText), 'unchanged clipboard');
+    await page.evaluate(() => {
+      window.__holdBase64Copy = false;
+      window.__finishBase64Copy();
+    });
+    await base64Dialog.waitFor({ state: 'hidden' });
+    await tool.getByRole('status').getByText('已复制', { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => window.__clipboardText), 'Zml4dHVyZS1rZXlzdG9yZQ==');
+    assert.deepEqual(
+      await page.evaluate(
+        () => window.__calls.filter((c) => c.command === 'keystore_copy_base64').at(-1).args,
+      ),
+      { recordId: 'fixture-key', secrets: { redacted: true } },
+    );
+    await tool.getByRole('button', { name: '生成 Base64', exact: true }).click();
+    base64Dialog = page.getByRole('dialog', { name: '生成 Keystore Base64', exact: true });
+    assert.equal(await base64Dialog.getByLabel('容器密码', { exact: true }).inputValue(), '');
+    assert.equal(
+      await base64Dialog.getByLabel('容器密码', { exact: true }).getAttribute('type'),
+      'password',
+    );
+    assert.equal(await base64Dialog.getByLabel('Base64 编码内容', { exact: true }).count(), 0);
+    assert.equal(await base64Dialog.getByRole('alert').count(), 0);
+    await base64Dialog.getByLabel('容器密码', { exact: true }).fill('discard-on-navigation');
+    // Simulate a shell-driven route change while the dialog is mounted.
+    await page
+      .getByRole('button', { name: '设置', exact: true })
+      .evaluate((button) => button.click());
+    await page.getByRole('button', { name: '签名与 Keystore', exact: true }).click();
+    await tool.getByRole('button', { name: '生成 Base64', exact: true }).click();
+    base64Dialog = page.getByRole('dialog', { name: '生成 Keystore Base64', exact: true });
+    assert.equal(await base64Dialog.getByLabel('容器密码', { exact: true }).inputValue(), '');
+    await base64Dialog.getByRole('button', { name: '返回', exact: true }).click();
     await aliases.selectOption('public-only');
     assert.equal(
       await tool.getByRole('button', { name: '使用此密钥签名', exact: true }).isDisabled(),
@@ -526,6 +637,24 @@ const path = require('node:path');
     fs.mkdirSync(path.resolve(__dirname, '../.qa/signing'), { recursive: true });
     await page.screenshot({ path: path.resolve(__dirname, '../.qa/signing/keys.png') });
     await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    await tool.getByRole('tab', { name: 'Keystore', exact: true }).click();
+    await tool.getByRole('button', { name: 'Generate Base64', exact: true }).click();
+    const englishBase64 = page.getByRole('dialog', {
+      name: 'Generate Keystore Base64',
+      exact: true,
+    });
+    assert.equal(/[\u3400-\u9fff]/.test(await englishBase64.innerText()), false);
+    await englishBase64
+      .getByLabel('Keystore password', { exact: true })
+      .fill('base64-fixture-password');
+    await englishBase64
+      .getByRole('button', { name: 'Verify password and copy', exact: true })
+      .click();
+    await englishBase64.waitFor({ state: 'hidden' });
+    await tool.getByRole('status').getByText('Copied', { exact: true }).waitFor();
+    const persisted = await page.evaluate(() => JSON.stringify([localStorage, sessionStorage]));
+    assert.equal(persisted.includes('Zml4dHVyZS1rZXlzdG9yZQ=='), false);
+    assert.equal(persisted.includes('base64-fixture-password'), false);
     await tool.getByRole('tab', { name: 'APK signing', exact: true }).click();
     assert.equal(/[\u3400-\u9fff]/.test(await tool.innerText()), false);
     await page.setViewportSize({ width: 480, height: 900 });
@@ -564,6 +693,12 @@ const path = require('node:path');
       invalidatedInspection: true,
       passwordErrorInDialog: true,
       passwordVisibility: true,
+      base64PasswordProtection: true,
+      base64WholeFileCopy: true,
+      base64PasswordVisibility: true,
+      base64CopyFailureReported: true,
+      base64SuccessAfterClipboardWrite: true,
+      base64ClearedOnCloseAndNavigation: true,
       passwordsClearedOnClose: true,
       submissionIdempotency: true,
       creationConfirmation: true,

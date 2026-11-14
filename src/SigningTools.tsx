@@ -113,6 +113,7 @@ export function SigningTools({
   const [recovery, setRecovery] = useState<Artifact | null>(null);
   const [discard, setDiscard] = useState<Artifact | null>(null);
   const [forget, setForget] = useState<KeystoreRecord | null>(null);
+  const [base64Record, setBase64Record] = useState<KeystoreRecord | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
   const planRequest = plan ? signingPlanRequest(plan) : null;
   const [submissionId, setSubmissionId] = useState('');
@@ -234,7 +235,7 @@ export function SigningTools({
   };
   useEffect(() => {
     setError('');
-  }, [editor?.id, create, authorize, recovery?.id, discard?.id, forget?.id]);
+  }, [editor?.id, create, authorize, recovery?.id, discard?.id, forget?.id, base64Record?.id]);
   useEffect(() => {
     if (visible) document.body.dataset.signingDrop = 'active';
     return () => {
@@ -249,6 +250,7 @@ export function SigningTools({
       setRecovery(null);
       setDiscard(null);
       setForget(null);
+      setBase64Record(null);
       releasePlan();
     }
   }, [visible]);
@@ -271,6 +273,7 @@ export function SigningTools({
           !editor &&
           !create &&
           !authorize &&
+          !base64Record &&
           !plan
         ) {
           const path = event.payload.paths[0];
@@ -290,7 +293,7 @@ export function SigningTools({
       disposed = true;
       unlisten?.();
     };
-  }, [visible, busy, editor, create, authorize, plan]);
+  }, [visible, busy, editor, create, authorize, base64Record, plan]);
   const chooseApk = () =>
     run(async () => {
       const path = await call<string | null>('signing_choose', { kind: 'apk' });
@@ -585,6 +588,15 @@ export function SigningTools({
                       </>
                     )}
                     <div className="signing-actions">
+                      <Button
+                        disabled={busy || current.status !== 'ready' || !environment.data?.java}
+                        onClick={() => {
+                          setNotice('');
+                          setBase64Record(current);
+                        }}
+                      >
+                        {t('生成 Base64')}
+                      </Button>
                       <Button
                         disabled={busy || current.status === 'missing_dependency'}
                         onClick={() =>
@@ -927,6 +939,18 @@ export function SigningTools({
             busy={busy}
             close={() => setCreate(false)}
             submit={(request, secrets) => void checkSecrets(request, secrets)}
+          />
+        )}
+        {base64Record && visible && (
+          <KeystoreBase64Dialog
+            record={base64Record}
+            busy={busy}
+            close={() => setBase64Record(null)}
+            copied={() => {
+              setBase64Record(null);
+              setNotice(t('已复制'));
+            }}
+            run={run}
           />
         )}
         {authorize && (
@@ -1332,6 +1356,62 @@ function PasswordFields({
         )}
       </p>
     </>
+  );
+}
+function KeystoreBase64Dialog({
+  record,
+  busy,
+  close,
+  copied,
+  run,
+}: {
+  record: KeystoreRecord;
+  busy: boolean;
+  close: () => void;
+  copied: () => void;
+  run: (work: () => Promise<unknown>) => Promise<void>;
+}) {
+  const [password, setPassword] = useState('');
+  return (
+    <Modal title="生成 Keystore Base64" onClose={close} dismissible={!busy} trapFocus>
+      <p className="signing-path">
+        {record.name} · {record.path}
+      </p>
+      <p className="hint">
+        {t('验证容器密码后，直接将整个 Keystore 文件的单行 Base64 复制到剪贴板。')}
+      </p>
+      <PasswordField label="容器密码" value={password} change={setPassword} />
+      <p className="hint">{t('每次生成均需验证容器密码；密码仅用于本次操作。')}</p>
+      <p className="signing-warning">
+        {t('Base64 不是加密，请像原 Keystore 文件一样保管；复制内容会保留在系统剪贴板。')}
+      </p>
+      <div className="modal-actions">
+        <Button disabled={busy} onClick={close}>
+          {t('返回')}
+        </Button>
+        <Button
+          primary
+          loading={busy}
+          disabled={!password}
+          onClick={() =>
+            void run(async () => {
+              try {
+                await call('keystore_copy_base64', {
+                  recordId: record.id,
+                  secrets: { storePassword: password },
+                });
+                copied();
+              } finally {
+                setPassword('');
+              }
+            })
+          }
+        >
+          <Copy size={14} />
+          {t('验证密码并复制')}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 function PasswordDialog({

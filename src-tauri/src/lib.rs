@@ -98,6 +98,7 @@ pub fn run() {
             signing_commands::signing_records,
             signing_commands::keystore_register,
             signing_commands::keystore_forget,
+            signing_commands::keystore_copy_base64,
             signing_commands::apk_signature_inspect,
             signing_commands::signing_certificate_inspect,
             signing_commands::signing_certificate_export,

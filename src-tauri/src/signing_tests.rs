@@ -19,6 +19,191 @@ fn secret(store: &str, key: &str) -> Passwords {
         key_password: key.into(),
     }
 }
+#[tokio::test]
+async fn keystore_base64_rejects_missing_password_and_changed_files() {
+    let root = tempfile::tempdir().unwrap();
+    let app = App::new(root.path().join("app")).unwrap();
+    let file = root.path().join("test.jks");
+    std::fs::write(&file, b"original").unwrap();
+    let mut record = KeystoreRecord {
+        id: "fixture".into(),
+        name: "Fixture".into(),
+        path: file.to_string_lossy().into(),
+        sha256: digest(b"original"),
+        ..Default::default()
+    };
+    app.store.save_signing_record(&record).unwrap();
+    assert_eq!(
+        keystore_base64(&app, &record.id, secret("", ""))
+            .await
+            .unwrap_err()
+            .code,
+        "SIGNING_PASSWORD"
+    );
+    assert_eq!(
+        keystore_base64(&app, "unknown", secret("password", ""))
+            .await
+            .unwrap_err()
+            .code,
+        "SIGNING_RECORD"
+    );
+    std::fs::write(&file, b"changed").unwrap();
+    assert_eq!(
+        keystore_base64(&app, &record.id, secret("password", ""))
+            .await
+            .unwrap_err()
+            .code,
+        "SIGNING_CHANGED"
+    );
+    record.sha256.clear();
+    app.store.save_signing_record(&record).unwrap();
+    assert_eq!(
+        keystore_base64(&app, &record.id, secret("password", ""))
+            .await
+            .unwrap_err()
+            .code,
+        "SIGNING_CHANGED"
+    );
+    std::fs::File::create(&file)
+        .unwrap()
+        .set_len(MAX_KEYSTORE + 1)
+        .unwrap();
+    assert_eq!(
+        keystore_base64(&app, &record.id, secret("password", ""))
+            .await
+            .unwrap_err()
+            .code,
+        "SIGNING_SIZE"
+    );
+    std::fs::remove_file(&file).unwrap();
+    assert!(keystore_base64(&app, &record.id, secret("password", ""))
+        .await
+        .is_err());
+}
+#[tokio::test]
+#[ignore = "explicit local Java; generates disposable JKS and PKCS12 files"]
+async fn keystore_base64_real_password_protection() {
+    let java = std::env::var("ANDROID_DEVKIT_SIGNING_TEST_JAVA").expect("Set signing test Java");
+    let keytool = Path::new(&java).parent().unwrap().join("keytool.exe");
+    let root = tempfile::tempdir().unwrap();
+    let app = App::new(root.path().join("app")).unwrap();
+    app.store
+        .save_settings(&Settings {
+            java_path: java,
+            ..Settings::default()
+        })
+        .unwrap();
+    for (index, (format, password, key_password)) in [
+        ("JKS", "Disposable-fixture-9382!", "Different-private-7319!"),
+        ("PKCS12", "Disposable-fixture-9382!", ""),
+        ("JKS", "临时口令-Only-9382!", "Different-private-7319!"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let file = root.path().join(format!("临时 fixture-{index}.{format}"));
+        let output = sensitive_tool(
+            &app,
+            None,
+            crate::process::Spec::new(
+                &keytool,
+                vec![
+                    "-J-Duser.language=en".into(),
+                    "-J-Duser.country=US".into(),
+                    "-genkeypair".into(),
+                    "-keystore".into(),
+                    file.to_string_lossy().into(),
+                    "-storetype".into(),
+                    format.into(),
+                    "-alias".into(),
+                    "fixture".into(),
+                    "-keyalg".into(),
+                    "RSA".into(),
+                    "-keysize".into(),
+                    "2048".into(),
+                    "-validity".into(),
+                    "3650".into(),
+                    "-dname".into(),
+                    "CN=Base64 Fixture".into(),
+                ],
+            ),
+            secret(password, key_password).lines(true, format),
+        )
+        .await
+        .unwrap();
+        assert_eq!(output.code, 0, "{}", output.stderr);
+        let record = register(
+            &app,
+            KeystoreRecord {
+                name: format.into(),
+                path: file.to_string_lossy().into(),
+                role: "unknown".into(),
+                ..Default::default()
+            },
+            Some(secret(password, "")),
+        )
+        .await
+        .unwrap();
+        for invalid in ["", "wrong-password"] {
+            let error = keystore_base64(&app, &record.id, secret(invalid, ""))
+                .await
+                .unwrap_err();
+            assert!(matches!(
+                error.code.as_str(),
+                "SIGNING_PASSWORD" | "SIGNING_UNLOCK"
+            ));
+            assert!(!serde_json::to_string(&error).unwrap().contains(password));
+        }
+        // Export requires only the container password, even when the private key password differs.
+        let encoded = keystore_base64(
+            &app,
+            &record.id,
+            secret(password, "unused-wrong-private-password"),
+        )
+        .await
+        .unwrap();
+        assert!(!encoded.contains(['\r', '\n']));
+        let original = std::fs::read(&file).unwrap();
+        assert_eq!(
+            base64::engine::general_purpose::STANDARD
+                .decode(&encoded)
+                .unwrap(),
+            original
+        );
+        assert!(
+            !serde_json::to_string(&app.store.signing_records().unwrap())
+                .unwrap()
+                .contains(&encoded)
+        );
+        assert!(app.store.tasks().unwrap().is_empty());
+        assert!(
+            keystore_base64(&app, &record.id, secret("wrong-password", ""))
+                .await
+                .is_err()
+        );
+        // The bridge reports the digest of the exact bytes it unlocked and encoded.
+        let snapshot: serde_json::Value = bridge(
+            &app,
+            None,
+            "base64",
+            &file,
+            "",
+            secret(password, "").bridge_input(false),
+        )
+        .await
+        .unwrap();
+        assert_eq!(snapshot["sha256"], digest(&original));
+        std::fs::write(&file, b"replaced").unwrap();
+        assert_eq!(
+            keystore_base64(&app, &record.id, secret(password, ""))
+                .await
+                .unwrap_err()
+                .code,
+            "SIGNING_CHANGED"
+        );
+    }
+    println!("JKS / PKCS12 Base64 roundtrip, password rejection, unicode passwords and no persisted secrets passed");
+}
 async fn submit(app: &Arc<App>, request: SigningRequest, passwords: Passwords) -> Task {
     let plan = signing_tasks::prepare(app, request, passwords)
         .await

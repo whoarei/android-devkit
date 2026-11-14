@@ -15,6 +15,7 @@
     "allow-signing-records",
     "allow-keystore-register",
     "allow-keystore-forget",
+    "allow-keystore-copy-base64",
     "allow-apk-signature-inspect",
     "allow-signing-certificate-inspect",
     "allow-signing-certificate-export",

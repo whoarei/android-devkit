@@ -50,6 +50,37 @@ public final class DevkitSigningBridge {
             finally { Arrays.fill(legacy, '\0'); }
         }
     }
+    static void unlockBytes(byte[] bytes, char[] password) throws Exception {
+        Exception failure = null;
+        for (String format : new String[]{"JKS", "PKCS12"}) {
+            try {
+                KeyStore store = KeyStore.getInstance(format);
+                store.load(new ByteArrayInputStream(bytes), password);
+                return;
+            } catch (IOException | GeneralSecurityException error) { failure = error; }
+        }
+        throw failure;
+    }
+    static Object keystoreBase64(String file) throws Exception {
+        char[] storePassword = password();
+        byte[] bytes = null;
+        try (InputStream input = Files.newInputStream(Path.of(file))) {
+            bytes = input.readNBytes(8 * 1024 * 1024 + 1);
+            if (bytes.length == 0 || bytes.length > 8 * 1024 * 1024) throw new IllegalArgumentException();
+            // Verify and encode the same in-memory snapshot, even if the file changes.
+            try { unlockBytes(bytes, storePassword); }
+            catch (IOException original) {
+                char[] legacy = legacyPassword(storePassword);
+                try { unlockBytes(bytes, legacy); }
+                finally { Arrays.fill(legacy, '\0'); }
+            }
+            return Map.of("content", Base64.getEncoder().encodeToString(bytes),
+                "sha256", hex(MessageDigest.getInstance("SHA-256").digest(bytes)));
+        } finally {
+            Arrays.fill(storePassword, '\0');
+            if (bytes != null) Arrays.fill(bytes, (byte)0);
+        }
+    }
     static Map<String,Object> certificate(X509Certificate cert) throws Exception {
         PublicKey key = cert.getPublicKey();
         int bits = key instanceof RSAKey ? ((RSAKey)key).getModulus().bitLength()
@@ -233,6 +264,7 @@ public final class DevkitSigningBridge {
                     Class.forName("com.android.apksig.ApkSigner$Builder").getMethod("setLibraryPageAlignmentBytes", int.class);
                     result = Map.of("ready", true); break;
                 case "inspect": result = inspect(args[1], "", false, true); break;
+                case "base64": result = keystoreBase64(args[1]); break;
                 case "keycheck": result = inspect(args[1], args[2], true, true); break;
                 case "strict-keycheck": result = inspect(args[1], args[2], true, false); break;
                 case "normalize": result = normalize(args); break;
