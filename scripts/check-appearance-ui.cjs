@@ -360,10 +360,32 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
     const before = await page
       .locator('.terminal-views')
       .evaluate((node) => getComputedStyle(node).backgroundColor);
-    await page.getByRole('button', { name: '外观', exact: true }).click();
-    let popover = page.getByRole('dialog', { name: '外观设置', exact: true });
-    await popover.getByLabel('界面主题', { exact: true }).selectOption('light');
-    await popover.getByRole('button', { name: '绿色', exact: true }).click();
+    const trigger = page.getByRole('button', { name: '外观', exact: true });
+    const popover = page.getByRole('dialog', { name: '外观设置', exact: true });
+    assert.equal((await trigger.textContent()).trim(), '');
+    assert.equal(await trigger.locator('svg').count(), 1);
+    await trigger.click();
+    const themes = popover.getByRole('radiogroup', { name: '主题', exact: true });
+    const swatches = popover.getByRole('group', { name: '配色', exact: true }).getByRole('button');
+    assert.deepEqual(await popover.locator('.appearance-quick-label').allTextContents(), [
+      '主题',
+      '配色',
+    ]);
+    assert.equal(await themes.getByRole('radio').count(), 3);
+    assert.equal(await swatches.count(), 9);
+    assert.ok((await swatches.allTextContents()).every((label) => !label.trim()));
+    assert.equal(await popover.locator('.appearance-custom').count(), 0);
+    await page.waitForFunction(() =>
+      document.activeElement?.matches('.appearance-segment input:checked'),
+    );
+    assert.equal(await themes.getByRole('radio', { name: '暗色', exact: true }).isChecked(), true);
+    await page.keyboard.press('ArrowLeft');
+    assert.equal(await themes.getByRole('radio', { name: '亮色', exact: true }).isChecked(), true);
+    await popover.getByRole('button', { name: '橙色', exact: true }).click();
+    assert.equal(
+      await popover.getByRole('button', { name: '橙色', exact: true }).getAttribute('aria-pressed'),
+      'true',
+    );
     assert.notEqual(
       await page
         .locator('.terminal-views')
@@ -371,11 +393,27 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
       before,
     );
     assert.equal(await page.evaluate(() => window.__terminalCreates), 1);
-    await popover.getByRole('button', { name: '关闭外观设置', exact: true }).click();
+    const panelBounds = await popover.boundingBox();
+    await page.screenshot({
+      path: path.join(output, 'appearance-compact.png'),
+      clip: {
+        x: Math.floor(panelBounds.x) - 20,
+        y: 0,
+        width: Math.ceil(panelBounds.width) + 40,
+        height: Math.ceil(panelBounds.y + panelBounds.height) + 20,
+      },
+    });
+    await trigger.click();
+    await popover.waitFor({ state: 'detached' });
     await page.setViewportSize({ width: 480, height: 640 });
-    await page.getByRole('button', { name: '外观', exact: true }).click();
-    popover = page.getByRole('dialog', { name: '外观设置', exact: true });
+    await trigger.click();
     assert.equal(await popover.evaluate((node) => node.scrollWidth > node.clientWidth), false);
+    assert.equal(
+      await swatches.evaluateAll(
+        (items) => new Set(items.map((item) => item.getBoundingClientRect().top)).size,
+      ),
+      1,
+    );
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
       false,
@@ -383,6 +421,7 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
     await page.screenshot({ path: path.join(output, 'appearance-480.png') });
     await page.keyboard.press('Escape');
     assert.equal(await popover.count(), 0);
+    assert.equal(await trigger.evaluate((node) => node === document.activeElement), true);
     await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > innerWidth),
@@ -394,27 +433,37 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
         .evaluate((node) => node.getBoundingClientRect().right <= innerWidth),
       'English titlebar controls must remain visible at 480px',
     );
-    await page.getByRole('button', { name: 'Appearance', exact: true }).click();
-    await page
-      .getByRole('dialog', { name: 'Appearance settings', exact: true })
-      .getByLabel('Interface theme', { exact: true })
-      .selectOption('system');
-    await page.getByRole('button', { name: 'Custom', exact: true }).click();
-    assert(
-      await page
-        .getByRole('button', { name: 'Custom', exact: true })
-        .locator('span')
-        .nth(1)
-        .evaluate((node) => node.getBoundingClientRect().height < 24),
-      'The selected English color label must fit on one line',
+    const englishTrigger = page.getByRole('button', { name: 'Appearance', exact: true });
+    const englishPopover = page.getByRole('dialog', { name: 'Appearance settings', exact: true });
+    await englishTrigger.click();
+    await englishPopover.getByRole('radio', { name: 'System', exact: true }).locator('..').click();
+    assert.equal(await root.getAttribute('data-theme-mode'), 'system');
+    const custom = englishPopover.getByRole('button', { name: 'Custom', exact: true });
+    const hex = englishPopover.getByLabel('Hex color', { exact: true });
+    assert.equal(await hex.count(), 0);
+    await custom.click();
+    assert.equal(await custom.getAttribute('aria-expanded'), 'true');
+    await hex.fill('#35B8BD');
+    await hex.press('Enter');
+    await page.waitForFunction(() => window.__preferences.customColor === '#35b8bd');
+    assert.equal(
+      await englishPopover.evaluate((node) => node.scrollWidth > node.clientWidth),
+      false,
     );
-    await page.getByLabel('Hex color', { exact: true }).fill('#35B8BD');
-    await page.getByLabel('Hex color', { exact: true }).press('Enter');
     await page.screenshot({ path: path.join(output, 'appearance-english-480.png') });
     await page.keyboard.press('Escape');
+    await englishTrigger.click();
+    assert.equal(await custom.getAttribute('aria-pressed'), 'true');
+    assert.equal(await hex.count(), 0);
+    await custom.click();
+    await hex.waitFor();
+    await custom.click();
+    await hex.waitFor({ state: 'detached' });
+    await page.locator('.titlebar-brand').click();
+    await englishPopover.waitFor({ state: 'detached' });
     assert.deepEqual(errors, []);
     console.log(
-      'Appearance UI: all 27 palette/mode combinations, logo/tray color contract, contrast, custom colors, semantic status colors, system changes, persistence/cache precedence, seven pages, drafts, live terminal, English and 480px layout passed.',
+      'Appearance UI: compact two-row picker, keyboard, custom colors, all 27 palette/mode combinations, logo/tray color contract, contrast, system changes, persistence, live terminal, English and 480px layout passed.',
     );
   } finally {
     await browser.close();
