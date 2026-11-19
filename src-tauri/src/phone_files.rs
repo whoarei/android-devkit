@@ -9,6 +9,7 @@ use std::{
 };
 
 const MAX_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+const MAX_DIRECTORY_ENTRIES: usize = 10_000;
 pub fn bounded_hash(path: &Path, expected: u64) -> Result<String> {
     let mut input = std::fs::File::open(path)?.take(expected + 1);
     let mut bytes = 0u64;
@@ -72,7 +73,7 @@ pub fn stage_file(source: &Path, destination: &Path, expected: u64) -> Result<St
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct RemoteEntry {
+pub struct FileEntry {
     pub name: String,
     pub path: String,
     pub directory: bool,
@@ -81,6 +82,14 @@ pub struct RemoteEntry {
     pub bytes: u64,
     #[cfg_attr(test, ts(type = "number"))]
     pub modified: u64,
+}
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileDirectory {
+    pub path: String,
+    pub parent: Option<String>,
+    pub entries: Vec<FileEntry>,
 }
 #[cfg_attr(test, derive(ts_rs::TS))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,16 +117,19 @@ pub struct TransferSet {
 pub fn quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
+fn local_link(metadata: &std::fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt;
+        if metadata.file_attributes() & 0x400 != 0 {
+            return true;
+        }
+    }
+    metadata.file_type().is_symlink()
+}
 pub fn regular_local(path: &Path, directory: bool) -> Result<()> {
     for ancestor in path.ancestors() {
-        let m = std::fs::symlink_metadata(ancestor)?;
-        let mut link = m.file_type().is_symlink();
-        #[cfg(windows)]
-        {
-            use std::os::windows::fs::MetadataExt;
-            link |= m.file_attributes() & 0x400 != 0;
-        }
-        if link {
+        if local_link(&std::fs::symlink_metadata(ancestor)?) {
             return Err(AppError::new(
                 "UNSAFE_PATH",
                 "不允许符号链接或 Windows 重解析点",
@@ -134,6 +146,65 @@ pub fn regular_local(path: &Path, directory: bool) -> Result<()> {
     }
     Ok(())
 }
+pub fn local_entries(path: &Path) -> Result<FileDirectory> {
+    if !path.is_absolute()
+        || path
+            .components()
+            .any(|part| part == std::path::Component::ParentDir)
+    {
+        return Err(AppError::new("UNSAFE_PATH", "请选择有效的本地目录"));
+    }
+    regular_local(path, true)?;
+    let mut entries = Vec::new();
+    for (index, entry) in std::fs::read_dir(path)?.enumerate() {
+        if index >= MAX_DIRECTORY_ENTRIES {
+            return Err(AppError::new("TRANSFER_LIMIT", "目录条目超过 10000"));
+        }
+        let entry = entry?;
+        let entry_path = entry.path();
+        let Some(encoded) = entry_path.to_str() else {
+            continue;
+        };
+        let name = entry.file_name().to_string_lossy().into_owned();
+        let metadata = entry.metadata().ok();
+        let directory = metadata.as_ref().is_some_and(std::fs::Metadata::is_dir);
+        let link = !safe_component(&name)
+            || metadata
+                .as_ref()
+                .is_none_or(|meta| local_link(meta) || !(directory || meta.is_file()));
+        let bytes = metadata
+            .as_ref()
+            .filter(|m| m.is_file())
+            .map_or(0, std::fs::Metadata::len);
+        let modified = metadata
+            .and_then(|m| m.modified().ok())
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map_or(0, |time| time.as_secs());
+        entries.push(FileEntry {
+            name,
+            path: encoded.into(),
+            directory,
+            link,
+            bytes,
+            modified,
+        });
+    }
+    sort_entries(&mut entries);
+    Ok(FileDirectory {
+        path: path.to_string_lossy().into_owned(),
+        parent: path
+            .parent()
+            .filter(|p| p.is_absolute())
+            .and_then(Path::to_str)
+            .map(str::to_owned),
+        entries,
+    })
+}
+
+fn sort_entries(entries: &mut [FileEntry]) {
+    entries.sort_by(|a, b| b.directory.cmp(&a.directory).then(a.name.cmp(&b.name)));
+}
+
 pub fn safe_component(s: &str) -> bool {
     let stem = s.split('.').next().unwrap_or("").to_ascii_uppercase();
     !s.is_empty()
@@ -274,7 +345,7 @@ impl App {
             })?;
         Ok(())
     }
-    pub async fn remote_entries(&self, target: &Target, path: &str) -> Result<Vec<RemoteEntry>> {
+    pub async fn remote_entries(&self, target: &Target, path: &str) -> Result<Vec<FileEntry>> {
         let epoch = self.epoch.load(Ordering::SeqCst);
         let settings = self.store.settings();
         if path == "/sdcard" {
@@ -284,7 +355,7 @@ impl App {
                 .success()?;
             return Ok(["Download", "Pictures", "Movies", "DCIM"]
                 .iter()
-                .map(|s| RemoteEntry {
+                .map(|s| FileEntry {
                     name: s.to_string(),
                     path: format!("/sdcard/{s}"),
                     directory: true,
@@ -306,7 +377,7 @@ impl App {
         &self,
         target: &Target,
         path: &str,
-    ) -> Result<Vec<RemoteEntry>> {
+    ) -> Result<Vec<FileEntry>> {
         let settings = self.store.settings();
         let script=format!("set -e; [ -d {d} ] && [ -r {d} ] && [ -x {d} ]; printf 'DEVKIT_LIST_BEGIN\\000'; for p in {d}/* {d}/.[!.]* {d}/..?*; do [ -e \"$p\" ] || [ -L \"$p\" ] || continue; printf '%s\\000' \"$p\"; stat -c '%f %s %Y' \"$p\"; done; printf 'DEVKIT_LIST_END\\000'",d=quote(path));
         let out = self.remote_shell(&settings, target, script, 30).await?;
@@ -1111,14 +1182,14 @@ pub fn plan(
     warnings.push("传输至任务专属暂存区，验证后发布；仅操作共享存储，不跟随链接。设备不支持 SHA-256 时明确报告仅校验大小。中断不自动重放；已发布项目保留在任务日志。".into());
     Ok(())
 }
-fn parse_remote_listing(bytes: &[u8]) -> Result<Vec<RemoteEntry>> {
+fn parse_remote_listing(bytes: &[u8]) -> Result<Vec<FileEntry>> {
     let records = bytes
         .strip_prefix(b"DEVKIT_LIST_BEGIN\0")
         .and_then(|bytes| bytes.strip_suffix(b"DEVKIT_LIST_END\0"))
         .ok_or_else(|| AppError::new("FILE_LIST_FORMAT", "设备列表响应被截断，未使用不完整清单"))?;
     parse_listing(records)
 }
-fn parse_listing(bytes: &[u8]) -> Result<Vec<RemoteEntry>> {
+fn parse_listing(bytes: &[u8]) -> Result<Vec<FileEntry>> {
     let mut remaining = bytes;
     let mut result = vec![];
     while !remaining.is_empty() {
@@ -1145,7 +1216,7 @@ fn parse_listing(bytes: &[u8]) -> Result<Vec<RemoteEntry>> {
             .map_err(|_| AppError::new("FILE_LIST_FORMAT", "文件类型无效"))?;
         let name = path.rsplit('/').next().unwrap_or("").to_string();
         let link = mode & 0xf000 == 0xa000 || !safe_component(&name);
-        result.push(RemoteEntry {
+        result.push(FileEntry {
             name,
             path,
             directory: mode & 0xf000 == 0x4000,
@@ -1155,17 +1226,34 @@ fn parse_listing(bytes: &[u8]) -> Result<Vec<RemoteEntry>> {
                 .map_err(|_| AppError::new("FILE_LIST_FORMAT", "文件大小无效"))?,
             modified: fields[2].parse().unwrap_or(0),
         });
-        if result.len() > 10_000 {
+        if result.len() > MAX_DIRECTORY_ENTRIES {
             return Err(AppError::new("TRANSFER_LIMIT", "目录条目超过 10000"));
         }
         remaining = &remaining[end + 1..];
     }
-    result.sort_by(|a, b| b.directory.cmp(&a.directory).then(a.name.cmp(&b.name)));
+    sort_entries(&mut result);
     Ok(result)
 }
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn local_listing_returns_selectable_entries_and_a_parent() {
+        let temp = tempfile::tempdir().unwrap();
+        let path = temp.path().join("本地 目录");
+        std::fs::create_dir_all(path.join("Folder")).unwrap();
+        std::fs::write(path.join("中文 空格.txt"), b"test").unwrap();
+        std::fs::write(path.join(".devkit-reserved"), b"hidden staging").unwrap();
+        let directory = local_entries(&path).unwrap();
+        assert_eq!(directory.path, path.to_str().unwrap());
+        assert_eq!(directory.parent.as_deref(), temp.path().to_str());
+        assert!(directory.entries[0].directory);
+        assert!(directory.entries[1].link);
+        assert_eq!(directory.entries[2].bytes, 4);
+        assert!(!directory.entries[2].link);
+        assert!(local_entries(Path::new("relative/path")).is_err());
+        assert!(local_entries(&path.join("Folder/..")).is_err());
+    }
     #[test]
     fn changed_source_is_bounded_and_never_commits_a_frozen_copy() {
         let temp = tempfile::tempdir().unwrap();

@@ -358,14 +358,12 @@ pub async fn phone_choose(kind: String) -> Result<Vec<String>> {
     tokio::task::spawn_blocking(move || {
         let dialog = rfd::FileDialog::new();
         let paths = match kind.as_str() {
-            "apk_directory" | "download_directory" => dialog.pick_folder().map(|p| vec![p]),
-            "upload_directory" => dialog.pick_folders(),
+            "apk_directory" => dialog.pick_folder().map(|p| vec![p]),
             "apk_files" => dialog.add_filter("Android APK", &["apk"]).pick_files(),
             "apk_container" => dialog
                 .add_filter("Android APK containers", &["apks", "xapk", "apkm"])
                 .pick_file()
                 .map(|p| vec![p]),
-            "upload_files" => dialog.pick_files(),
             _ => return Err(AppError::new("DIALOG_KIND", "选择类型无效")),
         };
         Ok(paths
@@ -382,8 +380,29 @@ pub async fn device_files(
     app: Service<'_>,
     target: Target,
     path: String,
-) -> Result<Vec<crate::phone_files::RemoteEntry>> {
+) -> Result<Vec<crate::phone_files::FileEntry>> {
     app.remote_entries(&target, &path).await
+}
+#[tauri::command]
+pub async fn local_files(
+    app: tauri::AppHandle,
+    path: Option<String>,
+) -> Result<crate::phone_files::FileDirectory> {
+    let default_directories = [app.path().download_dir(), app.path().home_dir()];
+    tokio::task::spawn_blocking(move || {
+        if let Some(path) = path {
+            return crate::phone_files::local_entries(Path::new(&path));
+        }
+        default_directories
+            .into_iter()
+            .filter_map(std::result::Result::ok)
+            .find_map(|path| crate::phone_files::local_entries(&path).ok())
+            .ok_or_else(|| AppError::new("LOCAL_DIRECTORY", "请选择有效的本地目录"))
+    })
+    .await
+    .map_err(|error| {
+        AppError::new("LOCAL_DIRECTORY", "无法读取本地目录").detail(error.to_string())
+    })?
 }
 #[tauri::command]
 pub async fn transfer_prepare(
@@ -393,6 +412,12 @@ pub async fn transfer_prepare(
     target: Target,
     directory: String,
 ) -> Result<crate::phone_files::TransferSet> {
+    if paths.len() != 1 {
+        return Err(AppError::new(
+            "TRANSFER_SELECTION",
+            "每次只能传输一个文件或目录。",
+        ));
+    }
     app.prepare_transfer(&direction, paths, target, directory)
         .await
 }

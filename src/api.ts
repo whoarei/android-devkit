@@ -1,5 +1,6 @@
 import { t } from './i18n';
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import type { Plan, Task } from './bindings';
 export const native = isTauri();
 export function call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!native)
@@ -8,6 +9,15 @@ export function call<T>(command: string, args: Record<string, unknown> = {}): Pr
       message: t('请使用桌面应用连接本机 SDK；浏览器中不执行设备操作。'),
     });
   return invoke<T>(command, args);
+}
+export function submitTask(plan: Plan, requestId: string, acceptedLicenses: string[] = []) {
+  return call<Task>('task_submit', {
+    planId: plan.id,
+    planHash: plan.hash,
+    requestId,
+    confirmationToken: plan.confirmationToken,
+    acceptedLicenses,
+  });
 }
 export function errorText(e: unknown): string {
   if (typeof e === 'object' && e !== null && 'message' in e)

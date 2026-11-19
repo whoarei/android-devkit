@@ -149,6 +149,7 @@ pub fn run() {
             commands::phone_selection_release,
             commands::phone_choose,
             commands::device_files,
+            commands::local_files,
             commands::transfer_prepare,
             commands::video_preview,
             commands::log_read,

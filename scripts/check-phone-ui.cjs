@@ -106,11 +106,9 @@ const path = require('node:path');
                 })
               : args.kind === 'apk_container'
                 ? ['C:\\fixture.apks']
-                : args.kind === 'download_directory'
-                  ? ['C:\\Downloads']
-                  : args.kind === 'apk_files'
-                    ? ['C:\\base.apk', 'C:\\config.zh.apk']
-                    : ['C:\\中文 空格'];
+                : args.kind === 'apk_files'
+                  ? ['C:\\base.apk', 'C:\\config.zh.apk']
+                  : ['C:\\中文 空格'];
           if (command === 'apk_set_prepare') {
             if (window.__rejectApk) throw { message: 'Fixture signature mismatch' };
             return apk;
@@ -119,6 +117,45 @@ const path = require('node:path');
             if (window.__rejectContainer)
               throw { code: 'APK_CONTAINER_PATH', message: 'Fixture unsafe archive' };
             return { ...apk, target: args.target };
+          }
+          if (command === 'file_choose' && args.kind === 'folder') return 'D:\\Exports';
+          if (command === 'local_files') {
+            const folder = args.path ?? 'C:\\Downloads';
+            const subfolder = folder.endsWith('\\资料');
+            return {
+              path: folder,
+              parent: subfolder
+                ? folder.slice(0, folder.lastIndexOf('\\'))
+                : `${folder.slice(0, 2)}\\`,
+              entries: subfolder
+                ? []
+                : [
+                    {
+                      path: `${folder}\\资料`,
+                      name: '资料',
+                      directory: true,
+                      link: false,
+                      bytes: 0,
+                      modified: 0,
+                    },
+                    {
+                      path: `${folder}\\中文 空格.txt`,
+                      name: '中文 空格.txt',
+                      directory: false,
+                      link: false,
+                      bytes: 8,
+                      modified: 1700000000,
+                    },
+                    {
+                      path: `${folder}\\Local link`,
+                      name: 'Local link',
+                      directory: false,
+                      link: true,
+                      bytes: 0,
+                      modified: 0,
+                    },
+                  ],
+            };
           }
           if (command === 'device_files')
             return args.path === '/sdcard'
@@ -142,6 +179,14 @@ const path = require('node:path');
                     modified: 1700000000,
                   },
                   {
+                    name: 'another.txt',
+                    path: '/sdcard/Download/another.txt',
+                    directory: false,
+                    link: false,
+                    bytes: 17,
+                    modified: 1700000000,
+                  },
+                  {
                     name: 'Link',
                     path: '/sdcard/Download/Link',
                     directory: true,
@@ -150,16 +195,20 @@ const path = require('node:path');
                     modified: 0,
                   },
                 ];
-          if (command === 'transfer_prepare')
+          if (command === 'transfer_prepare') {
+            if (args.paths.length !== 1)
+              throw { message: 'Fixture requires a single transfer item' };
+            const root = args.paths[0].split(/[\\/]/).at(-1);
             return {
               id: `transfer-${(window.__transferCount = (window.__transferCount || 0) + 1)}`,
               direction: args.direction,
               target: args.target,
               directory: args.directory,
-              roots: ['中文 空格.txt', 'another.txt'],
-              items: [{ bytes: 8 }],
-              conflicts: ['中文 空格.txt'],
+              roots: [root],
+              items: [{ relative: root, bytes: 8 }],
+              conflicts: window.__transferWithoutConflicts ? [] : [root],
             };
+          }
           if (command === 'plan_create') {
             if (window.__rejectPlan)
               throw { code: 'FILE_CONFLICT', message: 'Fixture target changed' };
@@ -188,7 +237,7 @@ const path = require('node:path');
               throw { code: 'IPC_DISCONNECTED', message: 'Fixture response lost after submission' };
             }
             const task = {
-              id: 'submitted-transfer',
+              id: `submitted-${args.requestId}`,
               requestId: args.requestId,
               title: '上传文件',
               operation: window.__lastOperation,
@@ -318,34 +367,68 @@ const path = require('node:path');
     await record.getByRole('button', { name: '关闭面板' }).click();
     await page.getByRole('button', { name: '文件传输', exact: true }).click();
     const files = page.getByRole('dialog', { name: '文件传输', exact: true });
-    await files.getByRole('button', { name: 'Download', exact: true }).click();
-    await files.getByLabel('选择：中文 空格.txt', { exact: true }).check();
-    assert.equal(await files.getByLabel('选择：Link', { exact: true }).isDisabled(), true);
-    await files.getByRole('button', { name: '下载所选…' }).click();
+    const local = files.getByRole('region', { name: '本地', exact: true });
+    const android = files.getByRole('region', { name: 'Android', exact: true });
+    const download = android.getByRole('button', {
+      name: '将 中文 空格.txt 下载到本地',
+      exact: true,
+    });
+    const upload = local.getByRole('button', { name: '将 资料 上传到 Android', exact: true });
+    await local.locator('header').getByText('C:\\Downloads', { exact: true }).waitFor();
+    await android.locator('header').getByText('/sdcard/Download', { exact: true }).waitFor();
+    assert.equal(await files.locator('footer').count(), 0);
+    assert.equal(await files.getByRole('checkbox').count(), 0);
+    await local.getByRole('button', { name: '选择目录', exact: true }).click();
+    await local.getByText('D:\\Exports', { exact: true }).waitFor();
+    await local.getByRole('button', { name: '资料', exact: true }).click();
+    await local.getByText('目录为空', { exact: true }).waitFor();
+    await local.getByRole('button', { name: '上级目录', exact: true }).click();
+    await local.getByText('D:\\Exports', { exact: true }).waitFor();
+    assert.equal(
+      await local.getByRole('button', { name: '将 Local link 上传到 Android' }).isDisabled(),
+      true,
+    );
+    await android.getByRole('button', { name: '上级目录', exact: true }).click();
+    const rootDownload = android.getByRole('button', {
+      name: '将 Download 下载到本地',
+      exact: true,
+    });
+    await rootDownload.waitFor();
+    assert.equal(await rootDownload.isDisabled(), true);
+    await android.getByRole('button', { name: 'Download', exact: true }).click();
+    assert.equal(
+      await android.getByRole('button', { name: '将 Link 下载到本地', exact: true }).isDisabled(),
+      true,
+    );
+    await download.click();
     await files.locator('[data-transfer-id]').waitFor();
+    assert.deepEqual(
+      await page.evaluate(
+        () => window.__calls.find((call) => call.command === 'transfer_prepare').args.directory,
+      ),
+      'D:\\Exports',
+    );
+    assert.deepEqual(
+      await page.evaluate(
+        () => window.__calls.find((call) => call.command === 'transfer_prepare').args.paths,
+      ),
+      ['/sdcard/Download/中文 空格.txt'],
+    );
     const review = files.getByRole('button', { name: '确认传输计划' });
     assert.equal(await review.isDisabled(), true);
-    await files.getByLabel('跳过全部同名冲突项，保留现有文件').check();
-    await review.click();
-    await page.getByRole('dialog', { name: 'Fixture plan' }).waitFor();
-    operation = await page.evaluate(
-      () => window.__calls.filter((c) => c.command === 'plan_create').at(-1).args.operation,
-    );
-    assert.equal(operation.kind, 'file_download');
-    assert.equal(operation.args.conflicts, 'skip');
-    assert.equal(operation.target.serial, 'phase2-phone');
-    await page.getByRole('button', { name: '返回修改', exact: true }).click();
-    await files.getByLabel('为冲突项指定新名称').check();
+    await files.getByRole('radio', { name: '重命名', exact: true }).check();
     await files.getByLabel('新名称：中文 空格.txt').fill('renamed.txt');
     await review.click();
     await page.getByRole('dialog', { name: 'Fixture plan' }).waitFor();
     operation = await page.evaluate(
       () => window.__calls.filter((c) => c.command === 'plan_create').at(-1).args.operation,
     );
+    assert.equal(operation.kind, 'file_download');
+    assert.equal(operation.target.serial, 'phase2-phone');
     assert.equal(operation.args.conflicts, 'rename');
     assert.equal(JSON.parse(operation.args.renames)['中文 空格.txt'], 'renamed.txt');
     await page.getByRole('button', { name: '返回修改', exact: true }).click();
-    await files.getByLabel('替换已核对的同名目标及其全部内容').check();
+    await files.getByRole('radio', { name: '替换同名目标', exact: true }).check();
     await review.click();
     await page.getByRole('dialog', { name: 'Fixture plan' }).waitFor();
     operation = await page.evaluate(
@@ -353,13 +436,29 @@ const path = require('node:path');
     );
     assert.equal(operation.args.conflicts, 'replace');
     await page.getByRole('button', { name: '返回修改', exact: true }).click();
+    await files.getByRole('button', { name: '取消', exact: true }).click();
+    await files.locator('[data-transfer-id]').waitFor({ state: 'detached' });
+    const transferCount = () =>
+      page.evaluate(() => window.__calls.filter((c) => c.command === 'transfer_prepare').length);
+    const countBeforeDrop = await transferCount();
     await page.evaluate(() =>
-      window.dispatchEvent(new CustomEvent('devkit-phone-drop', { detail: ['C:\\drag folder'] })),
+      window.dispatchEvent(
+        new CustomEvent('devkit-phone-drop', {
+          detail: ['C:\\拖入\\中文 空格.txt', 'C:\\拖入\\another.txt'],
+        }),
+      ),
+    );
+    await files.getByRole('alert').filter({ hasText: '每次只能传输一个文件或目录。' }).waitFor();
+    assert.equal(await transferCount(), countBeforeDrop);
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new CustomEvent('devkit-phone-drop', { detail: ['C:\\拖入\\中文 空格.txt'] }),
+      ),
     );
     await page.waitForFunction(() =>
       window.__calls.some((c) => c.command === 'transfer_prepare' && c.args.direction === 'upload'),
     );
-    await files.getByLabel('跳过全部同名冲突项，保留现有文件').check();
+    await files.getByRole('radio', { name: '重命名', exact: true }).check();
     await review.click();
     const execution = page.getByRole('dialog', { name: 'Fixture plan' });
     await page.evaluate(() => {
@@ -400,13 +499,75 @@ const path = require('node:path');
       await files.getByRole('button', { name: '清理原传输暂存', exact: true }).count(),
       0,
     );
+    // A transfer without conflicts has no extra dialog, and a retry uses the original request ID.
+    await page.evaluate(() => {
+      window.__transferWithoutConflicts = true;
+      window.__loseSubmitResponse = true;
+    });
+    await upload.click();
+    await files
+      .getByRole('alert')
+      .filter({ hasText: 'Fixture response lost after submission' })
+      .waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    await files.getByRole('button', { name: '重试传输', exact: true }).click();
+    await files.getByRole('progressbar').waitFor();
+    const direct = await page.evaluate(() => ({
+      submissions: window.__calls
+        .filter((c) => c.command === 'task_submit')
+        .slice(-2)
+        .map((c) => c.args.requestId),
+      transfer: window.__calls.filter((c) => c.command === 'transfer_prepare').at(-1).args,
+    }));
+    assert.equal(direct.submissions[0], direct.submissions[1]);
+    assert.equal(direct.transfer.directory, '/sdcard/Download');
+    assert.deepEqual(direct.transfer.paths, ['D:\\Exports\\资料']);
+    assert.equal(direct.transfer.target.transportId, '7');
+    await page.evaluate(() => {
+      window.__tasks[0].state = 'succeeded';
+      window.__tasks[0].message = '已传输 1 项';
+      window.__tasks[0].operation.args.backupsResolved = 'true';
+      window.__callbacks[window.__listeners['workspace-changed']]({ payload: 3 });
+    });
+    await files.getByRole('progressbar').waitFor({ state: 'detached' });
+    await files.getByText('已传输 1 项', { exact: true }).waitFor();
+
+    // The Android row arrow also starts a single download by keyboard.
+    await android
+      .getByRole('button', { name: '将 another.txt 下载到本地', exact: true })
+      .press('Enter');
+    await files.getByRole('progressbar').waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 1);
+    const request = await page.evaluate(
+      () => window.__calls.filter((call) => call.command === 'transfer_prepare').at(-1).args,
+    );
+    assert.equal(request.direction, 'download');
+    assert.deepEqual(request.paths, ['/sdcard/Download/another.txt']);
+    assert.equal(request.directory, 'D:\\Exports');
+    await page.evaluate(() => {
+      Object.assign(window.__tasks[0], { state: 'succeeded', message: '已传输 1 项' });
+      window.__tasks[0].operation.args.backupsResolved = 'true';
+      window.__callbacks[window.__listeners['workspace-changed']]({ payload: 4 });
+      window.__transferWithoutConflicts = false;
+    });
+    await files.getByRole('progressbar').waitFor({ state: 'detached' });
+    assert.equal(await files.locator('footer').count(), 0);
+    assert.equal(await files.getByRole('checkbox').count(), 0);
     for (const width of [480, 1280]) {
       await page.setViewportSize({ width, height: 800 });
       assert.equal(await files.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), true);
+      const boxes = await Promise.all([local.boundingBox(), android.boundingBox()]);
+      if (width === 1280) {
+        assert.ok(boxes[0].x < boxes[1].x);
+        assert.equal(boxes[0].y, boxes[1].y);
+        assert.ok((await files.boundingBox()).width >= 960);
+      } else {
+        assert.ok(boxes[0].y < boxes[1].y);
+      }
     }
     const dir = path.resolve('.qa/phase2-ui');
     fs.mkdirSync(dir, { recursive: true });
-    await page.screenshot({ path: path.join(dir, 'files-1280.png') });
+    await files.screenshot({ path: path.join(dir, 'files-1280.png') });
     await files.getByRole('button', { name: '关闭面板' }).click();
     // A picker returning after reconnect stays bound to the old transport and is rejected/abandoned.
     await page.evaluate(() => {
@@ -432,12 +593,17 @@ const path = require('node:path');
     await englishRecord.getByRole('button', { name: 'Close panel' }).click();
     await page.getByRole('button', { name: 'File transfer', exact: true }).click();
     const englishFiles = page.getByRole('dialog', { name: 'File transfer', exact: true });
-    await englishFiles.getByRole('button', { name: 'Download', exact: true }).click();
-    await englishFiles.getByRole('button', { name: 'Upload files…', exact: true }).click();
-    await englishFiles.getByLabel('Rename conflicting items').check();
+    const englishLocal = englishFiles.getByRole('region', { name: 'Local', exact: true });
+    const englishUpload = englishLocal.getByRole('button', {
+      name: 'Upload 中文 空格.txt to Android',
+      exact: true,
+    });
+    await englishUpload.waitFor();
     await page.setViewportSize({ width: 480, height: 800 });
+    await englishFiles.screenshot({ path: path.join(dir, 'files-english-480.png') });
+    await englishUpload.click();
+    await englishFiles.getByRole('radio', { name: 'Rename', exact: true }).check();
     assert.equal(await englishFiles.evaluate((el) => el.scrollWidth <= el.clientWidth + 1), true);
-    await page.screenshot({ path: path.join(dir, 'files-english-480.png') });
     await englishFiles.getByRole('button', { name: 'Close panel' }).click();
     await page.evaluate(() => {
       window.__missingCatalog = true;
@@ -475,7 +641,7 @@ const path = require('node:path');
     );
     assert.deepEqual(errors, []);
     console.log(
-      'Phone UI: split review, recording bounds/options, frozen target, shared-storage navigation, multiselect, link blocking, keep/rename/replace, native drop, reconnect, English and 480/1280 layouts passed.',
+      'Phone UI: split review, recording, dual-pane navigation, single-item transfers, rename/replace, retries, drop limits, reconnect, and 480/1280 layouts passed.',
     );
   } finally {
     await browser.close();

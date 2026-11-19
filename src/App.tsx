@@ -66,7 +66,16 @@ import { avdImageGroups, hasSdkUpdate } from './sdk';
 import { Button, Badge, Modal, Field } from './ui';
 import { EnvironmentSetup } from './EnvironmentSetup';
 import { AvdUsage, defaultRow, preferenceKey, useDefaultTarget } from './DeviceUtilities';
-import { call, native, errorText, stateLabel, taskActive, size, deviceKey } from './api';
+import {
+  call,
+  native,
+  errorText,
+  stateLabel,
+  taskActive,
+  size,
+  deviceKey,
+  submitTask,
+} from './api';
 import type {
   Settings,
   Workspace,
@@ -96,16 +105,6 @@ const titles: Record<Page, string> = {
   settings: '设置',
 };
 type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
-
-function submitTask(plan: Plan, requestId: string, acceptedLicenses: string[] = []) {
-  return call<Task>('task_submit', {
-    planId: plan.id,
-    planHash: plan.hash,
-    requestId,
-    confirmationToken: plan.confirmationToken,
-    acceptedLicenses,
-  });
-}
 
 export function App() {
   const locale = useLocale();
@@ -1068,6 +1067,10 @@ export function App() {
                       }
                       prepare={(kind, args, target) => prepare(kind, args, target, true)}
                       planOpen={Boolean(plan) || javaOpen}
+                      onTransferSubmitted={(task) => {
+                        setSubmittedPhoneTask(task);
+                        void refresh();
+                      }}
                     />
                   )}
                 </aside>

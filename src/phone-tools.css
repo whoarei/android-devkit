@@ -38,34 +38,162 @@
 .phone-review li {
   padding: 4px 0;
 }
-.phone-file-list {
-  overflow: auto;
-  max-height: 360px;
+.modal.wide.file-transfer-modal {
+  width: min(1060px, 100%);
+}
+.file-transfer-modal > .modal-heading {
+  margin-bottom: 16px;
+}
+.transfer-panes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
+  background: var(--surface);
 }
-.phone-file-list table {
-  width: 100%;
-  border-collapse: collapse;
+.transfer-pane {
+  min-width: 0;
+}
+.transfer-pane + .transfer-pane {
+  border-left: 1px solid var(--line);
+}
+.transfer-location {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 35px;
+  padding: 2px 5px 2px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-muted);
   font-size: 12px;
 }
-.phone-file-list th,
-.phone-file-list td {
-  text-align: left;
-  border-bottom: 1px solid var(--line);
-  padding: 9px 10px;
+.transfer-location strong {
   white-space: nowrap;
 }
-.phone-file-list th {
-  font-weight: 500;
+.transfer-path,
+.transfer-entry-size,
+.transfer-feedback {
+  color: var(--muted);
+  font-size: 12px;
 }
-.phone-file-list td:nth-child(2) {
-  white-space: normal;
-  overflow-wrap: anywhere;
-  min-width: 150px;
+.transfer-path,
+.transfer-entry-name > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.phone-file-list .text-button {
+.transfer-location .icon-button {
+  flex: 0 0 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+}
+.transfer-location .icon-button:hover:not(:disabled),
+button.transfer-entry-name:hover:not(:disabled) {
+  color: var(--accent);
+}
+.transfer-path {
+  flex: 1;
+  margin-inline: 7px 4px;
+  user-select: text;
+}
+.transfer-entries {
+  height: clamp(196px, 42vh, 480px);
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  font-size: 12px;
+}
+.transfer-entries ul {
+  list-style: none;
+  margin: 0;
+  padding: 3px 0;
+}
+.transfer-entries li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 26px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  min-height: 30px;
+}
+.transfer-entries li:hover {
+  background: var(--hover);
+}
+.transfer-entries > p {
+  margin: 12px;
+}
+.transfer-entry-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
   text-align: left;
+}
+.transfer-entry-name svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.transfer-entry-size {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.transfer-entry-action {
+  grid-column: 3;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+}
+.transfer-entry-action:hover:not(:disabled) {
+  background: var(--surface-muted);
+  color: var(--accent);
+}
+.transfer-feedback {
+  margin: 8px 0 0;
+  overflow-wrap: anywhere;
+}
+.transfer-feedback:empty {
+  display: none;
+}
+.transfer-review fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.transfer-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+.transfer-status {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+}
+.transfer-status p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.transfer-status progress {
+  grid-column: 1 / -1;
+  width: 100%;
+  height: 6px;
+  accent-color: var(--accent);
 }
 .phone-video {
   display: block;
@@ -79,5 +207,18 @@
   }
   .phone-modal {
     max-width: calc(100vw - 24px);
+  }
+  .transfer-panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .transfer-pane + .transfer-pane {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+  .transfer-entries {
+    height: clamp(125px, 24vh, 180px);
+  }
+  .transfer-entry-action svg {
+    transform: rotate(90deg);
   }
 }
