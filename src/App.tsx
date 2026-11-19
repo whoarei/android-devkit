@@ -4,7 +4,13 @@ import { AppearanceControls, AppearancePicker } from './AppearanceSettings';
 import { BrandMark } from './BrandMark';
 import { version } from '../package.json';
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  queryOptions,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { create } from 'zustand';
 import { usePreference, usePreferenceError, retryPreferences } from './preferences';
 import { listen } from '@tauri-apps/api/event';
@@ -43,7 +49,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
-import type { ExportPreview } from './bindings';
+import type { ExportPreview, TaskPage } from './bindings';
 import { ConnectDevice } from './ConnectDevice';
 import { TaskCenter } from './TaskCenter';
 import { PhoneTools } from './PhoneTools';
@@ -90,6 +96,17 @@ const titles: Record<Page, string> = {
   settings: '设置',
 };
 type ModalName = 'create' | 'wireless' | 'apk' | 'edit' | 'close' | null;
+
+function submitTask(plan: Plan, requestId: string, acceptedLicenses: string[] = []) {
+  return call<Task>('task_submit', {
+    planId: plan.id,
+    planHash: plan.hash,
+    requestId,
+    confirmationToken: plan.confirmationToken,
+    acceptedLicenses,
+  });
+}
+
 export function App() {
   const locale = useLocale();
   const theme = useResolvedTheme();
@@ -112,6 +129,9 @@ export function App() {
   const [submittedPhoneTask, setSubmittedPhoneTask] = useState<Task | null>(null);
   const submitting = useRef(false);
   const submissionIdentity = useRef({ planId: '', requestId: '' });
+  const submittingCapture = useRef(false);
+  const [capturePending, setCapturePending] = useState(false);
+  const [captureTaskIds, setCaptureTaskIds] = useState<string[]>([]);
   useEffect(() => {
     if (submittedPhoneTask && data?.tasks.some((task) => task.id === submittedPhoneTask.id))
       setSubmittedPhoneTask(null);
@@ -138,6 +158,38 @@ export function App() {
     [maximized, setMaximized] = useState(false),
     [preview, setPreview] = useState('');
   const [exportPreview, setExportPreview] = useState<ExportPreview | null>(null);
+  const captureResults = useQueries({
+    queries: captureTaskIds.map((taskId) =>
+      queryOptions({
+        queryKey: ['capture-result', taskId],
+        queryFn: async () => {
+          const { tasks } = await call<TaskPage>('task_list', {
+            query: { keyword: taskId, state: 'all', offset: 0 },
+          });
+          const task = tasks.find((item) => item.id === taskId);
+          if (!task) throw new Error('读取任务失败');
+          if (taskActive(task.state)) return null;
+          if (task.state !== 'succeeded') throw new Error(task.message);
+          return call<string>('artifact_copy', { taskId, preview: true });
+        },
+        refetchInterval: (query) =>
+          query.state.status === 'success' && query.state.data === null ? 500 : false,
+        gcTime: 0,
+      }),
+    ),
+  });
+  const finishedCaptureIndex = captureResults.findIndex(({ data, error }) => data || error);
+  const finishedCaptureId = captureTaskIds[finishedCaptureIndex];
+  const { data: captureImage, error: captureError } = captureResults[finishedCaptureIndex] ?? {};
+  const previewBlocked = Boolean(
+    preview || plan || modal || exportPreview || environmentOpen || javaOpen,
+  );
+  useEffect(() => {
+    if (!finishedCaptureId || (captureImage && previewBlocked)) return;
+    if (captureImage) setPreview(captureImage);
+    else if (captureError) setError(errorText(captureError));
+    setCaptureTaskIds((ids) => ids.filter((id) => id !== finishedCaptureId));
+  }, [captureImage, captureError, finishedCaptureId, previewBlocked]);
   const [apkDevice, setApkDevice] = useState<Device | null>(null);
   const [apkAvd, setApkAvd] = useState<Avd | null>(null);
   const [choosingApk, setChoosingApk] = useState(false);
@@ -375,6 +427,23 @@ export function App() {
       await call('text_copy', { text });
       notify(t('已复制'));
     });
+  const capture = async (device: Device) => {
+    if (device.state !== 'ready' || submittingCapture.current) return;
+    submittingCapture.current = true;
+    setCapturePending(true);
+    try {
+      await guard(async () => {
+        const operation = { kind: 'capture', args: {}, target: device } satisfies Operation;
+        const capturePlan = await call<Plan>('plan_create', { operation });
+        const task = await submitTask(capturePlan, crypto.randomUUID());
+        setCaptureTaskIds((ids) => [...ids, task.id]);
+        await refresh();
+      });
+    } finally {
+      submittingCapture.current = false;
+      setCapturePending(false);
+    }
+  };
   const submit = async () => {
     if (!plan || submitting.current) return;
     submitting.current = true;
@@ -383,13 +452,7 @@ export function App() {
     setBusy(true);
     try {
       await guard(async () => {
-        const submitted = await call<Task>('task_submit', {
-          planId: plan.id,
-          planHash: plan.hash,
-          requestId: submissionIdentity.current.requestId,
-          confirmationToken: plan.confirmationToken,
-          acceptedLicenses: accepted,
-        });
+        const submitted = await submitTask(plan, submissionIdentity.current.requestId, accepted);
         if (
           ['file_upload', 'file_download', 'screen_record', 'screen_recover'].includes(
             plan.operation.kind,
@@ -883,7 +946,8 @@ export function App() {
                     </Button>
                     <Button
                       disabled={target?.state !== 'ready'}
-                      onClick={() => void prepare('capture', {}, target ?? null)}
+                      loading={capturePending}
+                      onClick={() => target && void capture(target)}
                     >
                       <Camera size={15} />
                       {t('截图')}

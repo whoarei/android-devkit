@@ -44,6 +44,7 @@ const path = require('node:path');
       window.__pickedPath = 'C:\\fixture.apk';
       window.__holdPicker = false;
       window.__rejectPrepare = false;
+      window.__captureTasks = [];
       let callbackId = 0;
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
       window.__TAURI_INTERNALS__ = {
@@ -123,19 +124,46 @@ const path = require('node:path');
           }
           if (command === 'plan_create') {
             window.__operations.push(args.operation);
+            const capture = args.operation.kind === 'capture';
             return {
-              id: 'fixture-plan',
-              hash: 'fixture',
-              confirmationToken: 'fixture',
-              title: 'Fixture install plan',
+              id: capture ? 'fixture-capture-plan' : 'fixture-plan',
+              hash: 'fixture-hash',
+              confirmationToken: 'fixture-token',
+              title: capture ? '截图' : 'Fixture install plan',
               operation: args.operation,
-              effects: ['Install fixture.apk'],
+              effects: capture ? [] : ['Install fixture.apk'],
               warnings: [],
               licenses: [],
               createdAt: Date.now(),
               settingsHash: 'fixture',
             };
           }
+          if (command === 'task_submit' && args.planId === 'fixture-capture-plan') {
+            return new Promise((resolve, reject) => {
+              window.__finishCapture = (message) => {
+                delete window.__finishCapture;
+                if (message) {
+                  reject({ message });
+                  return;
+                }
+                const task = {
+                  id: `fixture-capture-${window.__captureTasks.length + 1}`,
+                  state: 'queued',
+                  message: '',
+                };
+                window.__captureTasks.push(task);
+                resolve(structuredClone(task));
+              };
+            });
+          }
+          if (command === 'task_list')
+            return {
+              tasks: structuredClone(
+                window.__captureTasks.filter((task) => task.id === args.query.keyword),
+              ),
+            };
+          if (command === 'artifact_copy' && args.preview)
+            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1sAAAAASUVORK5CYII=';
           if (command === 'plugin:event|listen') {
             window.__listeners[args.event] = args.handler;
             return args.handler;
@@ -327,9 +355,89 @@ const path = require('node:path');
       await page.evaluate(() => window.__commands.some((c) => c.command === 'task_submit')),
       false,
     );
+
+    // Screenshot submits immediately for the selected session and ignores a rapid second click.
+    await secondary.click();
+    const capture = details.getByRole('button', { name: 'Screenshot', exact: true });
+    const waitForCaptureSubmission = () =>
+      page.waitForFunction(() => typeof window.__finishCapture === 'function');
+    await capture.dblclick();
+    await waitForCaptureSubmission();
+    assert.equal(await capture.isDisabled(), true);
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    const { plans, submissions } = await page.evaluate(() => ({
+      plans: window.__operations.filter(({ kind }) => kind === 'capture'),
+      submissions: window.__commands.filter(({ command }) => command === 'task_submit'),
+    }));
+    assert.equal(plans.length, 1);
+    assert.equal(plans[0].target.serial, '192.168.1.10:5555');
+    assert.equal(plans[0].target.transportId, '2');
+    assert.equal(plans[0].target.serverEpoch, 1);
+    assert.equal(submissions.length, 1);
+    assert.equal(submissions[0].args.planId, 'fixture-capture-plan');
+    assert.equal(submissions[0].args.planHash, 'fixture-hash');
+    assert.equal(submissions[0].args.confirmationToken, 'fixture-token');
+    await page.evaluate(() => window.__finishCapture());
+    await page.waitForFunction(() =>
+      window.__commands.some(({ command }) => command === 'task_list'),
+    );
+    assert.equal(await page.getByRole('dialog').count(), 0);
+    assert.equal(
+      await page.evaluate(() =>
+        window.__commands.some(({ command }) => command === 'artifact_copy'),
+      ),
+      false,
+    );
+
+    // The preview follows this capture even if the user has left the device page.
+    const sidebar = page.locator('.sidebar');
+    await sidebar.getByRole('button', { name: 'Settings', exact: true }).click();
+    await details.waitFor({ state: 'detached' });
+    await page.evaluate(() => {
+      window.__captureTasks[0].state = 'succeeded';
+    });
+    const preview = page.getByRole('dialog', { name: 'Device screenshot', exact: true });
+    await preview
+      .getByRole('img', { name: 'Device screenshot preview' })
+      .evaluate((img) => img.decode());
+    assert.equal(await sidebar.locator('button.active').getAttribute('aria-label'), 'Settings');
+    assert.deepEqual(
+      await page.evaluate(() =>
+        window.__commands
+          .filter(({ command }) => command === 'artifact_copy')
+          .map(({ args }) => args),
+      ),
+      [{ taskId: 'fixture-capture-1', preview: true }],
+    );
+    await preview.getByRole('button', { name: 'Close panel' }).click();
+    await preview.waitFor({ state: 'detached' });
+    await sidebar.getByRole('button', { name: 'Device Workbench', exact: true }).click();
+
+    await capture.click();
+    await waitForCaptureSubmission();
+    await page.evaluate(() => {
+      window.__finishCapture();
+      Object.assign(window.__captureTasks[1], {
+        state: 'failed',
+        message: 'Fixture device disconnected',
+      });
+    });
+    await page.getByRole('alert').filter({ hasText: 'Fixture device disconnected' }).waitFor();
+    assert.equal(await page.getByRole('dialog').count(), 0);
+
+    await capture.click();
+    await waitForCaptureSubmission();
+    await page.evaluate(() => window.__finishCapture('Fixture capture submission failed'));
+    await page
+      .getByRole('alert')
+      .filter({ hasText: 'Fixture capture submission failed' })
+      .waitFor();
+    await page.waitForFunction(() => !document.querySelector('.detail-actions [aria-busy]'));
+    assert.equal(await capture.isEnabled(), true);
+    assert.equal(await page.getByRole('dialog').count(), 0);
     assert.deepEqual(errors, []);
     console.log(
-      'Device UI: selection toggle, keyboard actions, quick APK install/cancel, independent targets, reconnect, native drop, errors and compact layout passed.',
+      'Device UI: selection, keyboard actions, quick APK install, reconnect, native drop, compact layout, one-click screenshot, automatic preview, and errors passed.',
     );
   } finally {
     await browser.close();
