@@ -67,6 +67,7 @@ fn main() {
         "phone_selection_release",
         "phone_choose",
         "device_files",
+        "local_files",
         "transfer_prepare",
         "video_preview",
         "log_read",

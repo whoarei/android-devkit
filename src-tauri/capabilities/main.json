@@ -68,6 +68,7 @@
     "allow-phone-selection-release",
     "allow-phone-choose",
     "allow-device-files",
+    "allow-local-files",
     "allow-transfer-prepare",
     "allow-video-preview",
     "allow-log-read",

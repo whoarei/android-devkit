@@ -77,7 +77,7 @@ export function Modal({
         ...panel.querySelectorAll<HTMLElement>(
           'button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),summary,a[href],video[controls]',
         ),
-      ].filter((node) => node.getClientRects().length > 0);
+      ].filter((node) => node.tabIndex >= 0 && node.getClientRects().length > 0);
     (controls()[0] || panel).focus();
     const trap = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return;
@@ -86,13 +86,14 @@ export function Modal({
         .at(-1);
       if (!top?.contains(panel)) return;
       const nodes = controls();
-      if (!nodes.length || !panel.contains(document.activeElement)) {
+      const active = document.activeElement;
+      if (!nodes.some((node) => node === active)) {
         event.preventDefault();
         (event.shiftKey ? nodes.at(-1) || panel : nodes[0] || panel).focus();
-      } else if (event.shiftKey && document.activeElement === nodes[0]) {
+      } else if (event.shiftKey && active === nodes[0]) {
         event.preventDefault();
         nodes.at(-1)?.focus();
-      } else if (!event.shiftKey && document.activeElement === nodes.at(-1)) {
+      } else if (!event.shiftKey && active === nodes.at(-1)) {
         event.preventDefault();
         nodes[0]?.focus();
       }
