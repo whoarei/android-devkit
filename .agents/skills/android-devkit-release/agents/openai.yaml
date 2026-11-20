@@ -1,4 +1,4 @@
 interface:
   display_name: "Android DevKit 版本发布"
   short_description: "通过 GitHub Actions 构建、签名并发布 Android DevKit"
-  default_prompt: "使用 $android-devkit-release 准备新版本，通过 GitHub Actions 构建和发布，并校验下载产物。"
+  default_prompt: "使用 $android-devkit-release 通过 GitHub Actions 发布新版本，完成后给出版本和下载链接。"

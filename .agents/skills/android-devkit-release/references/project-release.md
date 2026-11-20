@@ -71,7 +71,7 @@ ZIP 内恰好为 `AndroidDevKit.exe`、两份许可文件和 `build-info.json`�
 
 ## 远端发布和跟踪
 
-发布源代码与计划确认后记录 `$releaseCommit`。下列远端写入只在当前请求已经授权正式发布时执行：
+完成发布准备并确定候选提交后，记录 `$releaseCommit`。下列远端写入只在当前请求已经授权正式发布时执行：
 
 ```powershell
 $releaseCommit = git rev-parse HEAD
@@ -81,7 +81,7 @@ git push origin "refs/tags/$releaseTag"
 
 gh run list --repo $releaseRepo --workflow ci.yml --event push --commit $releaseCommit --json databaseId,headBranch,headSha,status,conclusion,url
 gh run view $releaseRunId --repo $releaseRepo --json headSha,headBranch,event,status,conclusion,jobs,url
-gh release view $releaseTag --repo $releaseRepo --json tagName,isDraft,isPrerelease,url,assets,body
+gh api "repos/$releaseRepo/releases/tags/$releaseTag" --jq '{tag_name, draft, prerelease, assets: [.assets[] | {name, browser_download_url}]}'
 git ls-remote origin "refs/tags/$releaseTag" "refs/tags/$releaseTag^{}"
 ```
 
@@ -89,16 +89,6 @@ git ls-remote origin "refs/tags/$releaseTag" "refs/tags/$releaseTag^{}"
 
 标签推送触发的 CI 在 `windows` job 成功后，由 `release` job 下载同一 SHA 的 `windows-x64-*` 资产、检查 SHA256SUMS，再通过 `gh release create --verify-tag --latest` 发布。手动运行只检查和打包，发布 job 会跳过；不能据此宣称版本已经发布。无需额外调用创建 Release 命令。
 
-下载核验时在系统临时目录创建两个全新目录，使用确定的版本和资产名：
-
-```powershell
-$downloadDirectory = Join-Path ([IO.Path]::GetTempPath()) ("android-devkit-release-" + [guid]::NewGuid())
-$portableDirectory = Join-Path ([IO.Path]::GetTempPath()) ("android-devkit-portable-" + [guid]::NewGuid())
-gh release download $releaseTag --repo $releaseRepo --dir $downloadDirectory
-Expand-Archive -LiteralPath (Join-Path $downloadDirectory "AndroidDevKit-$releaseVersion-windows-x64.zip") -DestinationPath $portableDirectory
-node $assetVerifier $downloadDirectory $releaseVersion --portable $portableDirectory --require-updater
-```
-
-`$assetVerifier` 指向本 skill 的 `scripts/verify-release-assets.cjs`。该脚本不访问网络、不上传、不删除文件。发布后本地只下载、解压和验证正式成品；需要独立验签时使用已有可用工具，不为验签重新编译应用或测试程序。临时目录使用完按需要清理，先核对绝对路径后再删除。
+发布后通过上述 GitHub API 查询确认 `tag_name` 等于目标标签，`draft` 和 `prerelease` 均为 `false`。按版本匹配 `AndroidDevKit-X.Y.Z-setup.exe` 和 `AndroidDevKit-X.Y.Z-windows-x64.zip`，取这两个资产的 `browser_download_url` 与版本号一起汇报。发布后验收只查元数据，文件内容校验在 CI 内完成。
 
 若 GitHub CLI 连接失败，先核对认证与已有会话中的代理设置；只在当前进程使用已确认的代理，不写死历史端口、不改全局 Git / 系统代理，不输出令牌。认证或网络问题报告为阻塞原因，不能据此新建仓库、重复发布或忽略远端检查。
