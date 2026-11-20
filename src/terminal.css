@@ -1,19 +1,31 @@
+.main.terminal-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  padding: 48px 14px 10px;
+  overflow: auto;
+}
+.terminal-page {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  min-width: 0;
+}
 .terminal-page[hidden],
 .terminal-surface[hidden] {
   display: none;
 }
 .terminal-empty {
-  min-height: 390px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
+  flex: 1;
+  min-height: 190px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 18px;
+  gap: 10px;
   text-align: center;
-  padding: 30px;
+  padding: 16px;
 }
 .terminal-empty > svg {
   color: var(--accent);
@@ -22,8 +34,7 @@
   font-size: 20px;
   font-weight: 500;
 }
-.terminal-empty p,
-.terminal-empty small {
+.terminal-empty p {
   color: var(--muted);
   font-size: 12px;
   overflow-wrap: anywhere;
@@ -84,31 +95,60 @@
   padding: 10px;
   font-size: 12px;
 }
+.terminal-panes {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.terminal-tabbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding-inline: 5px;
+  background: var(--sidebar);
+  border-bottom: 1px solid var(--line);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
 .terminal-tabs {
   display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
+  align-self: stretch;
   gap: 3px;
-  padding: 6px 7px 0;
-  background: var(--sidebar);
-  border: 1px solid var(--line);
-  border-radius: 6px 6px 0 0;
+  min-width: 0;
+  padding-top: 3px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.terminal-tabs:empty {
+  display: none;
+}
+.terminal-add-tab {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+}
+.terminal-add-tab:hover:not(:disabled),
+.terminal-add-tab[aria-expanded='true'] {
+  background: var(--hover);
+  color: var(--accent);
 }
 .terminal-tab {
   display: flex;
   align-items: center;
-  min-width: 0;
-  max-width: 100%;
-  padding-right: 6px;
+  flex: 0 0 auto;
+  max-width: min(230px, 100%);
+  padding-right: 4px;
   border: 1px solid transparent;
   border-radius: 5px 5px 0 0;
 }
 .terminal-tab.selected {
-  border-color: var(--line);
-  border-bottom-color: var(--surface);
+  border-color: var(--line) var(--line) var(--accent);
   background: var(--surface);
-  margin-bottom: -1px;
-  z-index: 1;
 }
 .terminal-tab-select {
   background: transparent;
@@ -116,15 +156,18 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 11px 9px;
+  padding: 7px 8px;
   font-size: 12px;
   text-align: left;
-  overflow-wrap: anywhere;
   min-width: 0;
 }
-.terminal-add-tab {
-  align-self: center;
-  margin: 0 4px 4px;
+.terminal-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.terminal-tabs button:focus-visible {
+  outline-offset: -2px;
 }
 .terminal-dot {
   width: 6px;
@@ -139,44 +182,35 @@
 .terminal-context {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 15px 16px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-top: 0;
+  gap: 10px;
+  padding: 3px 8px;
+  border-top: 1px solid var(--line);
+  min-height: 34px;
 }
-.terminal-target-icon {
-  display: grid;
-  place-items: center;
-  width: 33px;
-  height: 35px;
-  flex-shrink: 0;
-  background: var(--soft);
-  color: var(--accent);
-  border-radius: var(--radius-sm);
-}
-.terminal-context > div {
-  min-width: 0;
+.terminal-target {
+  display: flex;
   flex: 1;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  white-space: nowrap;
+  font-size: 11px;
 }
-.terminal-context b {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  overflow-wrap: anywhere;
-}
-.terminal-context small {
-  display: block;
+.terminal-target svg {
+  flex: none;
   color: var(--muted);
-  font:
-    11px/1.6 Consolas,
-    monospace;
-  overflow-wrap: anywhere;
+}
+.terminal-target code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--muted);
+  font-family: Consolas, monospace;
 }
 .terminal-state {
   color: var(--muted);
   font-size: 11px;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 .terminal-state.active {
   color: var(--success);
@@ -185,17 +219,32 @@
 .terminal-state.failed {
   color: var(--warning);
 }
+.terminal-actions {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  padding-left: 5px;
+  border-left: 1px solid var(--line);
+}
+.terminal-actions .text-button {
+  padding: 5px 6px;
+  white-space: nowrap;
+  border-radius: var(--radius-sm);
+}
+.terminal-actions .text-button:hover:not(:disabled),
+.terminal-actions .text-button[aria-expanded='true'] {
+  background: var(--hover);
+}
 .terminal-ended {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 12px 15px;
+  padding: 6px 9px;
   background: var(--warning-bg);
   color: var(--warning);
   font-size: 12px;
-  border: 1px solid var(--warning-border);
-  border-top: 0;
+  border-top: 1px solid var(--warning-border);
 }
 .terminal-ended span {
   min-width: 0;
@@ -206,43 +255,17 @@
   padding: 6px 10px;
   font-size: 11px;
 }
-.terminal-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  border: 1px solid var(--line);
-  border-top: 0;
-  background: var(--surface);
-}
-.terminal-toolbar > span,
-.terminal-toolbar > div {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-.terminal-toolbar > span {
-  font-size: 11px;
-  color: var(--muted);
-  gap: 6px;
-}
-.terminal-toolbar .text-button {
-  font-size: 11px;
-}
 .terminal-views {
+  position: relative;
+  flex: 1;
+  min-height: 180px;
   background: var(--terminal-background);
   color: var(--terminal-foreground);
-  border-radius: 0 0 6px 6px;
-  padding: 16px 16px 13px;
   overflow: hidden;
 }
 .terminal-surface {
-  height: max(280px, calc(100vh - 465px));
-  max-height: 850px;
-  min-width: 0;
+  position: absolute;
+  inset: 8px 10px;
 }
 .terminal-emulator {
   width: 100%;
@@ -252,33 +275,18 @@
   height: 100%;
 }
 .terminal-emulator .xterm-viewport {
+  background-color: var(--terminal-background);
   scrollbar-width: thin;
 }
 .terminal-emulator .xterm-screen {
   max-width: 100%;
 }
-.terminal-footnote {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 12px;
-  color: var(--muted);
-  font-size: 11px;
-}
-.terminal-footnote > span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
 .terminal-snippets {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  padding: 10px 12px;
-  background: var(--surface);
-  border-left: 1px solid var(--line);
-  border-right: 1px solid var(--line);
+  padding: 6px 8px;
+  border-top: 1px solid var(--line);
 }
 .terminal-snippets button {
   background: var(--soft);
@@ -291,24 +299,19 @@
   overflow-wrap: anywhere;
 }
 @media (max-width: 600px) {
+  .main.terminal-workspace {
+    padding: 44px 8px 8px;
+  }
+  .terminal-tab-select {
+    padding-block: 5px;
+  }
   .terminal-context {
-    padding: 12px;
-    flex-wrap: wrap;
+    gap: 6px;
   }
-  .terminal-context .terminal-state {
-    padding-left: 45px;
-    width: 100%;
+  .terminal-actions .text-button span {
+    display: none;
   }
-  .terminal-toolbar {
-    padding: 10px;
-  }
-  .terminal-toolbar > div {
-    gap: 10px;
-  }
-  .terminal-views {
-    padding: 12px 9px;
-  }
-  .terminal-empty {
-    padding: 28px 15px;
+  .terminal-surface {
+    inset-inline: 7px;
   }
 }

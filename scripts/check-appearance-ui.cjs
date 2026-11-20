@@ -330,7 +330,9 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
       '设置',
     ]) {
       await nav(name).click();
-      await page.getByRole('heading', { name, exact: true }).waitFor();
+      await page
+        .getByRole(name === 'ADB 终端' ? 'region' : 'heading', { name, exact: true })
+        .waitFor();
       assert.equal(await root.getAttribute('data-color-theme'), 'purple');
       assert.equal(await root.getAttribute('data-theme'), 'dark');
       assert.equal(

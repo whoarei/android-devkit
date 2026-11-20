@@ -167,9 +167,27 @@ const path = require('node:path');
           .at(-1),
       );
     const input = () => page.locator('.terminal-surface:not([hidden]) .xterm-helper-textarea');
+    const newSession = page.getByRole('button', { name: '新建会话', exact: true });
+    const menu = page.getByRole('menu', { name: '新建会话', exact: true });
     const countCreates = () =>
       page.evaluate(() => window.__commands.filter((c) => c.command === 'terminal_create').length);
     await row.waitFor();
+    await nav().click();
+    const terminal = page.getByRole('region', { name: 'ADB 终端', exact: true });
+    await terminal.waitFor();
+    assert.equal(await terminal.locator('h1').count(), 0);
+    assert.equal(await newSession.count(), 1);
+    assert.equal(await newSession.textContent(), '');
+    assert.equal(
+      await newSession.evaluate((button) => Boolean(button.closest('.terminal-tabbar'))),
+      true,
+    );
+    await newSession.press('Enter');
+    await menu.getByRole('menuitem').filter({ hasText: '通用命令行' }).waitFor();
+    await page.keyboard.press('Escape');
+    await menu.waitFor({ state: 'detached' });
+    assert.equal(await newSession.evaluate((button) => document.activeElement === button), true);
+    await page.locator('.sidebar').getByRole('button', { name: '设备工作台', exact: true }).click();
     assert.equal(await row.getByRole('button', { name: 'ADB 终端', exact: true }).count(), 0);
     await row.click();
     await detail().getByRole('button', { name: 'ADB 终端', exact: true }).click();
@@ -205,10 +223,11 @@ const path = require('node:path');
     );
     await page.evaluate((id) => window.__outputTerminal(id, '\x1b[?2004l'), pixel);
     await page.getByRole('button', { name: '常用命令', exact: true }).click();
-    await page
-      .locator('.terminal-snippets')
-      .getByRole('button', { name: 'top', exact: true })
-      .click();
+    const snippets = page.locator('.terminal-snippets');
+    const snippetsBounds = await snippets.boundingBox();
+    const toolbarBounds = await page.locator('.terminal-context').boundingBox();
+    assert.equal(snippetsBounds.y + snippetsBounds.height, toolbarBounds.y);
+    await snippets.getByRole('button', { name: 'top', exact: true }).click();
     await page.waitForFunction(
       (id) =>
         new TextDecoder().decode(Uint8Array.from(window.__terminals[id].input)).includes('top'),
@@ -232,11 +251,7 @@ const path = require('node:path');
       pixel,
     );
     await nav().click();
-    await page
-      .locator('.page-actions')
-      .getByRole('button', { name: '新建会话', exact: true })
-      .click();
-    const menu = page.getByRole('menu', { name: '新建会话', exact: true });
+    await newSession.click();
     assert.equal(await menu.getByRole('textbox').count(), 0);
     await menu.getByRole('menuitem').filter({ hasText: '通用命令行' }).click();
     await page.waitForFunction(() => Object.keys(window.__terminals).length === 2);
@@ -302,10 +317,7 @@ const path = require('node:path');
     await page.evaluate(() => {
       window.__holdCreate = true;
     });
-    await page
-      .locator('.page-actions')
-      .getByRole('button', { name: '新建会话', exact: true })
-      .click();
+    await newSession.click();
     await menu.getByRole('menuitem').filter({ hasText: '通用命令行' }).click();
     await page.waitForFunction(() => typeof window.__releaseCreate === 'function');
     await page.locator('.terminal-tab.selected .icon-button').click();
@@ -318,20 +330,106 @@ const path = require('node:path');
     );
     const out = path.resolve(__dirname, '../.qa/app');
     fs.mkdirSync(out, { recursive: true });
+    const fit = () =>
+      page.evaluate(
+        (id) =>
+          window.__commands.findLast(
+            (entry) => entry.command === 'terminal_resize' && entry.args.id === id,
+          )?.args,
+        pixel,
+      );
+    const checkShellHeight = async () => {
+      const surface = page.locator('.terminal-surface:not([hidden])');
+      const bounds = await surface.boundingBox();
+      const view = await page.locator('.terminal-views').boundingBox();
+      const toolbar = await page.locator('.terminal-context').boundingBox();
+      const frame = await page.locator('.terminal-panes').boundingBox();
+      const viewport = page.viewportSize();
+      assert.equal(view.y + view.height, toolbar.y, 'Toolbar should sit below the Shell');
+      assert.equal(toolbar.y + toolbar.height, frame.y + frame.height - 1);
+      const minimumRatio = viewport.width <= 600 ? 0.7 : 0.78;
+      assert.ok(
+        bounds.height >= minimumRatio * viewport.height,
+        `Shell height ${bounds.height}px at ${viewport.width}×${viewport.height} is too small`,
+      );
+      assert.ok(
+        bounds.y + bounds.height <= viewport.height,
+        'Shell should fit above the bottom edge',
+      );
+      assert.ok(
+        await page
+          .locator('.terminal-workspace')
+          .evaluate(
+            (el) => el.scrollHeight <= el.clientHeight + 1 && el.scrollWidth <= el.clientWidth + 1,
+          ),
+        'Only terminal output and the tab strip should scroll at supported window sizes',
+      );
+      return Math.round(bounds.height);
+    };
+    const desktopHeight = await checkShellHeight();
+    const desktopFit = await fit();
+    assert.ok(desktopFit.rows >= 30);
     await page.screenshot({ path: path.join(out, 'terminal-ui.png') });
-    await page.setViewportSize({ width: 480, height: 700 });
-    await page.waitForTimeout(150);
-    await page.screenshot({ path: path.join(out, 'terminal-ui-compact.png') });
+    await page.setViewportSize({ width: 480, height: 640 });
+    await page.waitForFunction(({ id, cols, rows }) => {
+      const fit = window.__commands.findLast(
+        (entry) => entry.command === 'terminal_resize' && entry.args.id === id,
+      )?.args;
+      return fit && fit.cols < cols && fit.rows < rows;
+    }, desktopFit);
+    const compactHeight = await checkShellHeight();
+    const compactFit = await fit();
+    assert.ok(compactFit.rows >= 20, `Expected at least 20 Shell rows, got ${compactFit.rows}`);
+    for (let count = 2; count <= 6; count++) {
+      await newSession.click();
+      await menu.getByRole('menuitem').filter({ hasText: '通用命令行' }).click();
+      await page.waitForFunction(
+        (count) => document.querySelectorAll('.terminal-tab').length === count,
+        count,
+      );
+      await page.locator('.terminal-state.active').waitFor();
+    }
+    await page.waitForFunction(() => {
+      const tabs = document.querySelector('.terminal-tabs');
+      const selected = tabs.querySelector('.selected');
+      const rect = selected.getBoundingClientRect();
+      const visible = tabs.getBoundingClientRect();
+      return (
+        tabs.scrollWidth > tabs.clientWidth &&
+        rect.left >= visible.left &&
+        rect.right <= visible.right + 1
+      );
+    });
     assert.equal(
-      await page.locator('.terminal-page').evaluate((el) => el.scrollWidth > el.clientWidth + 1),
-      false,
+      await page
+        .locator('.terminal-tab')
+        .evaluateAll((tabs) => new Set(tabs.map((tab) => tab.getBoundingClientRect().top)).size),
+      1,
     );
+    const tabs = page.locator('.terminal-tabs');
+    const addButtonBeforeScroll = await newSession.boundingBox();
+    const tabBounds = await tabs.boundingBox();
+    assert.ok(addButtonBeforeScroll.x >= tabBounds.x + tabBounds.width - 1);
+    const scrollLeft = await tabs.evaluate((element) => {
+      const previous = element.scrollLeft;
+      element.scrollLeft = 0;
+      return previous;
+    });
+    assert.deepEqual(await newSession.boundingBox(), addButtonBeforeScroll);
+    await newSession.click();
+    await menu.waitFor();
+    await page.keyboard.press('Escape');
+    await menu.waitFor({ state: 'detached' });
+    await tabs.evaluate((element, left) => {
+      element.scrollLeft = left;
+    }, scrollLeft);
+    await checkShellHeight();
     await page.screenshot({ path: path.join(out, 'terminal-ui-compact.png') });
     await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
-    assert.equal(await page.locator('h1').textContent(), 'ADB Terminal');
+    await page.getByRole('region', { name: 'ADB Terminal', exact: true }).waitFor();
     assert.deepEqual(errors, []);
     console.log(
-      'Terminal UI: actual xterm input, early output, background ACK, direct Shell, detail entry/reuse, menu creation, immediate close, reopen generation, reconnect, pending-create cleanup, compact layout and English passed.',
+      `Terminal UI: session behavior, scrollable tabs, English and fitting passed. Shell height: ${desktopHeight}px / ${desktopFit.rows} rows at 1280×900, ${compactHeight}px / ${compactFit.rows} rows at 480×640.`,
     );
   } finally {
     await browser.close();

@@ -3,9 +3,6 @@
   flex-direction: column;
   padding-top: 80px;
 }
-.logs-workspace > .page-top[hidden] {
-  display: none;
-}
 .logs-page,
 .log-panel {
   display: flex;

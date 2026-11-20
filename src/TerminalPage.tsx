@@ -2,13 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   AlertCircle,
-  ChevronDown,
   Eraser,
   List,
-  LockKeyhole,
   Monitor,
   Plus,
   Smartphone,
+  Square,
   Terminal,
   X,
 } from 'lucide-react';
@@ -37,13 +36,7 @@ import {
 import '@xterm/xterm/css/xterm.css';
 import './terminal.css';
 
-export function TerminalNewSession({
-  data,
-  compact = false,
-}: {
-  data?: Workspace;
-  compact?: boolean;
-}) {
+function TerminalNewSession({ data }: { data?: Workspace }) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
@@ -77,9 +70,10 @@ export function TerminalNewSession({
     <>
       <button
         ref={trigger}
-        className={compact ? 'terminal-add-tab icon-button' : 'button primary'}
+        className="icon-button terminal-add-tab"
         disabled={disabled}
         aria-label={t('新建会话')}
+        title={t('新建会话')}
         aria-expanded={Boolean(position)}
         aria-haspopup="menu"
         onClick={() => {
@@ -88,14 +82,14 @@ export function TerminalNewSession({
             return;
           }
           const rect = trigger.current!.getBoundingClientRect();
+          const left = rect.left + 300 <= innerWidth - 12 ? rect.left : rect.right - 300;
           setPosition({
             top: Math.min(rect.bottom + 6, Math.max(12, innerHeight - 280)),
-            left: Math.max(12, Math.min(rect.right - 300, innerWidth - 312)),
+            left: Math.max(12, left),
           });
         }}
       >
-        <Plus size={16} />
-        {!compact && t('新建会话')}
+        <Plus size={16} aria-hidden="true" />
       </button>
       {position &&
         createPortal(
@@ -206,6 +200,7 @@ export function TerminalPage({
   const appearance = useAppearance();
   const { sessions, activeId, error, select, clearError } = useTerminals();
   const active = sessions.find((session) => session.id === activeId);
+  const selectedTab = useRef<HTMLDivElement>(null);
   const [snippets, setSnippets] = useState(false);
   useEffect(() => {
     void initializeTerminals().catch(reportTerminalError);
@@ -215,10 +210,12 @@ export function TerminalPage({
   }, [appearance]);
   useEffect(() => {
     setSnippets(false);
+    if (visible) selectedTab.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }, [activeId, visible]);
   const ended = Boolean(active && !['active', 'starting'].includes(active.state));
   const freshDevice =
     active?.kind === 'device' ? resolveTerminalDevice(active.id, data?.devices ?? []) : undefined;
+  const location = active?.target?.serial || active?.sdkRoot || data?.settings.sdkRoot;
   return (
     <section className="terminal-page" hidden={!visible} aria-label={t('ADB 终端')}>
       {error && (
@@ -242,29 +239,23 @@ export function TerminalPage({
           </div>
         </div>
       )}
-      {!sessions.length ? (
-        <div className="terminal-empty">
-          <Terminal size={32} />
-          <h2>{t('开始一个 ADB 会话')}</h2>
-          <p>{t('选择设备，直接进入 ADB Shell；也可以打开通用命令行。')}</p>
-          <TerminalNewSession data={data} />
-          <small>{data?.settings.sdkRoot}</small>
-        </div>
-      ) : (
-        <>
-          <div className="terminal-tabs" role="group" aria-label={t('终端会话')}>
+      <div className="terminal-panes">
+        <div className="terminal-tabbar" role="group" aria-label={t('终端会话')}>
+          <div className="terminal-tabs">
             {sessions.map((session) => (
               <div
                 key={session.id}
+                ref={session.id === activeId ? selectedTab : undefined}
                 className={`terminal-tab ${session.id === activeId ? 'selected' : ''}`}
               >
                 <button
                   className="terminal-tab-select"
                   aria-pressed={session.id === activeId}
+                  title={t(session.label)}
                   onClick={() => select(session.id)}
                 >
                   <span className={`terminal-dot ${session.state === 'active' ? 'online' : ''}`} />
-                  {t(session.label)}
+                  <span className="terminal-tab-label">{t(session.label)}</span>
                 </button>
                 <button
                   className="icon-button"
@@ -275,103 +266,10 @@ export function TerminalPage({
                 </button>
               </div>
             ))}
-            <TerminalNewSession data={data} compact />
           </div>
-          {active && (
-            <>
-              <div className="terminal-context">
-                <span className="terminal-target-icon">
-                  {active.kind === 'device' ? <Smartphone size={18} /> : <Monitor size={18} />}
-                </span>
-                <div>
-                  <b>
-                    {active.kind === 'device'
-                      ? t('设备 · {0}', active.label)
-                      : t('通用命令行 · 本机 PowerShell')}
-                  </b>
-                  <small>{active.target?.serial || active.sdkRoot || data?.settings.sdkRoot}</small>
-                </div>
-                <span className={`terminal-state ${active.state}`}>
-                  {t(stateText[active.state] ?? active.state)}
-                </span>
-              </div>
-              {ended && (
-                <div className="terminal-ended">
-                  <AlertCircle size={16} />
-                  <span>
-                    {active.reason
-                      ? t(active.reason)
-                      : active.kind === 'device'
-                        ? t('设备 Shell 已退出，输出已保留。')
-                        : t('命令行已退出，输出已保留。')}
-                  </span>
-                  <Button
-                    disabled={
-                      !native ||
-                      !data?.environment.adb ||
-                      (active.kind === 'device' && !freshDevice)
-                    }
-                    onClick={() =>
-                      void reopenTerminal(active.id, freshDevice).catch(reportTerminalError)
-                    }
-                  >
-                    {active.state === 'disconnected'
-                      ? t('重新连接')
-                      : active.kind === 'device'
-                        ? t('重新打开 Shell')
-                        : t('重新打开')}
-                  </Button>
-                </div>
-              )}
-              <div className="terminal-toolbar">
-                <span>
-                  <Terminal size={14} />
-                  {active.kind === 'device' ? 'Android Shell' : 'PowerShell'}
-                </span>
-                <div>
-                  <button
-                    className="text-button"
-                    disabled={active.state !== 'active'}
-                    aria-expanded={snippets}
-                    onClick={() => setSnippets(!snippets)}
-                  >
-                    <List size={14} />
-                    {t('常用命令')}
-                    <ChevronDown size={12} />
-                  </button>
-                  <button className="text-button" onClick={() => clearTerminal(active.id)}>
-                    <Eraser size={14} />
-                    {t('清空显示')}
-                  </button>
-                  <button
-                    className="text-button"
-                    disabled={active.state !== 'active'}
-                    onClick={() => interruptTerminal(active.id)}
-                  >
-                    {t('中断')}
-                  </button>
-                </div>
-              </div>
-              {snippets && (
-                <div className="terminal-snippets" role="group" aria-label={t('常用命令')}>
-                  {(active.kind === 'device'
-                    ? ['pwd', 'ls', 'getprop ro.build.version.release', 'logcat', 'top']
-                    : ['adb devices -l', 'adb version', 'adb shell', 'adb logcat']
-                  ).map((command) => (
-                    <button
-                      key={command}
-                      onClick={() => {
-                        insertTerminalText(active.id, command);
-                        setSnippets(false);
-                      }}
-                    >
-                      {command}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </>
-          )}
+          {visible && <TerminalNewSession data={data} />}
+        </div>
+        {sessions.length ? (
           <div className="terminal-views">
             {sessions.map((session) => (
               <TerminalSurface
@@ -381,17 +279,104 @@ export function TerminalPage({
               />
             ))}
           </div>
-          {active && (
-            <div className="terminal-footnote">
-              <span>
-                <LockKeyhole size={12} />
-                {active.kind === 'device' ? t('设备会话绑定所选设备') : t('通用会话使用本机环境')}
+        ) : (
+          <div className="terminal-empty">
+            <Terminal size={32} />
+            <h2>{t('开始一个 ADB 会话')}</h2>
+            <p>{t('选择设备，直接进入 ADB Shell；也可以打开通用命令行。')}</p>
+          </div>
+        )}
+        {active && (
+          <>
+            {ended && (
+              <div className="terminal-ended">
+                <AlertCircle size={16} />
+                <span>
+                  {active.reason
+                    ? t(active.reason)
+                    : active.kind === 'device'
+                      ? t('设备 Shell 已退出，输出已保留。')
+                      : t('命令行已退出，输出已保留。')}
+                </span>
+                <Button
+                  disabled={
+                    !native || !data?.environment.adb || (active.kind === 'device' && !freshDevice)
+                  }
+                  onClick={() =>
+                    void reopenTerminal(active.id, freshDevice).catch(reportTerminalError)
+                  }
+                >
+                  {active.state === 'disconnected'
+                    ? t('重新连接')
+                    : active.kind === 'device'
+                      ? t('重新打开 Shell')
+                      : t('重新打开')}
+                </Button>
+              </div>
+            )}
+            {snippets && (
+              <div className="terminal-snippets" role="group" aria-label={t('常用命令')}>
+                {(active.kind === 'device'
+                  ? ['pwd', 'ls', 'getprop ro.build.version.release', 'logcat', 'top']
+                  : ['adb devices -l', 'adb version', 'adb shell', 'adb logcat']
+                ).map((command) => (
+                  <button
+                    key={command}
+                    onClick={() => {
+                      insertTerminalText(active.id, command);
+                      setSnippets(false);
+                    }}
+                  >
+                    {command}
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="terminal-context">
+              <div className="terminal-target">
+                <Terminal size={14} aria-hidden="true" />
+                <b>{active.kind === 'device' ? 'Android Shell' : 'PowerShell'}</b>
+                {location && <code title={location}>{location}</code>}
+              </div>
+              <span className={`terminal-state ${active.state}`}>
+                {t(stateText[active.state] ?? active.state)}
               </span>
-              <span>{t('切换页面保留会话与输出')}</span>
+              <div className="terminal-actions">
+                <button
+                  className="text-button"
+                  disabled={active.state !== 'active'}
+                  aria-expanded={snippets}
+                  aria-label={t('常用命令')}
+                  title={t('常用命令')}
+                  onClick={() => setSnippets(!snippets)}
+                >
+                  <List size={14} />
+                  <span>{t('常用命令')}</span>
+                </button>
+                <button
+                  className="text-button"
+                  aria-label={t('清空显示')}
+                  title={t('清空显示')}
+                  onClick={() => clearTerminal(active.id)}
+                >
+                  <Eraser size={14} />
+                  <span>{t('清空显示')}</span>
+                </button>
+                <button
+                  className="text-button"
+                  disabled={active.state !== 'active'}
+                  aria-label={t('中断')}
+                  title={t('中断')}
+                  onClick={() => interruptTerminal(active.id)}
+                >
+                  <Square size={13} />
+                  <span>{t('中断')}</span>
+                </button>
+              </div>
             </div>
-          )}
-        </>
-      )}
+          </>
+        )}
+      </div>
     </section>
   );
 }

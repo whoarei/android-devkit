@@ -60,7 +60,7 @@ import { SigningTools } from './SigningTools';
 import { SdkManager } from './SdkManager';
 import { JavaConfiguration, JavaStatus } from './JavaEnvironment';
 import { defaultSdkDownload, sdkSourceName } from './SdkDownloadSettings';
-import { TerminalNewSession, TerminalPage } from './TerminalPage';
+import { TerminalPage } from './TerminalPage';
 import { openDeviceTerminal, useTerminals } from './terminal';
 import { useSoftwareUpdate, SoftwareUpdateSection, SoftwareUpdateDialog } from './SoftwareUpdate';
 import { AvdSettingsFields, AvdPreview, EditAvd, newAvdSettings, type AvdForm } from './AvdEditor';
@@ -118,6 +118,7 @@ export function App() {
   const updater = useSoftwareUpdate();
   const { selected, select } = useUi();
   const [page, setPage] = usePreference('lastPage');
+  const dedicatedLayout = page === 'logs' || page === 'terminal';
   const [logTargetKey, setLogTargetKey] = useState('');
   const [filter, setFilter] = usePreference('deviceFilter');
   const preferenceError = usePreferenceError();
@@ -606,16 +607,15 @@ export function App() {
           </small>
         </div>
       </aside>
-      <main className={page === 'logs' ? 'main logs-workspace' : 'main'}>
-        <div className="page-top" hidden={page === 'logs'}>
-          <div>
-            <div className="eyebrow">ANDROID DEVELOPMENT ENVIRONMENT</div>
-            <h1>{t(titles[page])}</h1>
-            <p>
-              {page === 'devices'
-                ? t('准备好设备，让下一次验证更直接。')
-                : page === 'terminal'
-                  ? t('设备会话直接进入 ADB Shell，通用命令行使用本机 PowerShell。')
+      <main className={dedicatedLayout ? `main ${page}-workspace` : 'main'}>
+        {!dedicatedLayout && (
+          <div className="page-top">
+            <div>
+              <div className="eyebrow">ANDROID DEVELOPMENT ENVIRONMENT</div>
+              <h1>{t(titles[page])}</h1>
+              <p>
+                {page === 'devices'
+                  ? t('准备好设备，让下一次验证更直接。')
                   : page === 'sdk'
                     ? t('按需准备组件，复用已有开发环境。')
                     : page === 'signing'
@@ -625,34 +625,34 @@ export function App() {
                         : page === 'diagnostics'
                           ? t('从检测到的事实出发，定位环境与连接问题。')
                           : t('为当前工作空间选择路径和行为。')}
-            </p>
-          </div>
-          <div className="page-actions">
-            {page === 'terminal' && <TerminalNewSession data={data} />}
-            {page === 'devices' && (
-              <>
-                <Button onClick={() => setModal('wireless')}>
-                  <Wifi size={15} />
-                  {t('连接设备')}
+              </p>
+            </div>
+            <div className="page-actions">
+              {page === 'devices' && (
+                <>
+                  <Button onClick={() => setModal('wireless')}>
+                    <Wifi size={15} />
+                    {t('连接设备')}
+                  </Button>
+                  <Button primary onClick={() => setModal('create')}>
+                    <Plus size={16} />
+                    {t('新建模拟器')}
+                  </Button>
+                </>
+              )}
+              {page === 'sdk' && (
+                <Button
+                  onClick={() => void guard(() => catalogRefresh.mutateAsync(undefined))}
+                  disabled={busy}
+                  loading={catalogRefresh.isPending}
+                >
+                  <RefreshCw size={15} className={catalogRefresh.isPending ? 'spin' : ''} />
+                  {t('刷新')}
                 </Button>
-                <Button primary onClick={() => setModal('create')}>
-                  <Plus size={16} />
-                  {t('新建模拟器')}
-                </Button>
-              </>
-            )}
-            {page === 'sdk' && (
-              <Button
-                onClick={() => void guard(() => catalogRefresh.mutateAsync(undefined))}
-                disabled={busy}
-                loading={catalogRefresh.isPending}
-              >
-                <RefreshCw size={15} className={catalogRefresh.isPending ? 'spin' : ''} />
-                {t('刷新')}
-              </Button>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
         {!native && (
           <div className="notice">
             <Monitor size={19} />
