@@ -505,7 +505,7 @@ mod tests {
         let patch = serde_json::json!({
             "theme":"dark", "locale":"en-US", "defaultTarget":"avd:fixture", "autoCheckUpdates":false,
             "zoomFactor":1.75, "window":{"x":-1800,"y":120,"width":1100.0,"height":720.0,"scaleFactor":1.5,"monitor":"secondary","maximized":true},
-            "lastPage":"terminal", "deviceFilter":"emulator", "sdkTab":"tools", "sdkStatus":"updates", "hideObsolete":false,
+            "lastPage":"logs", "deviceFilter":"emulator", "sdkTab":"tools", "sdkStatus":"updates", "hideObsolete":false,
             "taskState":"failed", "recordingSeconds":120, "recordingResolution":"720p", "logQuotaMib":128, "logMinutes":45
         });
         let expected = store.patch_preferences(&patch).unwrap();

@@ -1655,7 +1655,6 @@ h1 {
   padding: 6px 9px;
 }
 .task-log,
-.log-lines,
 .diagnostic-item pre {
   font:
     11px/1.85 Consolas,
@@ -1724,53 +1723,6 @@ h1 {
   font-size: 13px;
   font-weight: 550;
   margin-bottom: 12px;
-}
-.log-panel {
-  margin-top: 25px;
-  border: 1px solid var(--line);
-  padding: 18px;
-  background: var(--surface);
-  border-radius: var(--radius-md);
-}
-.log-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 17px;
-}
-.log-toolbar h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  font-weight: 550;
-}
-.log-toolbar h3 span {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--muted);
-}
-.log-toolbar > div {
-  display: flex;
-  gap: 6px;
-}
-.log-toolbar .button {
-  font-size: 11px;
-  padding: 6px 9px;
-}
-.log-panel > input {
-  width: 100%;
-  font-size: 11px;
-}
-.log-lines {
-  height: 270px;
-  white-space: pre;
-  overflow: auto;
-}
-.log-panel > small {
-  font-size: 11px;
-  color: var(--muted);
 }
 .warning-text {
   color: var(--warning);
@@ -1861,37 +1813,6 @@ h1 {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-.log-filters,
-.record-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 14px 0;
-}
-.log-filters label,
-.record-options label {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  flex: 1 1 130px;
-  min-width: 0;
-  font-size: 12px;
-}
-.log-filters input,
-.log-filters select,
-.record-options input {
-  width: 100%;
-  min-width: 0;
-}
-.log-toolbar {
-  flex-wrap: wrap;
-  gap: 12px;
-}
-.log-toolbar > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 7px;
 }
 .export-preview {
   white-space: pre-wrap;
@@ -2066,14 +1987,6 @@ h1 {
   flex-basis: 100%;
   font-size: 11px;
   margin-bottom: 10px;
-}
-.log-panel .task-actions label {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-.record-options > p {
-  flex-basis: 100%;
 }
 .environment-candidates {
   display: grid;

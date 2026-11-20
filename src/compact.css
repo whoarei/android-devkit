@@ -190,21 +190,6 @@
   .input-action .button {
     font-size: 11px;
   }
-  .log-toolbar {
-    flex-wrap: wrap;
-  }
-  .log-toolbar h3 span {
-    max-width: 150px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .log-panel {
-    padding: 12px;
-  }
-  .log-toolbar .button {
-    padding: 6px 8px;
-    font-size: 11px;
-  }
   .modal-backdrop {
     padding: 15px;
   }

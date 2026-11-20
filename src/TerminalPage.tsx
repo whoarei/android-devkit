@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { t, useLocale } from './i18n';
 import { useAppearance } from './theme';
-import { native } from './api';
+import { deviceName, native } from './api';
 import type { Device, Workspace } from './types';
 import type { TerminalInfo } from './bindings';
 import { Button } from './ui';
@@ -37,10 +37,6 @@ import {
 import '@xterm/xterm/css/xterm.css';
 import './terminal.css';
 
-export function terminalDeviceName(device: Device, data?: Workspace) {
-  const avds = data?.avds.filter((avd) => avd.name === device.avdName) ?? [];
-  return avds.length === 1 ? avds[0].displayName : device.model || device.serial;
-}
 export function TerminalNewSession({
   data,
   compact = false,
@@ -73,7 +69,7 @@ export function TerminalNewSession({
   }, [position]);
   const open = (device?: Device) => {
     setPosition(null);
-    void newTerminal(device, device ? terminalDeviceName(device, data) : undefined).catch(
+    void newTerminal(device, device ? deviceName(device, data) : undefined).catch(
       reportTerminalError,
     );
   };
@@ -144,7 +140,7 @@ export function TerminalNewSession({
               >
                 <Smartphone size={18} />
                 <span>
-                  <b>{terminalDeviceName(device, data)}</b>
+                  <b>{deviceName(device, data)}</b>
                   <small>
                     {device.serial}
                     {device.state !== 'ready' && ` · ${t('不可用')}`}

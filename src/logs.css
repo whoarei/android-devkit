@@ -1,0 +1,184 @@
+.main.logs-workspace {
+  display: flex;
+  flex-direction: column;
+  padding-top: 80px;
+}
+.logs-workspace > .page-top[hidden] {
+  display: none;
+}
+.logs-page,
+.log-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+.logs-page {
+  gap: 22px;
+}
+.log-panel {
+  gap: 14px;
+}
+.logs-heading,
+.log-export {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+.log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.logs-target,
+.log-filters label,
+.log-record-options label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.logs-target {
+  flex: 1 1 245px;
+  width: 100%;
+  max-width: 370px;
+}
+.logs-target select {
+  width: 100%;
+  text-overflow: ellipsis;
+}
+.log-filters {
+  display: grid;
+  grid-template-columns: minmax(76px, auto) repeat(2, minmax(0, 1fr)) repeat(2, minmax(0, 1.45fr));
+  gap: 10px;
+}
+.log-console,
+.logs-empty,
+.log-record-options {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.log-console {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.log-console-heading,
+.log-console-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  padding: 10px 14px;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.log-console-heading h2 {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-strong);
+}
+.log-status .connection-dot {
+  display: inline-block;
+  margin: 0 7px 2px 0;
+}
+.log-output {
+  position: relative;
+  flex: 1;
+  min-height: 230px;
+  border-block: 1px solid var(--line);
+  background: var(--surface-muted);
+}
+.log-lines,
+.log-empty {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 14px;
+}
+.log-lines {
+  overflow: auto;
+  font:
+    12px/1.7 Consolas,
+    'Microsoft YaHei',
+    monospace;
+  color: var(--text-body);
+}
+.log-lines:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.log-empty {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: var(--muted);
+}
+.log-export label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+.log-record-options:not([hidden]) {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 14px;
+}
+.log-record-options label {
+  flex: 1 1 100px;
+  max-width: 220px;
+}
+.log-record-options .hint {
+  flex-basis: 100%;
+  margin: 0;
+}
+.logs-empty {
+  flex: 1;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 22px;
+  text-align: center;
+  color: var(--muted);
+}
+.logs-empty h2 {
+  color: var(--text-strong);
+  font-size: 16px;
+  font-weight: 650;
+}
+@media (max-width: 959px) {
+  .main.logs-workspace {
+    padding-top: 63px;
+  }
+  .logs-page {
+    gap: 16px;
+  }
+  .logs-heading h1 {
+    font-size: 22px;
+  }
+  .log-filters {
+    grid-template-columns: minmax(76px, auto) repeat(2, minmax(0, 1fr));
+  }
+  .log-filters label:last-child {
+    grid-column: span 2;
+  }
+}
+@media (max-width: 560px) {
+  .log-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

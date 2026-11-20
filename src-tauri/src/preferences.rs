@@ -40,7 +40,7 @@ pub struct UserPreferences {
     #[cfg_attr(
         test,
         ts(
-            type = "'devices' | 'terminal' | 'sdk' | 'signing' | 'tasks' | 'diagnostics' | 'settings'"
+            type = "'devices' | 'logs' | 'terminal' | 'sdk' | 'signing' | 'tasks' | 'diagnostics' | 'settings'"
         )
     )]
     pub last_page: String,
@@ -123,6 +123,7 @@ impl UserPreferences {
                 self.last_page.as_str(),
                 &[
                     "devices",
+                    "logs",
                     "terminal",
                     "signing",
                     "sdk",

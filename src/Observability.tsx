@@ -1,35 +1,18 @@
 import { t as tr, getLocale } from './i18n';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useNumberPreference } from './preferences';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileDown, FileText, Image, Trash2 } from 'lucide-react';
 import { Modal } from './ui';
-import { call, deviceKey, errorText, native, size } from './api';
+import { call, errorText, native, size } from './api';
 const artifactSize = (bytes: number) =>
   bytes < 1024
     ? `${bytes} B`
     : bytes < 1024 * 1024
       ? `${(bytes / 1024).toFixed(1)} KiB`
       : size(bytes);
-import type {
-  Artifact,
-  CloseStatus,
-  Device,
-  ExportPreview,
-  LogFilter,
-  LogSnapshot,
-} from './bindings';
+import type { Artifact, CloseStatus, ExportPreview } from './bindings';
 type Guard = <T>(fn: () => Promise<T>) => Promise<T | undefined>;
 export type ExportRequest = Record<string, unknown>;
-const emptyFilter: LogFilter = {
-  level: 'V',
-  tag: '',
-  keyword: '',
-  package: '',
-  pids: [],
-  after: 0,
-  before: 0,
-};
 function Btn({
   children,
   onClick,
@@ -159,212 +142,6 @@ export function ExportDialog({
         </p>
       )}
     </Dialog>
-  );
-}
-export function LogPanel({
-  target,
-  guard,
-  prepare,
-  onExport,
-}: {
-  target: Device;
-  guard: Guard;
-  prepare: (kind: string, args: Record<string, string>) => Promise<void>;
-  onExport: (request: ExportRequest) => void;
-}) {
-  const [filter, setFilter] = useState<LogFilter>({ ...emptyFilter });
-  const [pid, setPid] = useState('');
-  const [snapshot, setSnapshot] = useState<LogSnapshot | null>(null);
-  const [paused, setPaused] = useState(false);
-  const [view, setView] = useState<LogSnapshot | null>(null);
-  const [missed, setMissed] = useState(0);
-  const [raw, setRaw] = useState(false);
-  const [record, setRecord] = useState(false);
-  const [quota, setQuota] = useNumberPreference('logQuotaMib', 8, 4096);
-  const [minutes, setMinutes] = useNumberPreference('logMinutes', 1, 1440);
-  const pausedRef = useRef(false);
-  const currentRef = useRef(filter);
-  const latestRef = useRef<LogSnapshot | null>(null);
-  const effective = { ...filter, pids: pid.split(/[ ,]+/).filter(Boolean).map(Number) };
-  currentRef.current = effective;
-  pausedRef.current = paused;
-  const read = async (action: string) => {
-    const next = await call<LogSnapshot>('log_read', {
-      target,
-      action,
-      filter: currentRef.current,
-    });
-    setSnapshot(next);
-    latestRef.current = next;
-    if (!pausedRef.current) setView(next);
-    return next;
-  };
-  useEffect(() => {
-    setView(null);
-    setSnapshot(null);
-    setFilter({ ...emptyFilter });
-    const timer = setInterval(() => void guard(() => read('read')), 1000);
-    return () => {
-      clearInterval(timer);
-      void call('log_read', { target, action: 'stop', filter: emptyFilter }).catch(() => {});
-    };
-  }, [deviceKey(target)]);
-  const set = (key: keyof LogFilter, value: string) => setFilter((v) => ({ ...v, [key]: value }));
-  const exportFilter = {
-    ...effective,
-    after: filter.after,
-    before: (paused ? view?.latest : snapshot?.latest) ?? 0,
-  };
-  return (
-    <section className="log-panel" id="logs">
-      <div className="log-toolbar">
-        <h3>Logcat · {target.model}</h3>
-        <div>
-          <Btn onClick={() => void guard(() => read(snapshot?.active ? 'stop' : 'start'))}>
-            {snapshot?.active ? tr('结束查看') : tr('开始查看')}
-          </Btn>
-          <Btn
-            onClick={() => {
-              if (paused) {
-                const next = latestRef.current;
-                if (next) {
-                  setMissed(Math.max(0, next.oldest - (view?.latest ?? 0) - 1));
-                  setView(next);
-                }
-              }
-              setPaused((v) => !v);
-            }}
-          >
-            {paused ? tr('恢复视图') : tr('暂停视图')}
-          </Btn>
-          <Btn
-            onClick={() => {
-              setFilter((v) => ({ ...v, after: snapshot?.latest ?? 0 }));
-              setView((v) => (v ? { ...v, rows: [] } : null));
-            }}
-          >
-            {tr('清空视图')}
-          </Btn>
-        </div>
-      </div>
-      <div className="log-filters">
-        <label>
-          {tr('最低级别')}
-          <select
-            aria-label={tr('日志最低级别')}
-            value={filter.level}
-            onChange={(e) => set('level', e.target.value)}
-          >
-            {['V', 'D', 'I', 'W', 'E', 'F'].map((v) => (
-              <option key={v}>{v}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Tag
-          <input
-            aria-label={tr('日志 Tag')}
-            value={filter.tag}
-            onChange={(e) => set('tag', e.target.value)}
-          />
-        </label>
-        <label>
-          PID
-          <input
-            aria-label={tr('日志 PID')}
-            placeholder={tr('多个用逗号分隔')}
-            value={pid}
-            onChange={(e) => setPid(e.target.value)}
-          />
-        </label>
-        <label>
-          {tr('应用包名')}
-          <input
-            aria-label={tr('日志应用包名')}
-            placeholder={tr('跟踪主进程与子进程')}
-            value={filter.package}
-            onChange={(e) => set('package', e.target.value)}
-          />
-        </label>
-        <label>
-          {tr('关键词')}
-          <input
-            aria-label={tr('过滤日志关键词')}
-            value={filter.keyword}
-            onChange={(e) => set('keyword', e.target.value)}
-          />
-        </label>
-      </div>
-      <p className="hint">
-        {(snapshot?.status ? tr(snapshot.status) : undefined) ?? tr('开始查看后显示设备日志')} ·{' '}
-        {(snapshot?.processStatus ? tr(snapshot.processStatus) : undefined) ?? tr('全部进程')}
-        {snapshot?.pids.length ? ` · PID ${snapshot.pids.join(', ')}` : ''}
-        {paused ? tr(' \u00B7 视图暂停，后台缓冲继续更新') : ''}
-        {missed ? tr(' \u00B7 暂停期间至少遗漏 {0} 行', missed) : ''}
-      </p>
-      <pre className="log-lines">
-        {view?.rows.map((r) => r.raw).join('\n') || tr('当前过滤范围没有日志。')}
-      </pre>
-      <small>
-        {tr('缓冲 ')}
-        {snapshot?.buffered.toLocaleString(getLocale()) ?? 0}
-        {tr(' / 10,000 行 \u00B7 淘汰 ')}
-        {snapshot?.dropped ?? 0} {tr('行 \u00B7 仅渲染末 500 行；清空不会清除设备日志')}
-      </small>
-      <div className="task-actions">
-        <label>
-          <input type="checkbox" checked={raw} onChange={(e) => setRaw(e.target.checked)} />{' '}
-          {tr('导出原始内容（含敏感信息）')}
-        </label>
-        <Btn
-          onClick={() => onExport({ kind: 'view', target, filter: exportFilter, redacted: !raw })}
-        >
-          {tr('预览并导出当前视图')}
-        </Btn>
-        <Btn onClick={() => setRecord((v) => !v)}>{tr('文件采集…')}</Btn>
-      </div>
-      {record && (
-        <div className="record-options">
-          <label>
-            {tr('总配额 MiB')}
-            <input
-              aria-label={tr('采集总配额')}
-              type="number"
-              min={8}
-              max={4096}
-              value={quota}
-              onChange={(e) => setQuota(Number(e.target.value))}
-            />
-          </label>
-          <label>
-            {tr('时限 分钟')}
-            <input
-              aria-label={tr('采集时限')}
-              type="number"
-              min={1}
-              max={1440}
-              value={minutes}
-              onChange={(e) => setMinutes(Number(e.target.value))}
-            />
-          </label>
-          <Btn
-            primary
-            onClick={() =>
-              void prepare('log_record', {
-                filter: JSON.stringify({ ...effective, after: 0 }),
-                quotaMiB: String(quota),
-                seconds: String(minutes * 60),
-              })
-            }
-          >
-            {tr('查看采集计划')}
-          </Btn>
-          <p className="hint">
-            {tr('按当前过滤条件采集；每段最多 100 MiB。切页不停止采集，在任务中心停止并导出。')}
-          </p>
-        </div>
-      )}
-    </section>
   );
 }
 export function RecordingExport({

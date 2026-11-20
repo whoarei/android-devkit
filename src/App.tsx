@@ -47,9 +47,11 @@ import {
   Sun,
   Moon,
   KeyRound,
+  ScrollText,
 } from 'lucide-react';
-import { LogPanel, ExportDialog, CloseDialog, type ExportRequest } from './Observability';
-import type { ExportPreview, TaskPage } from './bindings';
+import { ExportDialog, CloseDialog, type ExportRequest } from './Observability';
+import { LogsPage } from './LogsPage';
+import type { ExportPreview, TaskPage, UserPreferences } from './bindings';
 import { ConnectDevice } from './ConnectDevice';
 import { TaskCenter } from './TaskCenter';
 import { PhoneTools } from './PhoneTools';
@@ -58,7 +60,7 @@ import { SigningTools } from './SigningTools';
 import { SdkManager } from './SdkManager';
 import { JavaConfiguration, JavaStatus } from './JavaEnvironment';
 import { defaultSdkDownload, sdkSourceName } from './SdkDownloadSettings';
-import { TerminalNewSession, TerminalPage, terminalDeviceName } from './TerminalPage';
+import { TerminalNewSession, TerminalPage } from './TerminalPage';
 import { openDeviceTerminal, useTerminals } from './terminal';
 import { useSoftwareUpdate, SoftwareUpdateSection, SoftwareUpdateDialog } from './SoftwareUpdate';
 import { AvdSettingsFields, AvdPreview, EditAvd, newAvdSettings, type AvdForm } from './AvdEditor';
@@ -74,6 +76,7 @@ import {
   taskActive,
   size,
   deviceKey,
+  deviceName,
   submitTask,
 } from './api';
 import type {
@@ -87,7 +90,7 @@ import type {
   Target,
   Task,
 } from './types';
-type Page = 'devices' | 'terminal' | 'sdk' | 'signing' | 'tasks' | 'diagnostics' | 'settings';
+type Page = UserPreferences['lastPage'];
 const useUi = create<{
   selected: string;
   select: (selected: string) => void;
@@ -97,6 +100,7 @@ const useUi = create<{
 }));
 const titles: Record<Page, string> = {
   devices: '设备工作台',
+  logs: '实时日志',
   terminal: 'ADB 终端',
   sdk: 'SDK 管理',
   signing: '签名与 Keystore',
@@ -114,6 +118,7 @@ export function App() {
   const updater = useSoftwareUpdate();
   const { selected, select } = useUi();
   const [page, setPage] = usePreference('lastPage');
+  const [logTargetKey, setLogTargetKey] = useState('');
   const [filter, setFilter] = usePreference('deviceFilter');
   const preferenceError = usePreferenceError();
   const toggleSelection = (key: string) => select(selected === key ? '' : key);
@@ -533,6 +538,7 @@ export function App() {
           {(
             [
               ['devices', Smartphone],
+              ['logs', ScrollText],
               ['terminal', Terminal],
               ['sdk', Package],
               ['signing', KeyRound],
@@ -542,6 +548,7 @@ export function App() {
             <button
               key={id}
               aria-label={t(titles[id])}
+              aria-current={page === id ? 'page' : undefined}
               className={page === id ? 'active' : ''}
               onClick={() => setPage(id)}
             >
@@ -599,8 +606,8 @@ export function App() {
           </small>
         </div>
       </aside>
-      <main className="main">
-        <div className="page-top">
+      <main className={page === 'logs' ? 'main logs-workspace' : 'main'}>
+        <div className="page-top" hidden={page === 'logs'}>
           <div>
             <div className="eyebrow">ANDROID DEVELOPMENT ENVIRONMENT</div>
             <h1>{t(titles[page])}</h1>
@@ -951,24 +958,13 @@ export function App() {
                       <Camera size={15} />
                       {t('截图')}
                     </Button>
-                    {target && (
-                      <Button
-                        onClick={() => {
-                          setPage('devices');
-                          document.getElementById('logs')?.scrollIntoView({ behavior: 'smooth' });
-                        }}
-                      >
-                        <Terminal size={15} />
-                        {t('查看日志')}
-                      </Button>
-                    )}
                     <Button
                       disabled={target?.state !== 'ready'}
                       onClick={() => {
                         if (!target) return;
                         setPage('terminal');
                         void guard(() =>
-                          openDeviceTerminal(target, terminalDeviceName(target, data)),
+                          openDeviceTerminal(target, deviceName(target, data)),
                         );
                       }}
                     >
@@ -1076,15 +1072,6 @@ export function App() {
                 </aside>
               )}
             </div>
-            {target && (
-              <LogPanel
-                key={deviceKey(target)}
-                target={target}
-                guard={guard}
-                prepare={(kind, args) => prepare(kind, args, target)}
-                onExport={requestExport}
-              />
-            )}
             <div className="environment-note">
               <HardDrive size={17} />
               <div>
@@ -1097,6 +1084,17 @@ export function App() {
               </button>
             </div>
           </>
+        )}
+        {page === 'logs' && (
+          <LogsPage
+            data={data}
+            preferredTarget={target}
+            targetKey={logTargetKey}
+            setTargetKey={setLogTargetKey}
+            openDevices={() => setPage('devices')}
+            prepare={prepare}
+            onExport={requestExport}
+          />
         )}
         <TerminalPage data={data} visible={page === 'terminal'} openSdk={() => setPage('sdk')} />
         <SigningTools

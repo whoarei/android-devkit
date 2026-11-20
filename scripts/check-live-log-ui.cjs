@@ -69,8 +69,10 @@ const assert = require('assert/strict');
     });
     await task('apk_install', { apkId: apk.id }, target);
     await task('app_launch', { package: apk.package }, target);
-    await p.locator('nav').getByRole('button', { name: '设备工作台', exact: true }).click();
-    await p.getByText(name, { exact: true }).first().click();
+    await p.locator('nav').getByRole('button', { name: '实时日志', exact: true }).click();
+    await p
+      .getByLabel('目标设备', { exact: true })
+      .selectOption(`device:${target.serverEpoch}:${target.transportId}:${target.serial}`);
     await p.getByRole('button', { name: '开始查看', exact: true }).click();
     await p.getByRole('textbox', { name: '日志应用包名', exact: true }).fill(apk.package);
     await p.getByRole('textbox', { name: '日志 Tag', exact: true }).fill('DevKitFixture');
@@ -156,13 +158,14 @@ const assert = require('assert/strict');
       if (snapshot.devices.some((d) => d.avdName === avd.name))
         await task('avd_stop', { avdId: avd.id });
       await task('avd_delete', { avdId: avd.id });
+      await p.locator('nav').getByRole('button', { name: '实时日志', exact: true }).click();
+      await p.waitForFunction(() => document.querySelector('.logs-target select')?.value === '');
       await p.locator('nav').getByRole('button', { name: '设备工作台', exact: true }).click();
-      await p.locator('.detail-panel').waitFor({ state: 'detached' });
     }
     await invoke('settings_save', { settings: initial });
     await b.close();
   }
-  result.staleSelectionCleared = true;
+  result.staleLogTargetCleared = true;
   result.testAvdDeleted = true;
   fs.writeFileSync('.qa/app/m4-live-report.json', JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result));

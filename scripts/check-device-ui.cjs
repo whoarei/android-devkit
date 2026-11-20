@@ -45,6 +45,7 @@ const path = require('node:path');
       window.__holdPicker = false;
       window.__rejectPrepare = false;
       window.__captureTasks = [];
+      const liveLogs = new Set();
       let callbackId = 0;
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
       window.__TAURI_INTERNALS__ = {
@@ -89,18 +90,28 @@ const path = require('node:path');
               ],
             };
           if (command === 'window_state') return { maximized: false };
-          if (command === 'log_read')
+          if (command === 'log_read') {
+            const { target, action, filter } = args;
+            if (action === 'start') liveLogs.add(target.serial);
+            if (action === 'stop') liveLogs.delete(target.serial);
+            const active = liveLogs.has(target.serial);
+            const rows = active
+              ? Array.from({ length: 20 }, (_, i) => ({
+                  raw: `11-20 10:42:18.${100 + i}  1264  1264 I FixtureApp: heartbeat ${i + 1} on ${target.model}`,
+                }))
+              : [];
             return {
-              rows: [],
-              latest: 0,
-              oldest: 0,
+              rows: filter.after ? [] : rows,
+              latest: rows.length,
+              oldest: active ? 1 : 0,
               dropped: 0,
-              buffered: 0,
-              active: false,
-              status: 'fixture',
+              buffered: rows.length,
+              active,
+              status: active ? '正在采集' : '尚未开始采集',
               processStatus: '',
               pids: [],
             };
+          }
           if (command === 'file_choose')
             return window.__holdPicker
               ? new Promise((resolve) => {
@@ -125,13 +136,14 @@ const path = require('node:path');
           if (command === 'plan_create') {
             window.__operations.push(args.operation);
             const capture = args.operation.kind === 'capture';
+            const recording = args.operation.kind === 'log_record';
             return {
               id: capture ? 'fixture-capture-plan' : 'fixture-plan',
               hash: 'fixture-hash',
               confirmationToken: 'fixture-token',
-              title: capture ? '截图' : 'Fixture install plan',
+              title: recording ? 'Start file recording' : capture ? '截图' : 'Fixture install plan',
               operation: args.operation,
-              effects: capture ? [] : ['Install fixture.apk'],
+              effects: capture || recording ? [] : ['Install fixture.apk'],
               warnings: [],
               licenses: [],
               createdAt: Date.now(),
@@ -164,6 +176,17 @@ const path = require('node:path');
             };
           if (command === 'artifact_copy' && args.preview)
             return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aL1sAAAAASUVORK5CYII=';
+          if (command === 'export_prepare')
+            return {
+              artifact: { id: 'fixture-logs', title: 'Current log view', bytes: 17 },
+              text: 'Fixture log export',
+              offset: 0,
+              nextOffset: null,
+              rows: 1,
+              redacted: args.redacted,
+              truncated: false,
+              warning: '',
+            };
           if (command === 'plugin:event|listen') {
             window.__listeners[args.event] = args.handler;
             return args.handler;
@@ -181,7 +204,7 @@ const path = require('node:path');
     const assertUnselected = async () => {
       assert.equal(await details.count(), 0);
       assert.equal(await page.locator('.device-row.selected').count(), 0);
-      assert.equal(await page.locator('#logs').count(), 0);
+      assert.equal(await page.locator('.log-panel').count(), 0);
     };
     const pickerSettled = () =>
       page.waitForFunction(() => !document.querySelector('.add-device-hint button').disabled);
@@ -435,9 +458,106 @@ const path = require('node:path');
     await page.waitForFunction(() => !document.querySelector('.detail-actions [aria-busy]'));
     assert.equal(await capture.isEnabled(), true);
     assert.equal(await page.getByRole('dialog').count(), 0);
+
+    // Logs have their own navigation and target, independent of the selected device row.
+    await page.getByRole('button', { name: 'Dismiss error', exact: true }).click();
+    assert.equal(await page.locator('.log-panel').count(), 0);
+    assert.equal(await details.getByRole('button', { name: 'View logs', exact: true }).count(), 0);
+    const logs = sidebar.getByRole('button', { name: 'Live Logs', exact: true });
+    await logs.click();
+    await page.getByRole('heading', { name: 'Live Logs', exact: true }).waitFor();
+    assert.equal(await logs.getAttribute('aria-current'), 'page');
+    const logTarget = page.getByLabel('Target device', { exact: true });
+    assert.equal(await logTarget.inputValue(), 'device:1:2:192.168.1.10:5555');
+    await logTarget.selectOption('device:1:99:primary-usb');
+    await page.getByRole('button', { name: 'Start viewing', exact: true }).click();
+    await page.locator('.log-lines').filter({ hasText: 'heartbeat 1 on Primary phone' }).waitFor();
+    await page.getByLabel('Log tag', { exact: true }).fill('FixtureApp');
+    await page.waitForFunction(() =>
+      window.__commands.some(
+        ({ command, args }) =>
+          command === 'log_read' && args.action === 'read' && args.filter.tag === 'FixtureApp',
+      ),
+    );
+    await page.getByRole('button', { name: 'Pause view', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: 'View paused' }).waitFor();
+    await page.getByRole('button', { name: 'Resume view', exact: true }).click();
+    await page
+      .getByRole('button', { name: 'Preview and export current view', exact: true })
+      .click();
+    const logExport = page.getByRole('dialog', { name: 'Export preview', exact: true });
+    await logExport.getByText('Fixture log export', { exact: true }).waitFor();
+    assert.deepEqual(
+      await page
+        .evaluate(
+          () => window.__commands.findLast(({ command }) => command === 'export_prepare').args,
+        )
+        .then(({ target, filter, redacted }) => [
+          target.serial,
+          filter.tag,
+          filter.before,
+          redacted,
+        ]),
+      ['primary-usb', 'FixtureApp', 20, true],
+    );
+    await logExport.getByRole('button', { name: 'Close panel', exact: true }).click();
+    await page.getByRole('button', { name: 'Switch interface language', exact: true }).click();
+    await page.getByRole('heading', { name: '实时日志', exact: true }).waitFor();
+    await page.screenshot({ path: path.join(output, 'live-logs-desktop.png') });
+    await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
+    await page.getByRole('heading', { name: 'Live Logs', exact: true }).waitFor();
+    await page.setViewportSize({ width: 480, height: 640 });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 480);
+    await page.screenshot({ path: path.join(output, 'live-logs-compact.png'), fullPage: true });
+    await page.getByRole('button', { name: 'Record to file…', exact: true }).click();
+    await page.getByLabel('Recording quota', { exact: true }).fill('8');
+    await page.getByRole('button', { name: 'Review recording plan', exact: true }).click();
+    await page.getByRole('dialog', { name: 'Start file recording', exact: true }).waitFor();
+    assert.deepEqual(
+      await page.evaluate(() => {
+        const { kind, target, args } = window.__operations.findLast(
+          ({ kind }) => kind === 'log_record',
+        );
+        return [kind, target.serial, args.quotaMiB, JSON.parse(args.filter).tag];
+      }),
+      ['log_record', 'primary-usb', '8', 'FixtureApp'],
+    );
+    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: 'Clear view', exact: true }).click();
+    await page.getByText('No logs match the current filter.', { exact: true }).waitFor();
+    await sidebar.getByRole('button', { name: 'Device Workbench', exact: true }).click();
+    await page.waitForFunction(() =>
+      window.__commands.some(
+        ({ command, args }) =>
+          command === 'log_read' && args.action === 'stop' && args.target.serial === 'primary-usb',
+      ),
+    );
+    assert.equal(await details.locator('h3').textContent(), 'Second phone');
+    await logs.click();
+    assert.equal(await logTarget.inputValue(), 'device:1:99:primary-usb');
+    await page.evaluate(() => {
+      window.__devices[0].transportId = '100';
+      window.__callbacks[window.__listeners['workspace-changed']]({ payload: null });
+    });
+    await page.getByText('The target device is unavailable.', { exact: false }).waitFor();
+    assert.equal(await logTarget.inputValue(), '');
+    assert.equal(await page.getByRole('button', { name: 'Start viewing', exact: true }).count(), 0);
+    await page.reload();
+    await page.getByRole('heading', { name: 'Live Logs', exact: true }).waitFor();
+    await page.getByText('Select a log target', { exact: true }).waitFor();
+    await page.waitForFunction(() => window.__listeners['workspace-changed']);
+    await page.evaluate(() => {
+      window.__devices = [];
+      window.__callbacks[window.__listeners['workspace-changed']]({ payload: null });
+    });
+    await page.getByRole('heading', { name: 'No available devices', exact: true }).waitFor();
+    assert.equal(await logTarget.isDisabled(), true);
+    await page.getByRole('button', { name: 'Go to Device Workbench', exact: true }).click();
+    await page.getByRole('heading', { name: 'Device Workbench', exact: true }).waitFor();
+
     assert.deepEqual(errors, []);
     console.log(
-      'Device UI: selection, keyboard actions, quick APK install, reconnect, native drop, compact layout, one-click screenshot, automatic preview, and errors passed.',
+      'Device UI: selection, installation, reconnect, native drop, screenshots, and independent live logs passed.',
     );
   } finally {
     await browser.close();

@@ -1,6 +1,6 @@
 import { t } from './i18n';
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import type { Plan, Task } from './bindings';
+import type { Device, Plan, Task, Workspace } from './bindings';
 export const native = isTauri();
 export function call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   if (!native)
@@ -50,4 +50,8 @@ export const taskActive = (state: string) =>
   ['queued', 'running', 'waiting_confirmation'].includes(state);
 export const deviceKey = (d: { serial: string; transportId: string; serverEpoch: number }) =>
   `device:${d.serverEpoch}:${d.transportId}:${d.serial}`;
+export function deviceName(device: Device, data?: Workspace) {
+  const avds = data?.avds.filter((avd) => avd.name === device.avdName) ?? [];
+  return avds.length === 1 ? avds[0].displayName : device.model || device.serial;
+}
 export const size = (n: number) => (n ? `${(n / 1024 / 1024).toFixed(1)} MiB` : t('待获取'));
