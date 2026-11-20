@@ -549,6 +549,7 @@ export function App() {
             <button
               key={id}
               aria-label={t(titles[id])}
+              title={t(titles[id])}
               aria-current={page === id ? 'page' : undefined}
               className={page === id ? 'active' : ''}
               onClick={() => setPage(id)}
@@ -571,6 +572,8 @@ export function App() {
               <button
                 key={id}
                 aria-label={t(titles[id])}
+                title={t(titles[id])}
+                aria-current={page === id ? 'page' : undefined}
                 className={page === id ? 'active' : ''}
                 onClick={() => setPage(id)}
               >
@@ -607,52 +610,10 @@ export function App() {
           </small>
         </div>
       </aside>
-      <main className={dedicatedLayout ? `main ${page}-workspace` : 'main'}>
-        {!dedicatedLayout && (
-          <div className="page-top">
-            <div>
-              <div className="eyebrow">ANDROID DEVELOPMENT ENVIRONMENT</div>
-              <h1>{t(titles[page])}</h1>
-              <p>
-                {page === 'devices'
-                  ? t('准备好设备，让下一次验证更直接。')
-                  : page === 'sdk'
-                    ? t('按需准备组件，复用已有开发环境。')
-                    : page === 'signing'
-                      ? t('管理本地密钥，校验 APK 并生成新的签名产物。')
-                      : page === 'tasks'
-                        ? t('每个操作的目标、阶段和结果都留在这里。')
-                        : page === 'diagnostics'
-                          ? t('从检测到的事实出发，定位环境与连接问题。')
-                          : t('为当前工作空间选择路径和行为。')}
-              </p>
-            </div>
-            <div className="page-actions">
-              {page === 'devices' && (
-                <>
-                  <Button onClick={() => setModal('wireless')}>
-                    <Wifi size={15} />
-                    {t('连接设备')}
-                  </Button>
-                  <Button primary onClick={() => setModal('create')}>
-                    <Plus size={16} />
-                    {t('新建模拟器')}
-                  </Button>
-                </>
-              )}
-              {page === 'sdk' && (
-                <Button
-                  onClick={() => void guard(() => catalogRefresh.mutateAsync(undefined))}
-                  disabled={busy}
-                  loading={catalogRefresh.isPending}
-                >
-                  <RefreshCw size={15} className={catalogRefresh.isPending ? 'spin' : ''} />
-                  {t('刷新')}
-                </Button>
-              )}
-            </div>
-          </div>
-        )}
+      <main
+        className={dedicatedLayout ? `main ${page}-workspace` : 'main'}
+        aria-label={t(titles[page])}
+      >
         {!native && (
           <div className="notice">
             <Monitor size={19} />
@@ -722,10 +683,20 @@ export function App() {
                   </button>
                 ))}
               </div>
-              <button className="text-button" onClick={() => void refresh()}>
-                <RefreshCw size={14} />
-                {t('重新扫描')}
-              </button>
+              <div className="device-toolbar-actions">
+                <button className="text-button" onClick={() => void refresh()}>
+                  <RefreshCw size={14} />
+                  {t('重新扫描')}
+                </button>
+                <Button onClick={() => setModal('wireless')}>
+                  <Wifi size={15} />
+                  {t('连接设备')}
+                </Button>
+                <Button primary onClick={() => setModal('create')}>
+                  <Plus size={16} />
+                  {t('新建模拟器')}
+                </Button>
+              </div>
             </div>
             <div className={`device-layout ${hasSelection ? 'has-selection' : ''}`}>
               <div className="device-list">
@@ -1115,6 +1086,7 @@ export function App() {
             refresh={refresh}
             refreshing={catalogRefresh.isPending}
             refreshCatalog={(beforeRefresh) => catalogRefresh.mutateAsync(beforeRefresh)}
+            onRefresh={() => void guard(() => catalogRefresh.mutateAsync(undefined))}
             warnings={catalogRefresh.isSuccess ? catalogRefresh.data : []}
             startWithSources={sdkSources}
             configureJava={() => setJavaOpen(true)}

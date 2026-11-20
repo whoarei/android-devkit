@@ -102,7 +102,7 @@ for (const file of fs
       };
     });
     await page.goto(process.env.ANDROID_DEVKIT_UI_URL || 'http://127.0.0.1:19327');
-    await page.getByRole('heading', { name: 'Device Workbench', exact: true }).waitFor();
+    await page.getByRole('main', { name: 'Device Workbench', exact: true }).waitFor();
     assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
     assert.deepEqual(
       await page.evaluate(() => [
@@ -122,7 +122,7 @@ for (const file of fs
       .getByRole('checkbox', { name: '隐藏过时组件（保留已安装项）', exact: true })
       .uncheck();
     await page.reload();
-    await page.getByRole('heading', { name: 'SDK 管理', exact: true }).waitFor();
+    await page.getByRole('main', { name: 'SDK 管理', exact: true }).waitFor();
     assert.equal(await page.getByLabel('组件状态筛选', { exact: true }).inputValue(), 'installed');
     assert.equal(
       await page
@@ -154,7 +154,7 @@ for (const file of fs
     );
     await recording.getByRole('button', { name: '关闭面板', exact: true }).click();
     await page.reload();
-    await page.getByRole('heading', { name: '设备工作台', exact: true }).waitFor();
+    await page.getByRole('main', { name: '设备工作台', exact: true }).waitFor();
     assert.equal(await page.evaluate(() => window.__preferences.deviceFilter), 'usb');
     await page.locator('.device-row').filter({ hasText: 'Fixture phone' }).click();
     await page.getByRole('button', { name: '录屏', exact: true }).click();

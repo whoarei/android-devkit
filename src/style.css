@@ -246,40 +246,10 @@ nav button b {
 }
 .main {
   margin-left: 220px;
-  padding: 42px 40px 34px;
+  padding: 56px 40px 34px;
   min-height: 100vh;
   overflow: hidden;
   background: radial-gradient(ellipse at 95% 0, var(--ambient), transparent 550px), var(--page);
-}
-.page-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  margin-top: 40px;
-  margin-bottom: 33px;
-}
-.eyebrow {
-  font-size: 11px;
-  letter-spacing: 1.8px;
-  color: var(--accent);
-  margin-bottom: 10px;
-}
-h1 {
-  font-size: 25px;
-  font-weight: 650;
-  letter-spacing: -0.6px;
-  color: var(--text-strong);
-}
-.page-top p {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 10px;
-}
-.page-actions {
-  display: flex;
-  gap: 9px;
-  padding-top: 20px;
 }
 .button {
   display: inline-flex;
@@ -345,11 +315,21 @@ h1 {
 }
 .section-toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  gap: 20px;
+  gap: 4px 14px;
   align-items: center;
   border-bottom: 1px solid var(--line);
   margin-bottom: 4px;
+}
+.device-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-inline-start: auto;
+  padding-block: 3px;
 }
 .tabs {
   display: flex;
@@ -695,8 +675,15 @@ h1 {
 .sdk-manager .sdk-overview {
   margin-bottom: 0;
 }
-.sdk-tabs {
+.sdk-catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   border-bottom: 1px solid var(--line);
+}
+.sdk-tabs {
+  min-width: 0;
   overflow-x: auto;
 }
 .sdk-tabs button {
@@ -1785,7 +1772,7 @@ h1 {
   .sdk-overview > div {
     flex-basis: 100%;
   }
-  .page-actions .button {
+  .device-toolbar-actions .button {
     padding: 8px 10px;
   }
   .package-header,

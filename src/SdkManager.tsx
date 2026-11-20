@@ -2,7 +2,7 @@ import { t, useLocale, getLocale } from './i18n';
 import { useEffect, useMemo, useState } from 'react';
 import { getPreference, rememberPreference, usePreference } from './preferences';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronDown, ChevronRight, HardDrive, Plus, Search, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, HardDrive, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { call, errorText, native, size } from './api';
 import { Button, Field, Modal } from './ui';
 import { SdkDownloadSettings, SdkSourceBar } from './SdkDownloadSettings';
@@ -52,6 +52,7 @@ export function SdkManager({
   refresh,
   refreshing,
   refreshCatalog,
+  onRefresh,
   warnings,
   startWithSources = 0,
   configureJava,
@@ -61,6 +62,7 @@ export function SdkManager({
   refresh: () => Promise<unknown>;
   refreshing: boolean;
   refreshCatalog: (beforeRefresh?: () => Promise<void>) => Promise<string[]>;
+  onRefresh: () => void;
   warnings: string[];
   startWithSources?: number;
   configureJava: () => void;
@@ -219,23 +221,29 @@ export function SdkManager({
       </div>
       <SdkSourceBar source={data?.settings.sdkDownload} open={() => setTab('sites')} />
       <JavaStatus settings={data?.settings} open={configureJava} />
-      <div className="sdk-tabs tabs" role="group" aria-label={t('SDK 管理分类')}>
-        {(
-          [
-            ['platforms', 'SDK Platforms'],
-            ['tools', 'SDK Tools'],
-            ['sites', '下载源与站点'],
-          ] as const
-        ).map(([value, title]) => (
-          <button
-            key={value}
-            aria-pressed={tab === value}
-            className={tab === value ? 'selected' : ''}
-            onClick={() => setTab(value)}
-          >
-            {t(title)}
-          </button>
-        ))}
+      <div className="sdk-catalog-toolbar">
+        <div className="sdk-tabs tabs" role="group" aria-label={t('SDK 管理分类')}>
+          {(
+            [
+              ['platforms', 'SDK Platforms'],
+              ['tools', 'SDK Tools'],
+              ['sites', '下载源与站点'],
+            ] as const
+          ).map(([value, title]) => (
+            <button
+              key={value}
+              aria-pressed={tab === value}
+              className={tab === value ? 'selected' : ''}
+              onClick={() => setTab(value)}
+            >
+              {t(title)}
+            </button>
+          ))}
+        </div>
+        <Button onClick={onRefresh} disabled={busy} loading={refreshing}>
+          <RefreshCw size={15} className={refreshing ? 'spin' : ''} />
+          {t('刷新')}
+        </Button>
       </div>
       {(error || sites.error) && (
         <p className="error-banner" role="alert">

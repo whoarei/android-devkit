@@ -155,7 +155,7 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
       };
     });
     await page.goto(process.env.ANDROID_DEVKIT_UI_URL || 'http://127.0.0.1:19327');
-    await page.getByRole('heading', { name: '设备工作台', exact: true }).waitFor();
+    await page.getByRole('main', { name: '设备工作台', exact: true }).waitFor();
     const nav = (name) => page.locator('nav').getByRole('button', { name, exact: true });
     const root = page.locator('html');
     await nav('设置').click();
@@ -320,7 +320,7 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
     assert.equal(await mode.inputValue(), 'system');
     await mode.selectOption('dark');
     await choose('purple');
-    for (const name of [
+    for (const [index, name] of [
       '设备工作台',
       'ADB 终端',
       'SDK 管理',
@@ -328,11 +328,12 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
       '任务中心',
       '环境诊断',
       '设置',
-    ]) {
+      '实时日志',
+    ].entries()) {
       await nav(name).click();
-      await page
-        .getByRole(name === 'ADB 终端' ? 'region' : 'heading', { name, exact: true })
-        .waitFor();
+      const workspace = page.getByRole('main', { name, exact: true });
+      await workspace.waitFor();
+      assert.equal(await workspace.locator('h1').count(), 0);
       assert.equal(await root.getAttribute('data-color-theme'), 'purple');
       assert.equal(await root.getAttribute('data-theme'), 'dark');
       assert.equal(
@@ -346,10 +347,7 @@ const brandColors = require('./fixtures/brand-icon-colors.json');
         false,
       );
       await page.screenshot({
-        path: path.join(
-          output,
-          `page-${['设备工作台', 'ADB 终端', 'SDK 管理', '签名与 Keystore', '任务中心', '环境诊断', '设置'].indexOf(name)}-dark.png`,
-        ),
+        path: path.join(output, `page-${index}-dark.png`),
       });
     }
     await nav('ADB 终端').click();

@@ -245,10 +245,7 @@ const path = require('node:path');
         window.__holdCatalog = false;
         window.__releaseCatalog();
       });
-      await page.waitForFunction(() => {
-        const button = document.querySelector('.page-actions button[aria-busy="true"]');
-        return !button;
-      });
+      await refreshButton.locator('svg:not(.spin)').waitFor();
       assert.equal(await refreshButton.locator('.spin').count(), 0);
       assert.equal(await refreshButton.isDisabled(), false);
     };
@@ -282,9 +279,7 @@ const path = require('node:path');
       window.__catalogWarnings = [];
     });
     await refreshButton.click();
-    await page.waitForFunction(
-      () => !document.querySelector('.page-actions button[aria-busy="true"]'),
-    );
+    await refreshButton.locator('svg:not(.spin)').waitFor();
     const group = page.locator('.sdk-group').filter({ hasText: 'Android · API 35' });
     await group.getByRole('button', { name: 'Android · API 35', exact: true }).click();
     const api35Count = await page.evaluate(
@@ -409,9 +404,7 @@ const path = require('node:path');
     await dialog.getByRole('button', { name: '保存并刷新', exact: true }).click();
     const vendor = page.locator('.sdk-site').filter({ hasText: 'Vendor fixture' });
     await vendor.waitFor();
-    await page.waitForFunction(
-      () => !document.querySelector('.page-actions button[aria-busy="true"]'),
-    );
+    await refreshButton.locator('svg:not(.spin)').waitFor();
     await holdRefresh();
     await vendor.getByRole('checkbox').click();
     await expectRefreshing();
@@ -567,7 +560,7 @@ const path = require('node:path');
     );
     await page.getByRole('button', { name: '切换界面语言', exact: true }).click();
     await page.getByRole('button', { name: 'Task Center', exact: true }).click();
-    await page.getByRole('heading', { name: 'Task Center', exact: true }).waitFor();
+    await page.getByRole('main', { name: 'Task Center', exact: true }).waitFor();
     await page.getByText('Emulator system is ready', { exact: true }).waitFor();
     await page.getByText('Start emulator', { exact: true }).waitFor();
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
@@ -576,12 +569,12 @@ const path = require('node:path');
       'en-US',
     );
     await page.reload();
-    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+    await page.getByRole('main', { name: 'Settings', exact: true }).waitFor();
     await page
       .locator('nav')
       .getByRole('button', { name: 'Device Workbench', exact: true })
       .click();
-    await page.getByRole('heading', { name: 'Device Workbench', exact: true }).waitFor();
+    await page.getByRole('main', { name: 'Device Workbench', exact: true }).waitFor();
     assert.equal(await page.locator('html').getAttribute('lang'), 'en-US');
     await page.getByRole('button', { name: 'Connect device', exact: true }).click();
     dialog = page.getByRole('dialog', { name: 'Connect device', exact: true });
@@ -601,7 +594,7 @@ const path = require('node:path');
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await page.screenshot({ path: path.join(output, 'language-settings-english.png') });
     await page.getByLabel('Interface language', { exact: true }).selectOption('zh-CN');
-    await page.getByRole('heading', { name: '设置', exact: true }).waitFor();
+    await page.getByRole('main', { name: '设置', exact: true }).waitFor();
     await page.getByLabel('界面主题', { exact: true }).selectOption('dark');
     assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
     const palette = await page.evaluate(() => {
@@ -664,7 +657,7 @@ const path = require('node:path');
     await page.screenshot({ path: path.join(output, 'theme-dark-editor.png') });
     await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
     await page.reload();
-    await page.getByRole('heading', { name: 'Device Workbench', exact: true }).waitFor();
+    await page.getByRole('main', { name: 'Device Workbench', exact: true }).waitFor();
     assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
     assert.equal(
       await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme),

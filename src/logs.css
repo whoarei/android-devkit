@@ -1,7 +1,6 @@
 .main.logs-workspace {
   display: flex;
   flex-direction: column;
-  padding-top: 80px;
 }
 .logs-page,
 .log-panel {
@@ -10,13 +9,10 @@
   flex-direction: column;
   min-width: 0;
 }
-.logs-page {
-  gap: 22px;
-}
+.logs-page,
 .log-panel {
   gap: 14px;
 }
-.logs-heading,
 .log-export {
   display: flex;
   align-items: center;
@@ -40,7 +36,6 @@
   font-size: 12px;
 }
 .logs-target {
-  flex: 1 1 245px;
   width: 100%;
   max-width: 370px;
 }
@@ -158,15 +153,6 @@
   font-weight: 650;
 }
 @media (max-width: 959px) {
-  .main.logs-workspace {
-    padding-top: 63px;
-  }
-  .logs-page {
-    gap: 16px;
-  }
-  .logs-heading h1 {
-    font-size: 22px;
-  }
   .log-filters {
     grid-template-columns: minmax(76px, auto) repeat(2, minmax(0, 1fr));
   }

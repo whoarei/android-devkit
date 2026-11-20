@@ -89,7 +89,7 @@ const path = require('node:path');
     });
     const url = process.env.ANDROID_DEVKIT_UI_URL || 'http://127.0.0.1:19327';
     await page.goto(url);
-    await page.getByRole('heading', { name: '设备工作台', exact: true }).waitFor();
+    await page.getByRole('main', { name: '设备工作台', exact: true }).waitFor();
     const row = page.locator('.device-row').filter({ hasText: 'Network fixture' });
     await row.getByText('网络 ADB', { exact: false }).waitFor();
     await row.click();

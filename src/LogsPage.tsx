@@ -55,32 +55,29 @@ export function LogsPage({
 
   const target = devices.find((device) => deviceKey(device) === (targetKey || initialKey));
   return (
-    <section className="logs-page" aria-labelledby="logs-title">
-      <div className="logs-heading">
-        <h1 id="logs-title">{t('实时日志')}</h1>
-        <label className="logs-target">
-          {t('目标设备')}
-          <select
-            aria-label={t('目标设备')}
-            value={target ? deviceKey(target) : ''}
-            onChange={(event) => setTargetKey(event.target.value)}
-            disabled={!devices.length}
-          >
-            <option value="" disabled>
-              {t(devices.length ? '请选择设备' : '暂无可用设备')}
-            </option>
-            {devices.map((device) => {
-              const name = deviceName(device, data);
-              const key = deviceKey(device);
-              return (
-                <option key={key} value={key}>
-                  {name === device.serial ? name : `${name} · ${device.serial}`}
-                </option>
-              );
-            })}
-          </select>
-        </label>
-      </div>
+    <div className="logs-page">
+      <label className="logs-target">
+        {t('目标设备')}
+        <select
+          aria-label={t('目标设备')}
+          value={target ? deviceKey(target) : ''}
+          onChange={(event) => setTargetKey(event.target.value)}
+          disabled={!devices.length}
+        >
+          <option value="" disabled>
+            {t(devices.length ? '请选择设备' : '暂无可用设备')}
+          </option>
+          {devices.map((device) => {
+            const name = deviceName(device, data);
+            const key = deviceKey(device);
+            return (
+              <option key={key} value={key}>
+                {name === device.serial ? name : `${name} · ${device.serial}`}
+              </option>
+            );
+          })}
+        </select>
+      </label>
       {target ? (
         <LogPanel key={deviceKey(target)} target={target} prepare={prepare} onExport={onExport} />
       ) : (
@@ -98,7 +95,7 @@ export function LogsPage({
           )}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 

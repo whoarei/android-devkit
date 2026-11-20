@@ -50,7 +50,6 @@
   "原签名方案：{0}": "Original signature schemes: {0}",
   "输入 APK 尚未签名": "The input APK is unsigned",
   "签名与 Keystore": "Signing & Keystore",
-  "管理本地密钥，校验 APK 并生成新的签名产物。": "Manage local keys, verify APKs, and create signed outputs.",
   "APK 文件": "APK file",
   "APK 校验": "APK verification",
   "APK 签名": "APK signing",

@@ -110,7 +110,7 @@ const latestVersion = `${major}.${minor}.${patch + 1}`;
     );
     await page.goto(process.env.ANDROID_DEVKIT_UI_URL || 'http://127.0.0.1:19327');
     await page.waitForFunction(() => window.__checks === 1);
-    await page.getByRole('heading', { name: '设备工作台', exact: true }).waitFor();
+    await page.getByRole('main', { name: '设备工作台', exact: true }).waitFor();
     assert.equal(await page.getByRole('alert').count(), 0, 'Startup check failures are quiet');
     await page.locator('nav').getByRole('button', { name: '设置', exact: true }).click();
     const section = page.locator('.software-update');
