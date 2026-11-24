@@ -9,6 +9,8 @@ fn main() {
     let mut args: Vec<_> = std::env::args().skip(1).collect();
     if args.first().map(String::as_str) == Some("-H") {
         args.drain(..4);
+    } else if args.first().map(String::as_str) == Some("-L") {
+        args.drain(..2);
     }
     let mode = fs::read_to_string(root.join("mode")).unwrap_or_default();
     let mut log = fs::OpenOptions::new()
@@ -22,6 +24,19 @@ fn main() {
             "Android Debug Bridge version 1.0.{}",
             fs::read_to_string(root.join("protocol")).unwrap()
         ),
+        Some("start-server") if matches!(mode.as_str(), "adb-start" | "adb-drops-before-pair") => {
+            let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+            fs::write(root.join("start-requested"), b"").unwrap();
+            while !root.join("server-ready").exists() {
+                assert!(std::time::Instant::now() < deadline);
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        }
+        Some("start-server") if mode == "adb-start-failed" => {
+            eprintln!("fixture could not bind the ADB port");
+            std::process::exit(1);
+        }
+        Some("start-server") if mode == "adb-not-ready" => {}
         Some("mdns") => {
             if mode == "mdns-disabled" {
                 if args.get(1).is_some_and(|value| value == "check") {
@@ -46,6 +61,14 @@ fn main() {
             };
             println!("{name} _adb-tls-connect._tcp 192.0.2.10:40123");
             if let Ok(name) = fs::read_to_string(root.join("qr-name")) {
+                if mode == "adb-drops-before-pair" && !root.join("server-stopped").exists() {
+                    fs::write(root.join("qr-discovered"), b"").unwrap();
+                    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+                    while !root.join("server-stopped").exists() {
+                        assert!(std::time::Instant::now() < deadline);
+                        std::thread::sleep(std::time::Duration::from_millis(20));
+                    }
+                }
                 println!("{} _adb-tls-pairing._tcp 192.0.2.10:37123", name.trim());
             }
         }

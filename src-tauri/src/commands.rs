@@ -786,7 +786,20 @@ pub fn setup(app: &mut tauri::App) -> std::result::Result<(), Box<dyn std::error
     }
     *state.handle.lock().unwrap() = Some(app.handle().clone());
     state.monitor();
-    app.manage(state);
+    app.manage(state.clone());
+    tauri::async_runtime::spawn(async move {
+        let Ok(_update_guard) = state.allow_update_sensitive_work() else {
+            return;
+        };
+        let _sdk_guard = state.sdk_gate.read().await;
+        let settings = state.store.settings();
+        if let Err(error) = state.adb_server.ensure(&settings).await {
+            if error.code != "ADB_MISSING" || state.store.has_settings().unwrap_or(false) {
+                *state.adb_startup_error.lock().unwrap() = Some((settings.sdk_root, error.message));
+            }
+        }
+        state.notify();
+    });
     #[cfg(windows)]
     if let Err(error) = crate::taskbar::install(app.handle()) {
         eprintln!("Taskbar icon worker: {error}");

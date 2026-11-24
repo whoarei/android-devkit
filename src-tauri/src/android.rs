@@ -5,10 +5,12 @@ use crate::{
 use std::{
     collections::BTreeMap,
     io::{Read, Write},
-    net::{SocketAddr, TcpStream},
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpStream},
     path::{Path, PathBuf},
     time::Duration,
 };
+
+const ADB_ADDRESS: SocketAddr = SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::LOCALHOST, 5037));
 
 pub fn properties(text: &str) -> BTreeMap<String, String> {
     text.lines()
@@ -451,11 +453,12 @@ pub fn avds(settings: &Settings) -> Vec<Avd> {
 }
 
 pub fn host_request(request: &str) -> Result<Vec<u8>> {
-    let mut socket = TcpStream::connect_timeout(
-        &SocketAddr::from(([127, 0, 0, 1], 5037)),
-        Duration::from_millis(600),
-    )
-    .map_err(|_| AppError::new("ADB_NOT_RUNNING", "ADB 服务尚未启动"))?;
+    let socket = TcpStream::connect_timeout(&ADB_ADDRESS, Duration::from_millis(600))
+        .map_err(|_| AppError::new("ADB_NOT_RUNNING", "ADB 服务尚未启动"))?;
+    host_exchange(socket, request)
+}
+
+fn host_exchange(mut socket: TcpStream, request: &str) -> Result<Vec<u8>> {
     socket.set_read_timeout(Some(Duration::from_secs(2)))?;
     socket.write_all(format!("{:04x}{request}", request.len()).as_bytes())?;
     let mut status = [0; 4];
@@ -515,7 +518,18 @@ pub fn parse_devices(text: &str, epoch: u64) -> Vec<Device> {
         })
         .collect()
 }
-pub async fn compatible_adb(settings: &Settings) -> Result<PathBuf> {
+fn adb_error(code: &str, message: &str, error: AppError) -> AppError {
+    let detail = error.detail.trim();
+    let reason = if detail.is_empty() {
+        &error.message
+    } else {
+        detail
+    };
+    let reason: String = reason.chars().take(1200).collect();
+    AppError::new(code, format!("{message}：{reason}"))
+}
+
+async fn adb_client(settings: &Settings) -> Result<(PathBuf, u32)> {
     let path = Path::new(&settings.sdk_root).join("platform-tools/adb.exe");
     if !path.is_file() {
         return Err(AppError::new("ADB_MISSING", "当前 SDK 缺少 platform-tools"));
@@ -529,9 +543,16 @@ pub async fn compatible_adb(settings: &Settings) -> Result<PathBuf> {
         .find_map(|l| l.strip_prefix("Android Debug Bridge version 1.0."))
         .and_then(|v| v.trim().parse::<u32>().ok())
         .ok_or_else(|| AppError::new("ADB_VERSION", "无法验证 ADB 客户端版本"))?;
-    match host_request("host:version") {
+    Ok((path, client))
+}
+
+fn compatible_server(response: Result<Vec<u8>>, client: u32) -> Result<bool> {
+    match response {
         Ok(raw) => {
-            let server = u32::from_str_radix(String::from_utf8_lossy(&raw).trim(), 16).unwrap_or(0);
+            let server =
+                u32::from_str_radix(String::from_utf8_lossy(&raw).trim(), 16).map_err(|_| {
+                    AppError::new("ADB_SERVER_UNVERIFIED", "共享 ADB 服务返回了无效的协议版本")
+                })?;
             if client != server {
                 return Err(AppError::new(
                     "ADB_VERSION_CONFLICT",
@@ -540,17 +561,96 @@ pub async fn compatible_adb(settings: &Settings) -> Result<PathBuf> {
                 ),
                 ));
             }
+            Ok(true)
         }
-        Err(error) if error.code == "ADB_NOT_RUNNING" => {}
-        Err(error) => {
-            return Err(AppError::new(
-                "ADB_SERVER_UNVERIFIED",
-                "无法验证共享 ADB 服务，未启动可能替换服务的客户端",
-            )
-            .detail(error.to_string()))
+        Err(error) if error.code == "ADB_NOT_RUNNING" => Ok(false),
+        Err(error) => Err(adb_error(
+            "ADB_SERVER_UNVERIFIED",
+            "无法验证共享 ADB 服务",
+            error,
+        )),
+    }
+}
+
+pub async fn compatible_adb(settings: &Settings) -> Result<PathBuf> {
+    let (path, client) = adb_client(settings).await?;
+    compatible_server(host_request("host:version"), client)?;
+    Ok(path)
+}
+
+pub struct AdbServer {
+    pub start_gate: tokio::sync::Mutex<()>,
+    address: SocketAddr,
+}
+
+impl Default for AdbServer {
+    fn default() -> Self {
+        Self::new(ADB_ADDRESS)
+    }
+}
+
+impl AdbServer {
+    pub(crate) fn new(address: SocketAddr) -> Self {
+        Self {
+            start_gate: tokio::sync::Mutex::new(()),
+            address,
         }
     }
-    Ok(path)
+
+    async fn is_compatible(&self, client: u32) -> Result<bool> {
+        let address = self.address;
+        tokio::task::spawn_blocking(move || {
+            // Winsock can take about two seconds to refuse a closed loopback port.
+            let response = match TcpStream::connect_timeout(&address, Duration::from_secs(3)) {
+                Ok(socket) => host_exchange(socket, "host:version"),
+                Err(error) if error.kind() == std::io::ErrorKind::ConnectionRefused => {
+                    return Ok(false);
+                }
+                Err(error) => Err(error.into()),
+            };
+            compatible_server(response, client)
+        })
+        .await
+        .map_err(|error| {
+            AppError::new(
+                "ADB_SERVER_UNVERIFIED",
+                format!("无法验证共享 ADB 服务：{error}"),
+            )
+        })?
+    }
+
+    pub async fn ensure(&self, settings: &Settings) -> Result<PathBuf> {
+        let _gate = self.start_gate.lock().await;
+        let (path, client) =
+            adb_client(settings)
+                .await
+                .map_err(|error| match error.code.as_str() {
+                    "ADB_MISSING" | "ADB_VERSION" => error,
+                    _ => adb_error("ADB_VERSION", "无法验证 ADB 客户端版本", error),
+                })?;
+        if self.is_compatible(client).await? {
+            return Ok(path);
+        }
+        // An explicit -H disables adb's local server autostart, even for 127.0.0.1.
+        let socket = format!("tcp:localhost:{}", self.address.port());
+        process::run(Spec::new(
+            &path,
+            vec!["-L".into(), socket, "start-server".into()],
+        ))
+        .await
+        .and_then(process::Output::success)
+        .map_err(|error| adb_error("ADB_START_FAILED", "ADB 服务启动失败", error))?;
+        if !self.is_compatible(client).await? {
+            return Err(AppError::new(
+                "ADB_START_FAILED",
+                format!(
+                    "ADB 启动命令已结束，但本机端口 {} 没有响应",
+                    self.address.port()
+                ),
+            ));
+        }
+        Ok(path)
+    }
 }
 pub async fn adb(
     settings: &Settings,

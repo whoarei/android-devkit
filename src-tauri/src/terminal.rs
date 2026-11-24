@@ -1,5 +1,5 @@
 //! Persistent, byte-oriented PTYs. Only this module owns terminal processes.
-use crate::{android, app::App, domain::*, process};
+use crate::{android, app::App, domain::*};
 use base64::Engine;
 use portable_pty::{native_pty_system, ChildKiller, CommandBuilder, MasterPty, PtySize};
 use serde::Serialize;
@@ -519,13 +519,8 @@ pub async fn terminal_create(
     }
     let size = pty_size(cols, rows)?;
     let settings = app.store.settings();
-    let adb = android::compatible_adb(&settings).await?;
     // The shared daemon must be started outside the session's pseudoconsole.
-    if android::host_request("host:version").is_err() {
-        process::run(process::Spec::new(&adb, vec!["start-server".into()]))
-            .await?
-            .success()?;
-    }
+    let adb = app.adb_server.ensure(&settings).await?;
     let label = if let Some(target) = &target {
         let epoch = app.epoch.load(Ordering::SeqCst);
         let raw = android::host_request("host:devices-l")?;

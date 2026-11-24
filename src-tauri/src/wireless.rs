@@ -203,6 +203,7 @@ async fn discover(app: &App, settings: &Settings) -> Result<Vec<WirelessService>
     if let Ok(services) = app.wireless.native.services() {
         return Ok(services);
     }
+    app.adb_server.ensure(settings).await?;
     let out = android::adb(settings, None, vec!["mdns".into(), "services".into()], 8).await?;
     if out.code != 0 || !out.text().contains("List of discovered mdns services") {
         return Err(AppError::new(
@@ -229,6 +230,7 @@ async fn discover(app: &App, settings: &Settings) -> Result<Vec<WirelessService>
 
 #[tauri::command]
 pub async fn wireless_discover(app: State<'_, Arc<App>>) -> Result<Vec<WirelessService>> {
+    let _sdk_guard = app.sdk_gate.read().await;
     discover(&app, &app.store.settings()).await.map(|services| {
         services
             .into_iter()
@@ -267,6 +269,7 @@ async fn start_code(
         return Ok(task);
     }
     validate_code_service(&service.name)?;
+    let _sdk_guard = app.sdk_gate.read().await;
     if service.service_type != PAIRING
         || !discover(app, &app.store.settings())
             .await?
@@ -299,6 +302,14 @@ pub async fn wireless_qr_start(app: State<'_, Arc<App>>) -> Result<WirelessQr> {
 
 async fn start_qr(app: &Arc<App>) -> Result<WirelessQr> {
     let _gate = app.wireless.start_gate.lock().await;
+    let _update_guard = app.allow_update_sensitive_work()?;
+    let _sdk_guard = app.sdk_gate.read().await;
+    if app.draining.load(Ordering::SeqCst) {
+        return Err(AppError::new(
+            "APP_CLOSING",
+            "应用正在等待退出，不接收新写任务",
+        ));
+    }
     if app
         .store
         .active_tasks()?
@@ -310,8 +321,9 @@ async fn start_qr(app: &Arc<App>) -> Result<WirelessQr> {
             "已有扫码配对流程，请先取消或等待完成",
         ));
     }
-    android::compatible_adb(&app.store.settings()).await?;
-    discover(app, &app.store.settings()).await?;
+    let settings = app.store.settings();
+    app.adb_server.ensure(&settings).await?;
+    discover(app, &settings).await?;
     let id = uuid::Uuid::new_v4().to_string();
     let name = format!(
         "studio-{}",
@@ -440,7 +452,10 @@ impl App {
                         "二维码已过期，请生成新的二维码",
                     ));
                 }
-                let services = discover(self, settings).await?;
+                let services = {
+                    let _sdk_guard = self.sdk_gate.read().await;
+                    discover(self, settings).await?
+                };
                 let matches: Vec<_> = services
                     .into_iter()
                     .filter(|s| s.name == session.name && s.service_type == PAIRING)
@@ -483,6 +498,8 @@ impl App {
             task.message = "正在配对设备".into();
             task.cancellable = true;
         })?;
+        let _sdk_guard = cancellable(self, id, async { Ok(self.sdk_gate.read().await) }).await?;
+        cancellable(self, id, self.adb_server.ensure(settings)).await?;
         if !service_name.is_empty() {
             let services = cancellable(self, id, discover(self, settings)).await?;
             if !services.iter().any(|s| {
@@ -595,6 +612,7 @@ impl App {
             task.cancellable = true;
         })?;
         cancellable(self, id, async {
+            self.adb_server.ensure(settings).await?;
             android::adb(settings, None, vec!["connect".into(), address.into()], 15)
                 .await?
                 .success()?;

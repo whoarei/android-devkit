@@ -132,6 +132,7 @@ export function App() {
   });
   const data = query.data;
   const [submittedPhoneTask, setSubmittedPhoneTask] = useState<Task | null>(null);
+  const adbActionTasks = useRef(new Set<string>());
   const submitting = useRef(false);
   const submissionIdentity = useRef({ planId: '', requestId: '' });
   const submittingCapture = useRef(false);
@@ -162,6 +163,14 @@ export function App() {
     [apk, setApk] = useState<ApkInfo | null>(null),
     [maximized, setMaximized] = useState(false),
     [preview, setPreview] = useState('');
+  useEffect(() => {
+    const failures: string[] = [];
+    for (const task of data?.tasks ?? []) {
+      if (taskActive(task.state) || !adbActionTasks.current.delete(task.id)) continue;
+      if (task.state === 'failed' || task.state === 'needs_review') failures.push(t(task.message));
+    }
+    if (failures.length) setError(failures.join('\n'));
+  }, [data?.tasks]);
   const [exportPreview, setExportPreview] = useState<ExportPreview | null>(null);
   const captureResults = useQueries({
     queries: captureTaskIds.map((taskId) =>
@@ -459,6 +468,12 @@ export function App() {
       await guard(async () => {
         const submitted = await submitTask(plan, submissionIdentity.current.requestId, accepted);
         if (
+          ['wireless_pair', 'wireless_connect', 'network_connect', 'adb_restart'].includes(
+            plan.operation.kind,
+          )
+        )
+          adbActionTasks.current.add(submitted.id);
+        if (
           ['file_upload', 'file_download', 'screen_record', 'screen_recover'].includes(
             plan.operation.kind,
           )
@@ -688,6 +703,12 @@ export function App() {
                   <RefreshCw size={14} />
                   {t('重新扫描')}
                 </button>
+                <Button
+                  disabled={busy || !data?.environment.adb || active.length > 0}
+                  onClick={() => void prepare('adb_restart')}
+                >
+                  {t('重启共享 ADB')}
+                </Button>
                 <Button onClick={() => setModal('wireless')}>
                   <Wifi size={15} />
                   {t('连接设备')}
@@ -934,9 +955,7 @@ export function App() {
                       onClick={() => {
                         if (!target) return;
                         setPage('terminal');
-                        void guard(() =>
-                          openDeviceTerminal(target, deviceName(target, data)),
-                        );
+                        void guard(() => openDeviceTerminal(target, deviceName(target, data)));
                       }}
                     >
                       <Terminal size={15} />
@@ -1369,6 +1388,7 @@ export function App() {
               danger={
                 plan.operation.kind.includes('delete') ||
                 plan.operation.kind.includes('wipe') ||
+                plan.operation.kind === 'adb_restart' ||
                 plan.operation.kind === 'screen_cleanup' ||
                 (['file_upload', 'file_download'].includes(plan.operation.kind) &&
                   plan.operation.args.conflicts === 'replace')

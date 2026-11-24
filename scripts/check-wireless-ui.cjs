@@ -22,6 +22,7 @@ const path = require('node:path');
       window.__callbacks = {};
       window.__listeners = {};
       window.__discoveryError = false;
+      window.__adbStartError = false;
       window.__holdQr = false;
       let counter = 0;
       const makeTask = (kind) => ({
@@ -81,6 +82,8 @@ const path = require('node:path');
             return structuredClone(task);
           }
           if (command === 'wireless_qr_start') {
+            if (window.__adbStartError)
+              throw { message: 'ADB 服务启动失败：Could not bind to local port 5037' };
             const create = () => {
               const task = makeTask('wireless_qr_pair');
               window.__tasks.push(task);
@@ -289,6 +292,19 @@ const path = require('node:path');
       false,
     );
     await page.screenshot({ path: path.join(output, 'code-en-compact.png') });
+    await english.getByRole('button', { name: 'Scan QR code', exact: true }).click();
+    await page.evaluate(() => {
+      window.__adbStartError = true;
+    });
+    await english.getByRole('button', { name: 'Generate pairing QR code', exact: true }).click();
+    await english
+      .getByRole('alert')
+      .filter({ hasText: 'Could not start the ADB server: Could not bind to local port 5037' })
+      .waitFor();
+    assert.equal(
+      await english.getByRole('img', { name: 'Wireless debugging pairing QR code' }).count(),
+      0,
+    );
     assert.deepEqual(errors, []);
     console.log(
       'Wireless UI: discovery, multiple phones, stale selection, code clearing, QR/code success auto-close without cancellation, failure retention, reopen, QR submission deduplication, close cancellation, late response, fallback, English and 480px layout passed.',

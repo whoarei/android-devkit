@@ -10,6 +10,8 @@ use std::{
 use tauri::Emitter;
 
 pub struct App {
+    pub adb_server: android::AdbServer,
+    pub adb_startup_error: Mutex<Option<(String, String)>>,
     pub wireless: crate::wireless::WirelessState,
     pub signing: crate::signing::SigningState,
     pub terminals: crate::terminal::TerminalManager,
@@ -63,6 +65,8 @@ impl App {
             }
         }
         Ok(Arc::new(Self {
+            adb_server: android::AdbServer::default(),
+            adb_startup_error: Mutex::new(None),
             wireless: crate::wireless::WirelessState::default(),
             signing: crate::signing::SigningState::default(),
             terminals: crate::terminal::TerminalManager::default(),
@@ -176,7 +180,15 @@ impl App {
         }
         let server = android::host_request("host:version")
             .map(|v| format!("共享 ADB · 协议 {}", String::from_utf8_lossy(&v)))
-            .unwrap_or_else(|_| "ADB 服务未运行".into());
+            .unwrap_or_else(|_| {
+                self.adb_startup_error
+                    .lock()
+                    .unwrap()
+                    .as_ref()
+                    .filter(|(sdk_root, _)| *sdk_root == settings.sdk_root)
+                    .map(|(_, message)| message.clone())
+                    .unwrap_or_else(|| "ADB 服务未运行".into())
+            });
         self.reconcile(&packages, &avds, &devices)?;
         Ok(Workspace {
             setup_required: !self.store.has_settings()?,
@@ -358,6 +370,7 @@ impl App {
                 {
                     let mut status = [0; 4];
                     if socket.read_exact(&mut status).is_ok() && &status == b"OKAY" {
+                        *app.adb_startup_error.lock().unwrap() = None;
                         app.epoch.fetch_add(1, Ordering::SeqCst);
                         app.prune_logs();
                         app.notify();

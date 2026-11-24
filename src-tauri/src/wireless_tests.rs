@@ -1,4 +1,8 @@
 use super::*;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpListener,
+};
 
 #[test]
 fn discovery_handles_types_ipv6_duplicates_and_malformed_rows() {
@@ -62,6 +66,35 @@ fn connection_identity_does_not_accept_an_unrelated_online_phone() {
     );
 }
 
+async fn serve_adb_version(listener: TcpListener, protocol: u32) {
+    let response = format!("OKAY0004{protocol:04x}");
+    while let Ok((mut socket, _)) = listener.accept().await {
+        let mut request = [0; 16];
+        if socket.read_exact(&mut request).await.is_ok() && &request == b"000chost:version" {
+            let _ = socket.write_all(response.as_bytes()).await;
+        }
+    }
+}
+
+async fn wait_for_fixture_file(path: std::path::PathBuf) {
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while !path.exists() {
+        assert!(Instant::now() < deadline, "fixture did not create {path:?}");
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+}
+
+async fn serve_after_start(
+    address: std::net::SocketAddr,
+    tools: std::path::PathBuf,
+    protocol: u32,
+) {
+    wait_for_fixture_file(tools.join("start-requested")).await;
+    let listener = TcpListener::bind(address).await.unwrap();
+    std::fs::write(tools.join("server-ready"), b"").unwrap();
+    serve_adb_version(listener, protocol).await;
+}
+
 async fn fixture(root: &std::path::Path, binary: &std::path::Path, mode: &str) -> Arc<App> {
     let sdk = root.join("sdk");
     let tools = sdk.join("platform-tools");
@@ -74,7 +107,39 @@ async fn fixture(root: &std::path::Path, binary: &std::path::Path, mode: &str) -
         .unwrap_or(41);
     std::fs::write(tools.join("protocol"), protocol.to_string()).unwrap();
     std::fs::write(tools.join("mode"), mode).unwrap();
-    let app = App::new(root.join("data")).unwrap();
+    let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+    let address = listener.local_addr().unwrap();
+    match mode {
+        "adb-start-failed" | "adb-not-ready" => drop(listener),
+        "adb-start" => {
+            drop(listener);
+            tokio::spawn(serve_after_start(address, tools.clone(), protocol));
+        }
+        _ => {
+            let server_protocol = if mode == "adb-conflict" {
+                protocol + 1
+            } else {
+                protocol
+            };
+            listener.set_nonblocking(true).unwrap();
+            let listener = TcpListener::from_std(listener).unwrap();
+            if mode == "adb-drops-before-pair" {
+                let tools = tools.clone();
+                tokio::spawn(async move {
+                    tokio::select! {
+                        _ = serve_adb_version(listener, server_protocol) => return,
+                        _ = wait_for_fixture_file(tools.join("qr-discovered")) => {}
+                    }
+                    std::fs::write(tools.join("server-stopped"), b"").unwrap();
+                    serve_after_start(address, tools, protocol).await;
+                });
+            } else {
+                tokio::spawn(serve_adb_version(listener, server_protocol));
+            }
+        }
+    }
+    let mut app = App::new(root.join("data")).unwrap();
+    Arc::get_mut(&mut app).unwrap().adb_server = android::AdbServer::new(address);
     app.wireless.native.disable_for_fixture();
     app.store
         .save_settings(&Settings {
@@ -311,6 +376,124 @@ async fn wireless_workflows_keep_target_identity_and_secrets() {
     app.cancel_task(&qr.task.id).unwrap();
     assert_eq!(finished(&app, &qr.task.id).await.state, "cancelled");
     assert!(app.wireless.sessions.lock().unwrap().is_empty());
+
+    let app = fixture(&temp.path().join("cold-adb"), &binary, "adb-start").await;
+    let settings = app.store.settings();
+    let (startup, qr) = tokio::join!(app.adb_server.ensure(&settings), start_qr(&app));
+    startup.unwrap();
+    let qr = qr.unwrap();
+    assert!(qr.image.starts_with("data:image/svg+xml;base64,"));
+    let calls = std::fs::read_to_string(
+        std::path::Path::new(&settings.sdk_root).join("platform-tools/calls"),
+    )
+    .unwrap();
+    assert_eq!(
+        calls.lines().filter(|line| *line == "start-server").count(),
+        1
+    );
+    app.cancel_task(&qr.task.id).unwrap();
+    assert_eq!(finished(&app, &qr.task.id).await.state, "cancelled");
+
+    let app = fixture(
+        &temp.path().join("adb-drops-before-pair"),
+        &binary,
+        "adb-drops-before-pair",
+    )
+    .await;
+    let qr = start_qr(&app).await.unwrap();
+    let tools = std::path::Path::new(&app.store.settings().sdk_root).join("platform-tools");
+    assert!(!tools.join("start-requested").exists());
+    std::fs::write(
+        tools.join("qr-name"),
+        &qr.task.operation.args["serviceName"],
+    )
+    .unwrap();
+    let task = finished(&app, &qr.task.id).await;
+    assert_eq!(task.state, "succeeded", "{}", task.message);
+    let calls = std::fs::read_to_string(tools.join("calls")).unwrap();
+    let start = calls
+        .lines()
+        .position(|call| call == "start-server")
+        .unwrap();
+    let pair = calls
+        .lines()
+        .position(|call| call.starts_with("pair "))
+        .unwrap();
+    assert!(start < pair);
+
+    let app = fixture(&temp.path().join("cold-connect"), &binary, "adb-start").await;
+    let task = submit_pair(
+        &app,
+        Operation {
+            kind: "wireless_connect".into(),
+            target: None,
+            args: BTreeMap::from([("address".into(), "192.0.2.10:40123".into())]),
+        },
+        "cold-connect",
+    )
+    .unwrap();
+    let task = finished(&app, &task.id).await;
+    assert_eq!(task.state, "succeeded", "{}", task.message);
+    let tools = std::path::Path::new(&app.store.settings().sdk_root).join("platform-tools");
+    assert!(tools.join("start-requested").exists());
+
+    let app = fixture(&temp.path().join("failed-adb"), &binary, "adb-start-failed").await;
+    let error = start_qr(&app).await.err().unwrap();
+    assert_eq!(error.code, "ADB_START_FAILED");
+    assert!(error
+        .message
+        .contains("fixture could not bind the ADB port"));
+    assert!(app.wireless.sessions.lock().unwrap().is_empty());
+    assert!(app.store.active_tasks().unwrap().is_empty());
+    let error = start_code(
+        &app,
+        service.clone(),
+        "123456".into(),
+        "code-offline".into(),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error.code, "ADB_START_FAILED");
+    assert!(error
+        .message
+        .contains("fixture could not bind the ADB port"));
+
+    for kind in ["wireless_pair", "wireless_connect", "network_connect"] {
+        let mut args = BTreeMap::from([("address".into(), "192.0.2.10:37123".into())]);
+        if kind == "wireless_pair" {
+            args.insert("code".into(), "123456".into());
+        }
+        let task = submit_pair(
+            &app,
+            Operation {
+                kind: kind.into(),
+                target: None,
+                args,
+            },
+            kind,
+        )
+        .unwrap();
+        let task = finished(&app, &task.id).await;
+        assert_eq!(task.state, "failed");
+        assert!(task.message.starts_with("ADB_START_FAILED"));
+        assert!(task.message.contains("fixture could not bind the ADB port"));
+    }
+    let tools = std::path::Path::new(&app.store.settings().sdk_root).join("platform-tools");
+    let calls = std::fs::read_to_string(tools.join("calls")).unwrap();
+    assert!(!calls
+        .lines()
+        .any(|call| call.starts_with("pair ") || call.starts_with("connect ")));
+
+    let app = fixture(&temp.path().join("adb-not-ready"), &binary, "adb-not-ready").await;
+    let error = start_qr(&app).await.err().unwrap();
+    assert_eq!(error.code, "ADB_START_FAILED");
+    assert!(error.message.contains("没有响应"));
+    assert!(app.store.active_tasks().unwrap().is_empty());
+
+    let app = fixture(&temp.path().join("adb-conflict"), &binary, "adb-conflict").await;
+    let error = start_qr(&app).await.err().unwrap();
+    assert_eq!(error.code, "ADB_VERSION_CONFLICT");
+    assert!(app.store.active_tasks().unwrap().is_empty());
 
     let app = fixture(&temp.path().join("no-mdns"), &binary, "mdns-unavailable").await;
     assert_eq!(start_qr(&app).await.err().unwrap().code, "MDNS_UNAVAILABLE");

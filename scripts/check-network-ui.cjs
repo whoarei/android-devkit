@@ -17,6 +17,7 @@ const path = require('node:path');
     await page.addInitScript(() => {
       window.isTauri = true;
       window.__operations = [];
+      window.__tasks = [];
       window.__rejectPlan = false;
       window.__TAURI_EVENT_PLUGIN_INTERNALS__ = { unregisterListener() {} };
       window.__TAURI_INTERNALS__ = {
@@ -30,7 +31,7 @@ const path = require('node:path');
               environment: { adb: 'fixture' },
               packages: [],
               avds: [],
-              tasks: [],
+              tasks: structuredClone(window.__tasks),
               server: 'UI fixture',
               serverEpoch: 1,
               freeBytes: 1024 ** 3,
@@ -70,6 +71,7 @@ const path = require('node:path');
               network_disconnect: '断开网络 ADB 连接',
               wireless_pair: '无线设备配对',
               wireless_connect: '连接无线设备',
+              adb_restart: '重启共享 ADB',
             };
             return {
               id: 'fixture',
@@ -77,10 +79,30 @@ const path = require('node:path');
               confirmationToken: 'fixture',
               title: titles[args.operation.kind],
               operation: args.operation,
-              effects: [args.operation.args.address],
-              warnings: [],
+              effects: args.operation.args.address ? [args.operation.args.address] : [],
+              warnings:
+                args.operation.kind === 'adb_restart'
+                  ? ['将中断本机其他工具及设备连接，旧会话全部失效。']
+                  : [],
               licenses: [],
             };
+          }
+          if (command === 'task_submit') {
+            const operation = window.__operations.at(-1);
+            const restart = operation.kind === 'adb_restart';
+            const task = {
+              id: `task-${window.__tasks.length + 1}`,
+              title: restart ? '重启共享 ADB' : '连接网络 ADB 设备',
+              operation,
+              state: restart ? 'succeeded' : 'failed',
+              message: restart
+                ? '共享服务已重新启动，旧目标全部失效'
+                : 'ADB_START_FAILED：ADB 服务启动失败：Could not bind to local port 5037',
+              phase: restart ? 'complete' : 'preparing',
+              log: [],
+            };
+            window.__tasks.push(task);
+            return task;
           }
           if (command.startsWith('plugin:event|')) return 1;
           return null;
@@ -167,9 +189,26 @@ const path = require('node:path');
       false,
     );
     await page.screenshot({ path: path.join(output, 'network-adb-compact.png') });
+    await dialog.getByRole('button', { name: '连接并验证', exact: true }).click();
+    await page
+      .getByRole('dialog', { name: '连接网络 ADB 设备', exact: true })
+      .getByRole('button', { name: '连接网络 ADB 设备', exact: true })
+      .click();
+    await page
+      .getByRole('alert')
+      .filter({ hasText: 'Could not bind to local port 5037' })
+      .waitFor();
+    await page.getByRole('button', { name: '关闭设备详情', exact: true }).click();
+    await page.getByRole('button', { name: '重启共享 ADB', exact: true }).click();
+    const restart = page.getByRole('dialog', { name: '重启共享 ADB', exact: true });
+    await restart.getByText('将中断本机其他工具及设备连接，旧会话全部失效。').waitFor();
+    assert.equal(await page.evaluate(() => window.__tasks.length), 1);
+    await restart.getByRole('button', { name: '重启共享 ADB', exact: true }).click();
+    await restart.waitFor({ state: 'detached' });
+    assert.equal(await page.evaluate(() => window.__tasks.at(-1).operation.kind), 'adb_restart');
     assert.deepEqual(errors, []);
     console.log(
-      'Network ADB UI: pairing, direct IPv4/IPv6, port isolation, errors, unauthorized state, endpoint disconnect and compact layout passed.',
+      'Network ADB UI: pairing, direct IPv4/IPv6, startup errors, restart confirmation, endpoint disconnect and compact layout passed.',
     );
   } finally {
     await browser.close();

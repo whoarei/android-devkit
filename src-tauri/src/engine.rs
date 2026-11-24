@@ -237,9 +237,15 @@ impl App {
             None
         };
         let _sdk_read = if (op.kind.starts_with("avd_") && op.kind != "avd_create")
-            || op.kind == "apk_install_wait"
-            || op.kind == "mirror_start"
-        {
+            || matches!(
+                op.kind.as_str(),
+                "apk_install_wait"
+                    | "mirror_start"
+                    | "adb_start"
+                    | "adb_restart"
+                    | "wireless_connect"
+                    | "network_connect"
+            ) {
             Some(self.sdk_gate.read().await)
         } else {
             None
@@ -394,13 +400,11 @@ impl App {
                 Ok("Java 已就绪，可返回原安装计划".into())
             }
             "adb_start" => {
-                let adb = android::compatible_adb(settings).await?;
-                process::run(Spec::new(adb, vec!["start-server".into()]))
-                    .await?
-                    .success()?;
+                self.adb_server.ensure(settings).await?;
                 Ok("设备服务已启动；正在刷新设备".into())
             }
             "adb_restart" => {
+                let _adb_guard = self.adb_server.start_gate.lock().await;
                 if self.store.active_tasks()?.iter().any(|t| t.id != id) {
                     return Err(AppError::new(
                         "TASKS_ACTIVE",
@@ -616,6 +620,7 @@ impl App {
                     .await
             }
             "network_connect" => {
+                self.adb_server.ensure(settings).await?;
                 android::adb(
                     settings,
                     None,
@@ -1331,10 +1336,7 @@ impl App {
             .await?
             .success()?;
         self.line(id, acceleration.text())?;
-        let adb = android::compatible_adb(settings).await?;
-        process::run(Spec::new(adb, vec!["start-server".into()]))
-            .await?
-            .success()?;
+        self.adb_server.ensure(settings).await?;
         let log_path = self.data.join(format!("emulator-{id}.log"));
         let log = std::fs::File::create(&log_path)?;
         let mut command = std::process::Command::new(&emulator);
