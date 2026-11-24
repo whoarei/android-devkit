@@ -4,7 +4,9 @@
 
 Android DevKit 是面向 Windows 11 x64 的 Android 开发工作台，将 SDK、模拟器、真机、应用安装与调试工具集中在一个桌面应用中，可复用已有 Android SDK 和 AVD。
 
-[下载最新版](https://github.com/whoarei/android-devkit/releases/latest)
+[v0.11.0 发布说明](https://github.com/whoarei/android-devkit/releases/tag/v0.11.0) · [Windows x64 安装包](https://github.com/whoarei/android-devkit/releases/download/v0.11.0/AndroidDevKit-0.11.0-setup.exe) · [Windows x64 便携 ZIP](https://github.com/whoarei/android-devkit/releases/download/v0.11.0/AndroidDevKit-0.11.0-windows-x64.zip)
+
+本版新增独立实时日志页、双栏文件传输和设备工作台的 ADB 重启入口。应用启动、扫码和直连时会按需启动 ADB，启动失败会显示具体原因。
 
 ## 软件特性
 
@@ -21,7 +23,7 @@ Android DevKit 是面向 Windows 11 x64 的 Android 开发工作台，将 SDK、
 
 ## 主要功能截图
 
-截图展示当前版本界面，使用演示数据。
+截图使用演示数据，部分界面取自 v0.10.0。
 
 ### 设备工作台
 

@@ -4,7 +4,9 @@
 
 Android DevKit is an Android development workbench for Windows 11 x64. It brings SDK management, emulators, physical devices, app installation, and debugging tools into one desktop app, with support for existing Android SDKs and AVDs.
 
-[Download the latest release](https://github.com/whoarei/android-devkit/releases/latest)
+[v0.11.0 release notes](https://github.com/whoarei/android-devkit/releases/tag/v0.11.0) · [Windows x64 installer](https://github.com/whoarei/android-devkit/releases/download/v0.11.0/AndroidDevKit-0.11.0-setup.exe) · [Windows x64 portable ZIP](https://github.com/whoarei/android-devkit/releases/download/v0.11.0/AndroidDevKit-0.11.0-windows-x64.zip)
+
+This release adds a dedicated live logs page, side-by-side file transfer, and a shared ADB restart button in the device workbench. The app starts ADB as needed at launch and when pairing or connecting, and shows the reason if startup fails.
 
 ## Features
 
@@ -21,7 +23,7 @@ Android DevKit is an Android development workbench for Windows 11 x64. It brings
 
 ## Screenshots
 
-Screenshots show the current interface with demonstration data.
+Screenshots use demonstration data. Some show the v0.10.0 interface.
 
 ### Device workbench
 
